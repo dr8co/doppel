@@ -1,9 +1,9 @@
 package scanner
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"io"
+	"lukechampine.com/blake3"
 	"os"
 )
 
@@ -24,7 +24,7 @@ func HashFile(filePath string) (string, error) {
 		_ = file.Close()
 	}(file)
 
-	hasher := sha256.New()
+	hasher := blake3.New(32, nil)
 	_, err = io.Copy(hasher, file)
 	if err != nil {
 		return "", err
