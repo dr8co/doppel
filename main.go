@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
-	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -10,9 +10,15 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/urfave/cli/v3"
+)
+
+const (
+	version = "1.0.0"
 )
 
 type FileInfo struct {
@@ -30,57 +36,284 @@ type FilterConfig struct {
 	MaxSize          int64
 }
 
+type Stats struct {
+	TotalFiles      int
+	ProcessedFiles  int
+	SkippedDirs     int
+	SkippedFiles    int
+	ErrorCount      int
+	DuplicateGroups int
+	DuplicateFiles  int
+	StartTime       time.Time
+}
+
 func main() {
-	var workers = flag.Int("workers", runtime.NumCPU(), "Number of worker goroutines for hashing")
-	var verbose = flag.Bool("v", false, "Verbose output")
-	var excludeDirs = flag.String("exclude-dirs", "", "Comma-separated list of directory patterns to exclude")
-	var excludeFiles = flag.String("exclude-files", "", "Comma-separated list of file patterns to exclude")
-	var excludeDirRegex = flag.String("exclude-dir-regex", "", "Comma-separated list of regex patterns for directories to exclude")
-	var excludeFileRegex = flag.String("exclude-file-regex", "", "Comma-separated list of regex patterns for files to exclude")
-	var minSize = flag.Int64("min-size", 0, "Minimum file size in bytes (0 = no limit)")
-	var maxSize = flag.Int64("max-size", 0, "Maximum file size in bytes (0 = no limit)")
-	var showFilters = flag.Bool("show-filters", false, "Show active filters and exit")
-
-	flag.Usage = func() {
-		_, _ = fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] [directory1 directory2 ...]\n\n", os.Args[0])
-		_, _ = fmt.Fprintln(flag.CommandLine.Output(), "Options:")
-		flag.PrintDefaults()
+	app := &cli.Command{
+		Name:    "doppel",
+		Usage:   "Find duplicate files across directories",
+		Version: version,
+		Authors: []any{
+			"Ian Duncan",
+		},
+		Copyright: "(c) 2025 Ian Duncan",
+		Description: `A fast, concurrent duplicate file finder with advanced filtering capabilities.
+		
+This tool scans directories for duplicate files by comparing file sizes first, 
+then computing SHA-256 hashes for files of the same size. It supports parallel 
+processing and extensive filtering options to skip unwanted files and directories.`,
+		Commands: []*cli.Command{
+			{
+				Name:    "find",
+				Aliases: []string{"f"},
+				Usage:   "Find duplicate files in specified directories",
+				Description: `Scan directories for duplicate files. If no directories are specified, 
+the current directory is used. Files are compared using SHA-256 hashes after 
+initial size-based filtering.`,
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:    "workers",
+						Aliases: []string{"w"},
+						Value:   4,
+						Usage:   "Number of worker goroutines for parallel hashing",
+					},
+					&cli.BoolFlag{
+						Name:    "verbose",
+						Aliases: []string{"v"},
+						Usage:   "Enable verbose output with detailed progress information",
+					},
+					&cli.StringFlag{
+						Name:  "exclude-dirs",
+						Usage: "Comma-separated list of directory patterns to exclude (glob patterns)",
+						Value: "",
+					},
+					&cli.StringFlag{
+						Name:  "exclude-files",
+						Usage: "Comma-separated list of file patterns to exclude (glob patterns)",
+						Value: "",
+					},
+					&cli.StringFlag{
+						Name:  "exclude-dir-regex",
+						Usage: "Comma-separated list of regex patterns for directories to exclude",
+						Value: "",
+					},
+					&cli.StringFlag{
+						Name:  "exclude-file-regex",
+						Usage: "Comma-separated list of regex patterns for files to exclude",
+						Value: "",
+					},
+					&cli.Int64Flag{
+						Name:  "min-size",
+						Usage: "Minimum file size in bytes (0 = no limit)",
+						Value: 0,
+					},
+					&cli.Int64Flag{
+						Name:  "max-size",
+						Usage: "Maximum file size in bytes (0 = no limit)",
+						Value: 0,
+					},
+					&cli.BoolFlag{
+						Name:  "show-filters",
+						Usage: "Show active filters and exit without scanning",
+					},
+					&cli.BoolFlag{
+						Name:  "stats",
+						Usage: "Show detailed statistics at the end",
+					},
+				},
+				Action: findDuplicates,
+			},
+			{
+				Name:    "preset",
+				Aliases: []string{"p"},
+				Usage:   "Use predefined filter presets",
+				Description: `Apply common filter presets for different scenarios:
+- dev: Skip development directories and files
+- media: Focus on media files, skip small files
+- docs: Focus on document files
+- clean: Skip temporary and cache files`,
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:    "workers",
+						Aliases: []string{"w"},
+						Value:   4,
+						Usage:   "Number of worker goroutines for parallel hashing",
+					},
+					&cli.BoolFlag{
+						Name:    "verbose",
+						Aliases: []string{"v"},
+						Usage:   "Enable verbose output",
+					},
+					&cli.BoolFlag{
+						Name:  "stats",
+						Usage: "Show detailed statistics",
+					},
+				},
+				Commands: []*cli.Command{
+					{
+						Name:  "dev",
+						Usage: "Development preset - skip build dirs, temp files, version control",
+						Action: func(ctx context.Context, c *cli.Command) error {
+							return findDuplicatesWithPreset(ctx, c, "dev")
+						},
+					},
+					{
+						Name:  "media",
+						Usage: "Media preset - focus on images/videos, skip small files",
+						Action: func(ctx context.Context, c *cli.Command) error {
+							return findDuplicatesWithPreset(ctx, c, "media")
+						},
+					},
+					{
+						Name:  "docs",
+						Usage: "Documents preset - focus on document files",
+						Action: func(ctx context.Context, c *cli.Command) error {
+							return findDuplicatesWithPreset(ctx, c, "docs")
+						},
+					},
+					{
+						Name:  "clean",
+						Usage: "Clean preset - skip temporary and cache files",
+						Action: func(ctx context.Context, c *cli.Command) error {
+							return findDuplicatesWithPreset(ctx, c, "clean")
+						},
+					},
+				},
+			},
+		},
+		DefaultCommand: "find",
+		Suggest:        true,
 	}
-	flag.Parse()
 
-	directories := flag.Args()
+	if err := app.Run(context.Background(), os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func findDuplicates(_ context.Context, c *cli.Command) error {
+	directories := c.Args().Slice()
 	if len(directories) == 0 {
 		directories = []string{"."}
 	}
 
 	// Build filter configuration
-	filterConfig, err := buildFilterConfig(*excludeDirs, *excludeFiles, *excludeDirRegex, *excludeFileRegex, *minSize, *maxSize)
+	filterConfig, err := buildFilterConfig(
+		c.String("exclude-dirs"),
+		c.String("exclude-files"),
+		c.String("exclude-dir-regex"),
+		c.String("exclude-file-regex"),
+		c.Int64("min-size"),
+		c.Int64("max-size"),
+	)
 	if err != nil {
-		log.Fatalf("Error building filter configuration: %v", err)
+		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
-	if *showFilters {
+	if c.Bool("show-filters") {
 		displayFilterConfig(filterConfig)
-		return
+		return nil
 	}
 
-	if *verbose {
-		fmt.Printf("Scanning directories: %v\n\n", directories)
+	verbose := c.Bool("verbose")
+	showStats := c.Bool("stats")
+	workers := c.Int("workers")
+
+	stats := &Stats{StartTime: time.Now()}
+
+	if verbose {
+		fmt.Printf("🔍 Scanning directories: %v\n", directories)
 		displayFilterConfig(filterConfig)
 	}
 
 	// Phase 1: Group files by size
-	sizeGroups, totalFiles, errors := groupFilesBySize(directories, filterConfig, *verbose)
-
-	if *verbose {
-		fmt.Printf("\nFound %d files, %d size groups\n\n", totalFiles, len(sizeGroups))
+	sizeGroups, err := groupFilesBySize(directories, filterConfig, stats, verbose)
+	if err != nil {
+		return fmt.Errorf("error scanning files: %w", err)
 	}
 
-	// Phase 2: Hash files that have potential duplicates (same size)
-	duplicates, hashErrors := findDuplicatesByHash(sizeGroups, *workers, *verbose)
+	if verbose {
+		fmt.Printf("📊 Found %d files, %d size groups\n", stats.TotalFiles, len(sizeGroups))
+	}
+
+	// Phase 2: Hash files that have potential duplicates
+	duplicates, err := findDuplicatesByHash(sizeGroups, workers, stats, verbose)
+	if err != nil {
+		return fmt.Errorf("error finding duplicates: %w", err)
+	}
 
 	// Phase 3: Display results
-	displayResults(duplicates, totalFiles, errors+hashErrors)
+	displayResults(duplicates, stats, showStats || verbose)
+
+	return nil
+}
+
+func findDuplicatesWithPreset(_ context.Context, c *cli.Command, preset string) error {
+	filterConfig := getPresetConfig(preset)
+
+	directories := c.Args().Slice()
+	if len(directories) == 0 {
+		directories = []string{"."}
+	}
+
+	verbose := c.Bool("verbose")
+	showStats := c.Bool("stats")
+	workers := c.Int("workers")
+
+	stats := &Stats{StartTime: time.Now()}
+
+	if verbose {
+		fmt.Printf("🔍 Using preset '%s' to scan directories: %v\n", preset, directories)
+		displayFilterConfig(filterConfig)
+	}
+
+	// Phase 1: Group files by size
+	sizeGroups, err := groupFilesBySize(directories, filterConfig, stats, verbose)
+	if err != nil {
+		return fmt.Errorf("error scanning files: %w", err)
+	}
+
+	if verbose {
+		fmt.Printf("📊 Found %d files, %d size groups\n", stats.TotalFiles, len(sizeGroups))
+	}
+
+	// Phase 2: Hash files that have potential duplicates
+	duplicates, err := findDuplicatesByHash(sizeGroups, workers, stats, verbose)
+	if err != nil {
+		return fmt.Errorf("error finding duplicates: %w", err)
+	}
+
+	// Phase 3: Display results
+	displayResults(duplicates, stats, showStats || verbose)
+
+	return nil
+}
+
+func getPresetConfig(preset string) *FilterConfig {
+	switch preset {
+	case "dev":
+		return &FilterConfig{
+			ExcludeDirs:  []string{"node_modules", ".git", "build", "dist", "target", "__pycache__", ".vscode", ".idea", "vendor"},
+			ExcludeFiles: []string{"*.tmp", "*.log", "*.swp", "*.swo", "*~", ".DS_Store", "Thumbs.db", "*.pyc", "*.pyo"},
+			MinSize:      100, // Skip very small files
+		}
+	case "media":
+		return &FilterConfig{
+			ExcludeDirs: []string{".git", "__pycache__", "node_modules"},
+			MinSize:     10240, // 10KB minimum for media files
+		}
+	case "docs":
+		return &FilterConfig{
+			ExcludeDirs:  []string{".git", "__pycache__", "node_modules", "build", "dist"},
+			ExcludeFiles: []string{"*.tmp", "*.log", "*.swp", "*~"},
+			MinSize:      1024, // 1KB minimum
+		}
+	case "clean":
+		return &FilterConfig{
+			ExcludeDirs:  []string{".git", "__pycache__", "node_modules", ".cache", "tmp", "temp"},
+			ExcludeFiles: []string{"*.tmp", "*.log", "*.cache", "*.swp", "*~", ".DS_Store", "Thumbs.db"},
+		}
+	default:
+		return &FilterConfig{}
+	}
 }
 
 // buildFilterConfig creates a FilterConfig from command line arguments
@@ -106,7 +339,7 @@ func buildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRe
 		for _, pattern := range patterns {
 			regex, err := regexp.Compile(pattern)
 			if err != nil {
-				return nil, fmt.Errorf("invalid directory regex pattern '%s': %v", pattern, err)
+				return nil, fmt.Errorf("invalid directory regex pattern '%s': %w", pattern, err)
 			}
 			config.ExcludeDirRegex = append(config.ExcludeDirRegex, regex)
 		}
@@ -118,7 +351,7 @@ func buildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRe
 		for _, pattern := range patterns {
 			regex, err := regexp.Compile(pattern)
 			if err != nil {
-				return nil, fmt.Errorf("invalid file regex pattern '%s': %v", pattern, err)
+				return nil, fmt.Errorf("invalid file regex pattern '%s': %w", pattern, err)
 			}
 			config.ExcludeFileRegex = append(config.ExcludeFileRegex, regex)
 		}
@@ -202,65 +435,60 @@ func (fc *FilterConfig) shouldExcludeFile(filePath string, size int64) bool {
 
 // displayFilterConfig shows the current filter configuration
 func displayFilterConfig(config *FilterConfig) {
-	fmt.Println("Active filters:")
+	fmt.Println("🔧 Active filters:")
 	if len(config.ExcludeDirs) > 0 {
-		fmt.Printf("  Exclude directories: %s\n", strings.Join(config.ExcludeDirs, ", "))
+		fmt.Printf("  📁 Exclude directories: %s\n", strings.Join(config.ExcludeDirs, ", "))
 	}
 	if len(config.ExcludeFiles) > 0 {
-		fmt.Printf("  Exclude files: %s\n", strings.Join(config.ExcludeFiles, ", "))
+		fmt.Printf("  📄 Exclude files: %s\n", strings.Join(config.ExcludeFiles, ", "))
 	}
 	if len(config.ExcludeDirRegex) > 0 {
 		patterns := make([]string, len(config.ExcludeDirRegex))
 		for i, regex := range config.ExcludeDirRegex {
 			patterns[i] = regex.String()
 		}
-		fmt.Printf("  Exclude directory regex: %s\n", strings.Join(patterns, ", "))
+		fmt.Printf("  📁 Exclude directory regex: %s\n", strings.Join(patterns, ", "))
 	}
 	if len(config.ExcludeFileRegex) > 0 {
 		patterns := make([]string, len(config.ExcludeFileRegex))
 		for i, regex := range config.ExcludeFileRegex {
 			patterns[i] = regex.String()
 		}
-		fmt.Printf("  Exclude file regex: %s\n", strings.Join(patterns, ", "))
+		fmt.Printf("  📄 Exclude file regex: %s\n", strings.Join(patterns, ", "))
 	}
 	if config.MinSize > 0 {
-		fmt.Printf("  Minimum file size: %d bytes\n", config.MinSize)
+		fmt.Printf("  📏 Minimum file size: %s\n", formatBytes(config.MinSize))
 	}
 	if config.MaxSize > 0 {
-		fmt.Printf("  Maximum file size: %d bytes\n", config.MaxSize)
+		fmt.Printf("  📏 Maximum file size: %s\n", formatBytes(config.MaxSize))
 	}
 	if len(config.ExcludeDirs) == 0 && len(config.ExcludeFiles) == 0 &&
 		len(config.ExcludeDirRegex) == 0 && len(config.ExcludeFileRegex) == 0 &&
 		config.MinSize == 0 && config.MaxSize == 0 {
-		fmt.Println("  No filters active")
+		fmt.Println("  ✅ No filters active")
 	}
 	fmt.Println()
 }
 
-// groupFilesBySize walks directories and groups files by size
-func groupFilesBySize(directories []string, filterConfig *FilterConfig, verbose bool) (map[int64][]string, int, int) {
+func groupFilesBySize(directories []string, filterConfig *FilterConfig, stats *Stats, verbose bool) (map[int64][]string, error) {
 	sizeGroups := make(map[int64][]string)
-	totalFiles := 0
-	errors := 0
-	skippedDirs := 0
-	skippedFiles := 0
 
 	for _, dir := range directories {
 		err := filepath.WalkDir(dir, func(path string, dirEnt fs.DirEntry, err error) error {
 			if err != nil {
 				if verbose {
-					log.Printf("Error accessing %s: %v", path, err)
+					log.Printf("❌ Error accessing %s: %v", path, err)
 				}
-				errors++
-				return nil // Continue walking despite errors
+				stats.ErrorCount++
+				return nil
 			}
 
 			// Check if we should skip this directory
 			if dirEnt.IsDir() && filterConfig.shouldExcludeDir(path) {
 				if verbose {
-					log.Printf("Skipping directory: %s", path)
+					log.Printf("⏭️  Skipping directory: %s", path)
 				}
-				skippedDirs++
+				stats.SkippedDirs++
 				return filepath.SkipDir
 			}
 
@@ -268,9 +496,9 @@ func groupFilesBySize(directories []string, filterConfig *FilterConfig, verbose 
 				info, err := dirEnt.Info()
 				if err != nil {
 					if verbose {
-						log.Printf("Error getting info for %s: %v", path, err)
+						log.Printf("❌ Error getting info for %s: %v", path, err)
 					}
-					errors++
+					stats.ErrorCount++
 					return nil
 				}
 
@@ -279,29 +507,28 @@ func groupFilesBySize(directories []string, filterConfig *FilterConfig, verbose 
 				// Check if we should skip this file
 				if filterConfig.shouldExcludeFile(path, size) {
 					if verbose {
-						log.Printf("Skipping file: %s", path)
+						log.Printf("⏭️  Skipping file: %s", path)
 					}
-					skippedFiles++
+					stats.SkippedFiles++
 					return nil
 				}
 
 				sizeGroups[size] = append(sizeGroups[size], path)
-				totalFiles++
+				stats.TotalFiles++
 			}
 			return nil
 		})
 
 		if err != nil {
-			log.Printf("Error walking directory %s: %v", dir, err)
-			errors++
+			return nil, fmt.Errorf("error walking directory %s: %w", dir, err)
 		}
 	}
 
-	if verbose && (skippedDirs > 0 || skippedFiles > 0) {
-		fmt.Printf("Skipped %d directories and %d files due to filters\n", skippedDirs, skippedFiles)
+	if verbose && (stats.SkippedDirs > 0 || stats.SkippedFiles > 0) {
+		fmt.Printf("⏭️  Skipped %d directories and %d files due to filters\n", stats.SkippedDirs, stats.SkippedFiles)
 	}
 
-	return sizeGroups, totalFiles, errors
+	return sizeGroups, nil
 }
 
 // hashFile computes SHA-256 hash of the entire file
@@ -324,8 +551,7 @@ func hashFile(filePath string) (string, error) {
 }
 
 // findDuplicatesByHash processes files with same sizes and finds actual duplicates
-func findDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, verbose bool) (map[string][]string, int) {
-	// Only process size groups with multiple files
+func findDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *Stats, verbose bool) (map[string][]string, error) {
 	var candidateFiles []string
 	for _, files := range sizeGroups {
 		if len(files) > 1 {
@@ -334,11 +560,11 @@ func findDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, verbose
 	}
 
 	if len(candidateFiles) == 0 {
-		return make(map[string][]string), 0
+		return make(map[string][]string), nil
 	}
 
 	if verbose {
-		fmt.Printf("Hashing %d candidate files with %d workers\n\n", len(candidateFiles), numWorkers)
+		fmt.Printf("🔐 Hashing %d candidate files with %d workers\n", len(candidateFiles), numWorkers)
 	}
 
 	// Create the work channel and the result channel
@@ -355,8 +581,9 @@ func findDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, verbose
 				hash, err := hashFile(filePath)
 				if err != nil {
 					if verbose {
-						log.Printf("Error hashing %s: %v", filePath, err)
+						log.Printf("❌ Error hashing %s: %v", filePath, err)
 					}
+					stats.ErrorCount++
 					continue
 				}
 
@@ -364,8 +591,9 @@ func findDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, verbose
 				info, err := os.Stat(filePath)
 				if err != nil {
 					if verbose {
-						log.Printf("Error stating %s: %v", filePath, err)
+						log.Printf("❌ Error stating %s: %v", filePath, err)
 					}
+					stats.ErrorCount++
 					continue
 				}
 
@@ -392,49 +620,81 @@ func findDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, verbose
 
 	// Collect results and group by hash
 	hashGroups := make(map[string][]string)
-	processedCount := 0
-	errorCount := len(candidateFiles) // Start with the total, subtract successful ones
-
 	for result := range resultChan {
 		hashGroups[result.Hash] = append(hashGroups[result.Hash], result.Path)
-		processedCount++
+		stats.ProcessedFiles++
 	}
 
-	errorCount -= processedCount
-
-	// Filter to only return actual duplicates (hash groups with >1 file)
 	duplicates := make(map[string][]string)
 	for hash, files := range hashGroups {
 		if len(files) > 1 {
 			duplicates[hash] = files
+			stats.DuplicateGroups++
+			stats.DuplicateFiles += len(files)
 		}
 	}
 
-	return duplicates, errorCount
+	return duplicates, nil
 }
 
-// displayResults shows the duplicate files found
-func displayResults(duplicates map[string][]string, totalFiles, errors int) {
-	duplicateCount := 0
+func displayResults(duplicates map[string][]string, stats *Stats, showStats bool) {
 	groupCount := 0
+	var totalSize int64
 
 	for _, files := range duplicates {
 		groupCount++
-		fmt.Printf("\nDuplicate group %d (%d files):\n", groupCount, len(files))
+		fmt.Printf("\n🔗 Duplicate group %d (%d files):\n", groupCount, len(files))
+
+		// Get file size for the group
+		if len(files) > 0 {
+			if info, err := os.Stat(files[0]); err == nil {
+				groupSize := info.Size()
+				wastedSpace := groupSize * int64(len(files)-1)
+				totalSize += wastedSpace
+				fmt.Printf("   Size: %s each, %s wasted space\n", formatBytes(groupSize), formatBytes(wastedSpace))
+			}
+		}
+
 		for _, file := range files {
-			fmt.Printf("  %s\n", file)
-			duplicateCount++
+			fmt.Printf("   📄 %s\n", file)
 		}
 	}
 
-	fmt.Printf("\nSummary:\n")
-	if duplicateCount > 0 {
-		fmt.Printf("  Duplicate files found: %d (in %d groups)\n", duplicateCount, groupCount)
+	fmt.Printf("\n📊 Summary:\n")
+	if stats.DuplicateFiles > 0 {
+		fmt.Printf("   🔗 Duplicate files found: %d (in %d groups)\n", stats.DuplicateFiles, stats.DuplicateGroups)
+		fmt.Printf("   💾 Total wasted space: %s\n", formatBytes(totalSize))
 	} else {
-		fmt.Printf("  No duplicate files found\n")
+		fmt.Printf("   ✅ No duplicate files found\n")
 	}
-	fmt.Printf("  Total files scanned: %d\n", totalFiles)
-	if errors > 0 {
-		fmt.Printf("  Files with errors: %d\n", errors)
+
+	if showStats {
+		duration := time.Since(stats.StartTime)
+		fmt.Printf("\n📈 Detailed Statistics:\n")
+		fmt.Printf("   📁 Total files scanned: %d\n", stats.TotalFiles)
+		fmt.Printf("   🔐 Files processed for hashing: %d\n", stats.ProcessedFiles)
+		fmt.Printf("   ⏭️  Directories skipped: %d\n", stats.SkippedDirs)
+		fmt.Printf("   ⏭️  Files skipped: %d\n", stats.SkippedFiles)
+		fmt.Printf("   ❌ Files with errors: %d\n", stats.ErrorCount)
+		fmt.Printf("   ⏱️  Processing time: %v\n", duration.Round(time.Millisecond))
+		if stats.ProcessedFiles > 0 && duration > 0 {
+			rate := float64(stats.ProcessedFiles) / duration.Seconds()
+			fmt.Printf("   🚀 Processing rate: %.1f files/second\n", rate)
+		}
+	} else if stats.ErrorCount > 0 {
+		fmt.Printf("   ❌ Files with errors: %d\n", stats.ErrorCount)
 	}
+}
+
+func formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
