@@ -1,6 +1,8 @@
 # doppel
 
-**doppel** is a fast and flexible command-line tool for finding duplicate files in one or more directories. It uses efficient file size grouping and Blake3 hashing to accurately identify duplicates, with extensive filtering and reporting options.
+**doppel** is a fast and flexible command-line tool for finding duplicate files in one or more directories.
+It uses efficient file size grouping and Blake3 hashing to accurately identify duplicates,
+with extensive filtering and reporting options.
 
 ## Features
 
@@ -69,7 +71,8 @@ Find duplicates in `~/Downloads` and `~/Documents`, excluding `.git` directories
 
 ### Preset Command
 
-The `preset` command quickly searches for duplicate files using predefined filter settings for common scenarios. Each preset applies a set of filters tailored for a specific use case:
+The `preset` command quickly searches for duplicate files using predefined filter settings for common scenarios.
+Each preset applies a set of filters tailored for a specific use case:
 
 - `dev`: Skip development directories and files (e.g., build, temp, version control)
 - `media`: Focus on media files (images/videos), skip small files
@@ -107,6 +110,7 @@ Find duplicate media files in your `~/Pictures` folder:
 
 - Code is organized in `cmd/`, `internal/`, and `pkg/` directories.
 - Uses [urfave/cli/v3](https://github.com/urfave/cli) for CLI parsing.
+- Uses [blake3](https://github.com/lukechampine/blake3) for fast hashing.
 - Run tests with:
 
   ```sh
