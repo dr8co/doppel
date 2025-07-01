@@ -28,10 +28,16 @@ go install github.com/dr8co/doppel@latest
 
 ## Usage
 
-Run `doppel find` to scan for duplicate files in the current directory:
+> **Note:** If you run `doppel` without specifying a command, it defaults to the `find` command.
+
+### Find Command
+
+Run `doppel find` (or simply `doppel`) to scan for duplicate files in the current directory:
 
 ```sh
 ./doppel find
+# or simply
+./doppel
 ```
 
 Or specify one or more directories:
@@ -40,7 +46,7 @@ Or specify one or more directories:
 ./doppel find /path/to/dir1 /path/to/dir2
 ```
 
-### Common Options
+#### Find Command Options
 
 - `-w, --workers <n>`: Number of parallel hashing workers (default: number of CPUs)
 - `-v, --verbose`: Enable verbose output
@@ -53,12 +59,41 @@ Or specify one or more directories:
 - `--show-filters`: Show active filters and exit
 - `--stats`: Show detailed statistics at the end
 
-### Example
+##### `find` Example
 
 Find duplicates in `~/Downloads` and `~/Documents`, excluding `.git` directories and files smaller than 1MB:
 
 ```sh
 ./doppel find ~/Downloads ~/Documents --exclude-dirs=.git --min-size=1048576 --stats
+```
+
+### Preset Command
+
+The `preset` command quickly searches for duplicate files using predefined filter settings for common scenarios. Each preset applies a set of filters tailored for a specific use case:
+
+- `dev`: Skip development directories and files (e.g., build, temp, version control)
+- `media`: Focus on media files (images/videos), skip small files
+- `docs`: Focus on document files
+- `clean`: Skip temporary and cache files
+
+#### Preset Command Usage
+
+```sh
+./doppel preset <preset> [options]
+```
+
+Where `<preset>` is one of: `dev`, `media`, `docs`, or `clean`.
+
+#### Preset Command Options
+
+Same as `find` command options.
+
+##### `preset` Example
+
+Find duplicate media files in your `~/Pictures` folder:
+
+```sh
+./doppel preset media ~/Pictures --stats
 ```
 
 ## How It Works
