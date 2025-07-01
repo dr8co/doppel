@@ -26,7 +26,7 @@ func main() {
 		Description: `A fast, concurrent duplicate file finder with advanced filtering capabilities.
 		
 This tool scans directories for duplicate files by comparing file sizes first, 
-then computing SHA-256 hashes for files of the same size. It supports parallel 
+then computing Blake3 hashes for files of the same size. It supports parallel 
 processing and extensive filtering options to skip unwanted files and directories.`,
 		Commands: []*cli.Command{
 			cmd.FindCommand(),

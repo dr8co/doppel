@@ -1,6 +1,6 @@
 # doppel
 
-**doppel** is a fast and flexible command-line tool for finding duplicate files in one or more directories. It uses efficient file size grouping and SHA-256 hashing to accurately identify duplicates, with extensive filtering and reporting options.
+**doppel** is a fast and flexible command-line tool for finding duplicate files in one or more directories. It uses efficient file size grouping and Blake3 hashing to accurately identify duplicates, with extensive filtering and reporting options.
 
 ## Features
 
@@ -100,7 +100,7 @@ Find duplicate media files in your `~/Pictures` folder:
 
 1. **File Discovery**: Recursively scans specified directories, applying filters.
 2. **Grouping**: Groups files by size to quickly eliminate non-duplicates.
-3. **Hashing**: Computes SHA-256 hashes for files with matching sizes.
+3. **Hashing**: Computes Blake3 hashes for files with matching sizes.
 4. **Reporting**: Displays groups of duplicate files and optional statistics.
 
 ## Development

@@ -22,7 +22,7 @@ func FindCommand() *cli.Command {
 		Aliases: []string{"f"},
 		Usage:   "Find duplicate files in specified directories",
 		Description: `Scan directories for duplicate files. If no directories are specified, 
-the current directory is used. Files are compared using SHA-256 hashes after 
+the current directory is used. Files are compared using Blake3 hashes after 
 initial size-based filtering.`,
 		Flags: []cli.Flag{
 			&cli.IntFlag{

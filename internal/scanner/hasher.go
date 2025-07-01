@@ -14,7 +14,7 @@ type FileInfo struct {
 	Hash string
 }
 
-// HashFile computes SHA-256 hash of the entire file
+// HashFile computes Blake3 hash of the entire file
 func HashFile(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
