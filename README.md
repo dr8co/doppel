@@ -1,4 +1,19 @@
-# 🧿 doppel
+<p align="center">
+  <img src="./assets/logo1024x1024.png" alt="doppel logo" height="480">
+</p>
+
+<!-- <h1 align="center">🧿 doppel</h1> -->
+<p align="center"><em>Your filesystem has doppelgängers. Let’s hunt.</em></p>
+
+<p align="center">
+  <a href="https://golang.org"><img alt="Made with Go" src="https://img.shields.io/badge/Made%20with-Go-00ADD8?logo=go"></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-blue">
+  <img alt="GitHub go.mod Go version" src="https://img.shields.io/github/go-mod/go-version/dr8co/doppel?logo=go">
+  <img alt="Status" src="https://img.shields.io/badge/status-alpha-orange">
+  <img alt="License" src="https://img.shields.io/github/license/dr8co/doppel">
+</p>
+
+---
 
 **doppel** is a fast, concurrent CLI tool written in Go that scans directories for duplicate files —
 or as we like to call them, _doppelgängers_! 🕵️‍♂️🗂️
