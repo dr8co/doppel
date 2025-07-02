@@ -49,7 +49,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 							log.Printf("❌ Error hashing %s: %v", filePath, err)
 						}
 					}
-					stats.ErrorCount++
+					stats.IncrementErrorCount()
 					continue
 				}
 
@@ -64,7 +64,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 							log.Printf("❌ Error stating %s: %v", filePath, err)
 						}
 					}
-					stats.ErrorCount++
+					stats.IncrementErrorCount()
 					continue
 				}
 
@@ -101,7 +101,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		if len(files) > 1 {
 			duplicates[hash] = files
 			stats.DuplicateGroups++
-			stats.DuplicateFiles += len(files)
+			stats.DuplicateFiles += uint64(len(files))
 		}
 	}
 
