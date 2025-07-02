@@ -10,7 +10,7 @@
   <img alt="Platform" src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-blue">
   <img alt="GitHub go.mod Go version" src="https://img.shields.io/github/go-mod/go-version/dr8co/doppel?logo=go">
   <img alt="GitHub Actions CI test" src="https://github.com/dr8co/doppel/actions/workflows/go.yml/badge.svg">
-  <img alt="Status" src="https://img.shields.io/badge/status-alpha-orange">
+  <img alt="Go report" src="https://goreportcard.com/badge/dr8co/doppel">
   <img alt="License" src="https://img.shields.io/github/license/dr8co/doppel?color=blue">
 </p>
 
