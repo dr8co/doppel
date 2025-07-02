@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/logo1024x1024.png" alt="doppel logo" height="480">
+  <img src="./assets/logo480p.png" alt="doppel logo" height="480">
 </p>
 
 <!-- <h1 align="center">🧿 doppel</h1> -->
