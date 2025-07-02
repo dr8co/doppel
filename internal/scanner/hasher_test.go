@@ -75,7 +75,7 @@ func TestHashFile(t *testing.T) {
 			}
 
 			// Verify the hash matches what we expect
-			if gotHash != expectedHash {
+			if bytesToHex(gotHash) != expectedHash {
 				t.Errorf("HashFile() = %v, want %v", gotHash, expectedHash)
 			}
 		})
@@ -109,4 +109,8 @@ func TestFileInfo(t *testing.T) {
 	if fileInfo.Hash != "abcdef1234567890" {
 		t.Errorf("FileInfo.Hash = %v, want %v", fileInfo.Hash, "abcdef1234567890")
 	}
+}
+
+func bytesToHex(b string) string {
+	return fmt.Sprintf("%x", b)
 }

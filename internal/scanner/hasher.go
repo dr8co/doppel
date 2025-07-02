@@ -1,10 +1,10 @@
 package scanner
 
 import (
-	"fmt"
 	"io"
-	"lukechampine.com/blake3"
 	"os"
+
+	"lukechampine.com/blake3"
 )
 
 // FileInfo represents a file with its path, size, and hash
@@ -25,10 +25,22 @@ func HashFile(filePath string) (string, error) {
 	}(file)
 
 	hasher := blake3.New(32, nil)
-	_, err = io.Copy(hasher, file)
-	if err != nil {
-		return "", err
-	}
+	const chunkSize = 64 * 1024 // 64 KB
+	buf := make([]byte, chunkSize)
 
-	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
+	for {
+		n, err := file.Read(buf)
+		if n > 0 {
+			if _, err2 := hasher.Write(buf[:n]); err2 != nil {
+				return "", err2
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+	return string(hasher.Sum(nil)), nil
 }
