@@ -76,6 +76,56 @@ func TestBuildFilterConfig(t *testing.T) {
 			maxSize:          0,
 			wantErr:          true,
 		},
+		{
+			name:             "whitespace patterns",
+			excludeDirs:      "   ",
+			excludeFiles:     "\t",
+			excludeDirRegex:  "   ",
+			excludeFileRegex: "\n",
+			minSize:          0,
+			maxSize:          0,
+			wantErr:          false,
+		},
+		{
+			name:             "overlapping patterns",
+			excludeDirs:      "foo,foo",
+			excludeFiles:     "bar,bar",
+			excludeDirRegex:  "baz|baz",
+			excludeFileRegex: "qux|qux",
+			minSize:          0,
+			maxSize:          0,
+			wantErr:          false,
+		},
+		{
+			name:             "very large min/max",
+			excludeDirs:      "",
+			excludeFiles:     "",
+			excludeDirRegex:  "",
+			excludeFileRegex: "",
+			minSize:          1 << 40,
+			maxSize:          1 << 41,
+			wantErr:          false,
+		},
+		{
+			name:             "min > max",
+			excludeDirs:      "",
+			excludeFiles:     "",
+			excludeDirRegex:  "",
+			excludeFileRegex: "",
+			minSize:          100,
+			maxSize:          10,
+			wantErr:          false,
+		},
+		{
+			name:             "negative min",
+			excludeDirs:      "",
+			excludeFiles:     "",
+			excludeDirRegex:  "",
+			excludeFileRegex: "",
+			minSize:          -1,
+			maxSize:          100,
+			wantErr:          false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -285,6 +335,11 @@ func TestParseCommaSeparated(t *testing.T) {
 			name:     "with empty parts",
 			input:    "value1,,value3",
 			expected: []string{"value1", "value3"},
+		},
+		{
+			name:     "empty parts",
+			input:    ",,,,,",
+			expected: nil,
 		},
 	}
 

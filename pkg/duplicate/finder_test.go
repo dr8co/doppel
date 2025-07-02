@@ -119,6 +119,54 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	if s.DuplicateFiles != 5 {
 		t.Errorf("Stats.DuplicateFiles = %d, want 5", s.DuplicateFiles)
 	}
+
+	// Test with no duplicates
+	sizeGroups = map[int64][]string{
+		int64(len(content1)): {file1},
+		int64(len(content2)): {file4},
+	}
+
+	duplicates, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
+	if err != nil {
+		t.Fatalf("FindDuplicatesByHash() error = %v", err)
+	}
+	if len(duplicates) != 0 {
+		t.Errorf("FindDuplicatesByHash() returned %d duplicate groups, want 0", len(duplicates))
+	}
+
+	// Test with all files duplicate
+	sizeGroups = map[int64][]string{
+		int64(len(content1)): {file1, file2, file3},
+	}
+
+	duplicates, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
+	if err != nil {
+		t.Fatalf("FindDuplicatesByHash() error = %v", err)
+	}
+	if len(duplicates) != 1 {
+		t.Errorf("FindDuplicatesByHash() returned %d duplicate groups, want 1", len(duplicates))
+	}
+
+	// Test with only one file in input
+	sizeGroups = map[int64][]string{
+		int64(len(content1)): {file1},
+	}
+	duplicates, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
+	if err != nil {
+		t.Fatalf("FindDuplicatesByHash() error = %v", err)
+	}
+	if len(duplicates) != 0 {
+		t.Errorf("FindDuplicatesByHash() returned %d duplicate groups, want 0", len(duplicates))
+	}
+
+	// Test with empty input
+	duplicates, err = FindDuplicatesByHash(map[int64][]string{}, 2, s, false)
+	if err != nil {
+		t.Fatalf("FindDuplicatesByHash() error = %v", err)
+	}
+	if len(duplicates) != 0 {
+		t.Errorf("FindDuplicatesByHash() returned %d duplicate groups, want 0", len(duplicates))
+	}
 }
 
 // Helper function to check if a slice contains all expected elements

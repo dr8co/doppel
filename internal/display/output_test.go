@@ -122,4 +122,66 @@ func TestShowResults(t *testing.T) {
 	if !strings.Contains(output, "No duplicate files found") {
 		t.Errorf("Output should indicate no duplicates were found")
 	}
+
+	// Case: showStats = false, ErrorCount > 0
+	s2 := &stats.Stats{
+		ErrorCount: 2,
+		StartTime:  time.Now().Add(-2 * time.Second),
+	}
+
+	oldStdout = os.Stdout
+	r, w, _ = os.Pipe()
+	os.Stdout = w
+
+	ShowResults(map[string][]string{}, s2, false)
+
+	_ = w.Close()
+	os.Stdout = oldStdout
+
+	buf.Reset()
+	_, err = io.Copy(&buf, r)
+	if err != nil {
+		t.Fatalf("Failed to read captured output: %v", err)
+	}
+	output = buf.String()
+
+	if !strings.Contains(output, "Files with errors: 2") {
+		t.Errorf("Should show error count when showStats is false and errors exist")
+	}
+
+	// Case: showStats = true, with skipped dirs/files
+	s3 := &stats.Stats{
+		TotalFiles:     4,
+		ProcessedFiles: 4,
+		SkippedDirs:    1,
+		SkippedFiles:   1,
+		ErrorCount:     1,
+		StartTime:      time.Now().Add(-1 * time.Second),
+	}
+	r, w, _ = os.Pipe()
+	os.Stdout = w
+
+	ShowResults(map[string][]string{"h": {file1, file1}}, s3, true)
+
+	_ = w.Close()
+	os.Stdout = oldStdout
+
+	buf.Reset()
+	_, err = io.Copy(&buf, r)
+	if err != nil {
+		t.Fatalf("Failed to read captured output: %v", err)
+	}
+	output = buf.String()
+
+	for _, expected := range []string{
+		"Directories skipped: 1",
+		"Files skipped: 1",
+		"Files with errors: 1",
+		"Processing rate:",
+	} {
+		if !strings.Contains(output, expected) {
+			t.Errorf("Output missing expected string: %s", expected)
+		}
+
+	}
 }

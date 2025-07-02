@@ -33,6 +33,15 @@ func TestGroupFilesBySize(t *testing.T) {
 		}
 	}
 
+	// Test a directory tree without any files
+	sizeGroups, err := GroupFilesBySize([]string{tempDir}, &config.FilterConfig{}, &stats.Stats{}, false)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(sizeGroups) != 0 {
+		t.Errorf("Expected 0 size groups for empty directory tree")
+	}
+
 	// Create test files with different sizes
 	testFiles := map[string]int{
 		filepath.Join(dir1, "file1.txt"):       100,
@@ -60,7 +69,7 @@ func TestGroupFilesBySize(t *testing.T) {
 	s := &stats.Stats{}
 
 	// Test GroupFilesBySize
-	sizeGroups, err := GroupFilesBySize([]string{tempDir}, filterConfig, s, false)
+	sizeGroups, err = GroupFilesBySize([]string{tempDir}, filterConfig, s, false)
 	if err != nil {
 		t.Fatalf("GroupFilesBySize() error = %v", err)
 	}
@@ -106,5 +115,15 @@ func TestGroupFilesBySize(t *testing.T) {
 
 	if s.SkippedFiles != 1 {
 		t.Errorf("Stats.SkippedFiles = %d, want 1", s.SkippedFiles)
+	}
+
+	// All files skipped due to size
+	filterConfig2 := &config.FilterConfig{MinSize: 1000}
+	sizeGroups, err = GroupFilesBySize([]string{tempDir}, filterConfig2, &stats.Stats{}, false)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(sizeGroups) != 0 {
+		t.Errorf("Expected 0 size groups when all files skipped by size")
 	}
 }
