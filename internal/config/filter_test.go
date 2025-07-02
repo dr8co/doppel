@@ -221,7 +221,7 @@ func TestShouldExcludeDir(t *testing.T) {
 		{
 			name: "regex match",
 			config: &FilterConfig{
-				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile("^\\.")},
+				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
 			},
 			dirPath:    "/path/to/.hidden",
 			shouldSkip: true,
@@ -230,7 +230,7 @@ func TestShouldExcludeDir(t *testing.T) {
 			name: "no match",
 			config: &FilterConfig{
 				ExcludeDirs:     []string{"node_modules", ".git"},
-				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile("^\\.")},
+				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
 			},
 			dirPath:    "/path/to/src",
 			shouldSkip: false,
@@ -294,7 +294,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		{
 			name: "regex match",
 			config: &FilterConfig{
-				ExcludeFileRegex: []*regexp.Regexp{regexp.MustCompile("\\.bak$")},
+				ExcludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
 			},
 			filePath:   "/path/to/file.bak",
 			fileSize:   1000,
@@ -306,7 +306,7 @@ func TestShouldExcludeFile(t *testing.T) {
 				MinSize:          100,
 				MaxSize:          10000,
 				ExcludeFiles:     []string{"*.tmp", "*.log"},
-				ExcludeFileRegex: []*regexp.Regexp{regexp.MustCompile("\\.bak$")},
+				ExcludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
 			},
 			filePath:   "/path/to/document.txt",
 			fileSize:   1000,
