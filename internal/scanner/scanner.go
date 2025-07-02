@@ -1,9 +1,11 @@
 package scanner
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
+	"os"
 	"path/filepath"
 
 	"github.com/urfave/cli/v3"
@@ -20,7 +22,12 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 		err := filepath.WalkDir(dir, func(path string, dirEnt fs.DirEntry, err error) error {
 			if err != nil {
 				if verbose {
-					log.Printf("❌ Error accessing %s: %v", path, err)
+					var filepathErr *os.PathError
+					if errors.As(err, &filepathErr) {
+						log.Printf("❌ Error accessing: %v", filepathErr)
+					} else {
+						log.Printf("❌ Error accessing %s: %v", path, err)
+					}
 				}
 				stats.ErrorCount++
 				return nil
@@ -39,7 +46,12 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 				info, err := dirEnt.Info()
 				if err != nil {
 					if verbose {
-						log.Printf("❌ Error getting info for %s: %v", path, err)
+						var filepathErr *os.PathError
+						if errors.As(err, &filepathErr) {
+							log.Printf("❌ Error getting info: %v", filepathErr)
+						} else {
+							log.Printf("❌ Error getting info for %s: %v", path, err)
+						}
 					}
 					stats.ErrorCount++
 					return nil
@@ -68,7 +80,7 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 	}
 
 	if verbose && (stats.SkippedDirs > 0 || stats.SkippedFiles > 0) {
-		fmt.Printf("⏭️  Skipped %d directories and %d files due to filters\n", stats.SkippedDirs, stats.SkippedFiles)
+		fmt.Printf("\n⏭️  Skipped %d directories and %d files due to filters\n", stats.SkippedDirs, stats.SkippedFiles)
 	}
 
 	return sizeGroups, nil

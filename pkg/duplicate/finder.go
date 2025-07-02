@@ -1,6 +1,7 @@
 package duplicate
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -24,7 +25,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	}
 
 	if verbose {
-		fmt.Printf("🔐 Hashing %d candidate files with %d workers\n", len(candidateFiles), numWorkers)
+		fmt.Printf("\n🔐 Hashing %d candidate files with %d workers\n\n", len(candidateFiles), numWorkers)
 	}
 
 	// Create the work channel and the result channel
@@ -41,7 +42,12 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 				hash, err := scanner.HashFile(filePath)
 				if err != nil {
 					if verbose {
-						log.Printf("❌ Error hashing %s: %v", filePath, err)
+						var filepathErr *os.PathError
+						if errors.As(err, &filepathErr) {
+							log.Printf("❌ Error hashing: %v", filepathErr)
+						} else {
+							log.Printf("❌ Error hashing %s: %v", filePath, err)
+						}
 					}
 					stats.ErrorCount++
 					continue
@@ -51,7 +57,12 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 				info, err := os.Stat(filePath)
 				if err != nil {
 					if verbose {
-						log.Printf("❌ Error stating %s: %v", filePath, err)
+						var filepathErr *os.PathError
+						if errors.As(err, &filepathErr) {
+							log.Printf("❌ Error stating: %v", filepathErr)
+						} else {
+							log.Printf("❌ Error stating %s: %v", filePath, err)
+						}
 					}
 					stats.ErrorCount++
 					continue
