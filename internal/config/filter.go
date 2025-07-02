@@ -21,6 +21,19 @@ type FilterConfig struct {
 
 // BuildFilterConfig creates a FilterConfig from command line arguments
 func BuildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64) (*FilterConfig, error) {
+	// Handle negative values
+	if minSize < 0 {
+		minSize = 0
+	}
+	if maxSize < 0 {
+		maxSize = 0
+	}
+
+	// Validate min <= max when both are positive
+	if minSize > 0 && maxSize > 0 && minSize > maxSize {
+		return nil, fmt.Errorf("minimum size (%d) cannot be greater than maximum size (%d)", minSize, maxSize)
+	}
+
 	config := &FilterConfig{
 		MinSize: minSize,
 		MaxSize: maxSize,
@@ -107,11 +120,21 @@ func (fc *FilterConfig) ShouldExcludeDir(dirPath string) bool {
 func (fc *FilterConfig) ShouldExcludeFile(filePath string, size int64) bool {
 	fileName := filepath.Base(filePath)
 
+	// If both min and max are positive and min > max, exclude all files
+	if fc.MinSize > 0 && fc.MaxSize > 0 && fc.MinSize > fc.MaxSize {
+		return true
+	}
+
 	// Check size limits
 	if fc.MinSize > 0 && size < fc.MinSize {
 		return true
 	}
 	if fc.MaxSize > 0 && size > fc.MaxSize {
+		return true
+	}
+
+	// If min and max are equal and positive, only include files of exactly that size
+	if fc.MinSize > 0 && fc.MinSize == fc.MaxSize && size != fc.MinSize {
 		return true
 	}
 

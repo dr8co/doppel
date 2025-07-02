@@ -2,6 +2,7 @@ package config
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -114,7 +115,7 @@ func TestBuildFilterConfig(t *testing.T) {
 			excludeFileRegex: "",
 			minSize:          100,
 			maxSize:          10,
-			wantErr:          false,
+			wantErr:          true,
 		},
 		{
 			name:             "negative min",
@@ -126,6 +127,29 @@ func TestBuildFilterConfig(t *testing.T) {
 			maxSize:          100,
 			wantErr:          false,
 		},
+		{
+			name:             "negative max",
+			excludeDirs:      "",
+			excludeFiles:     "",
+			excludeDirRegex:  "",
+			excludeFileRegex: "",
+			minSize:          -1,
+			maxSize:          -100,
+			wantErr:          false,
+		},
+	}
+
+	// Helper function to validate size field
+	validateSize := func(actual, expected int64, fieldName string) {
+		if expected < 0 {
+			if actual != 0 {
+				t.Errorf("%s = %v, want 0 for negative %s", fieldName, actual, strings.ToLower(fieldName))
+			}
+			return
+		}
+		if actual != expected {
+			t.Errorf("%s = %v, want %v", fieldName, actual, expected)
+		}
 	}
 
 	for _, tt := range tests {
@@ -142,13 +166,8 @@ func TestBuildFilterConfig(t *testing.T) {
 			}
 
 			// Verify the config was built correctly
-			if config.MinSize != tt.minSize {
-				t.Errorf("MinSize = %v, want %v", config.MinSize, tt.minSize)
-			}
-
-			if config.MaxSize != tt.maxSize {
-				t.Errorf("MaxSize = %v, want %v", config.MaxSize, tt.maxSize)
-			}
+			validateSize(config.MinSize, tt.minSize, "MinSize")
+			validateSize(config.MaxSize, tt.maxSize, "MaxSize")
 
 			// Check exclude dirs
 			expectedDirs := parseCommaSeparated(tt.excludeDirs)
@@ -292,6 +311,54 @@ func TestShouldExcludeFile(t *testing.T) {
 			filePath:   "/path/to/document.txt",
 			fileSize:   1000,
 			shouldSkip: false,
+		},
+		{
+			name: "negative min size treated as 0",
+			config: &FilterConfig{
+				MinSize: -100,
+			},
+			filePath:   "file.txt",
+			fileSize:   50,
+			shouldSkip: false,
+		},
+		{
+			name: "negative max size treated as no maximum",
+			config: &FilterConfig{
+				MaxSize: -100,
+			},
+			filePath:   "file.txt",
+			fileSize:   1000,
+			shouldSkip: false,
+		},
+		{
+			name: "min equals max - exact match",
+			config: &FilterConfig{
+				MinSize: 1000,
+				MaxSize: 1000,
+			},
+			filePath:   "file.txt",
+			fileSize:   1000,
+			shouldSkip: false,
+		},
+		{
+			name: "min equals max - not exact match",
+			config: &FilterConfig{
+				MinSize: 1000,
+				MaxSize: 1000,
+			},
+			filePath:   "file.txt",
+			fileSize:   999,
+			shouldSkip: true,
+		},
+		{
+			name: "min exceeds max - all files excluded",
+			config: &FilterConfig{
+				MinSize: 2000,
+				MaxSize: 1000,
+			},
+			filePath:   "file.txt",
+			fileSize:   1500,
+			shouldSkip: true,
 		},
 	}
 
