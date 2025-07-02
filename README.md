@@ -59,7 +59,8 @@ Alternatively, pre-built binaries are available for download on the
 
 ## 🚀 Usage
 
-> **ℹ️ Note:** If you run `doppel` without specifying a command, it defaults to the `find` command.
+> [!NOTE]
+> If you run `doppel` without specifying a command, it defaults to the `find` command.
 
 ### 🔎 Find Command
 
