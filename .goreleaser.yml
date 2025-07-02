@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: doppel
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - #
+    id: "doppel"
+
+    flags:
+      - -trimpath
+
+    ldflags:
+      -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.CommitDate}}
+
+    env:
+      - CGO_ENABLED=0
+
+    goos:
+      - linux
+      - darwin
+      - windows
+
+    goarch:
+      - amd64
+      - arm64
+
+    goamd64:
+      - v2
+      - v3
+
+    goarm64:
+      - v8.0
+
+    # tool: "go1.24.4"
+
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: doppel
+
+    formats: [ "tar.xz" ]
+
+    format_overrides:
+      - goos: windows
+        formats: [ "zip" ]
+
+checksum:
+  name_template: "checksums.txt"
+
+source:
+  enabled: true
+
+signs:
+  - cmd: gpg2
+    artifacts: checksum
+    args:
+      - "--batch"
+      - "-u"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
