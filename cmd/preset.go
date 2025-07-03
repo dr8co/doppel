@@ -2,16 +2,9 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"time"
-
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/internal/config"
-	"github.com/dr8co/doppel/internal/display"
-	"github.com/dr8co/doppel/internal/scanner"
-	"github.com/dr8co/doppel/internal/stats"
-	"github.com/dr8co/doppel/pkg/duplicate"
 )
 
 // PresetCommand returns the preset command configuration
@@ -78,37 +71,5 @@ func PresetCommand() *cli.Command {
 func findDuplicatesWithPreset(_ context.Context, c *cli.Command, preset string) error {
 	filterConfig := config.GetPresetConfig(preset)
 
-	directories := scanner.GetDirectoriesFromArgs(c)
-
-	verbose := c.Bool("verbose")
-	showStats := c.Bool("stats")
-	workers := c.Int("workers")
-
-	s := &stats.Stats{StartTime: time.Now()}
-
-	if verbose {
-		fmt.Printf("🔍 Using preset '%s' to scan directories: %v\n", preset, directories)
-		config.DisplayFilterConfig(filterConfig)
-	}
-
-	// Phase 1: Group files by size
-	sizeGroups, err := scanner.GroupFilesBySize(directories, filterConfig, s, verbose)
-	if err != nil {
-		return fmt.Errorf("error scanning files: %w", err)
-	}
-
-	if verbose {
-		fmt.Printf("📊 Found %d files, %d size groups\n", s.TotalFiles, len(sizeGroups))
-	}
-
-	// Phase 2: Hash files that have potential duplicates
-	duplicates, err := duplicate.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
-	if err != nil {
-		return fmt.Errorf("error finding duplicates: %w", err)
-	}
-
-	// Phase 3: Display results
-	display.ShowResults(duplicates, s, showStats || verbose)
-
-	return nil
+	return findDuplicates(c, filterConfig)
 }

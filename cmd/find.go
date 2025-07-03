@@ -75,12 +75,11 @@ initial size-based filtering.`,
 				Usage: "Show detailed statistics at the end",
 			},
 		},
-		Action: findDuplicates,
+		Action: findDuplicatesCmd,
 	}
 }
 
-func findDuplicates(_ context.Context, c *cli.Command) error {
-	directories := scanner.GetDirectoriesFromArgs(c)
+func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 
 	// Build filter configuration
 	filterConfig, err := config.BuildFilterConfig(
@@ -95,6 +94,12 @@ func findDuplicates(_ context.Context, c *cli.Command) error {
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
+	return findDuplicates(c, filterConfig)
+}
+
+func findDuplicates(c *cli.Command, filterConfig *config.FilterConfig) error {
+	directories := scanner.GetDirectoriesFromArgs(c)
+
 	if c.Bool("show-filters") {
 		config.DisplayFilterConfig(filterConfig)
 		return nil
@@ -104,12 +109,12 @@ func findDuplicates(_ context.Context, c *cli.Command) error {
 	showStats := c.Bool("stats")
 	workers := c.Int("workers")
 
-	s := &stats.Stats{StartTime: time.Now()}
-
 	if verbose {
 		fmt.Printf("🔍 Scanning directories: %v\n", directories)
 		config.DisplayFilterConfig(filterConfig)
 	}
+
+	s := &stats.Stats{StartTime: time.Now()}
 
 	// Phase 1: Group files by size
 	sizeGroups, err := scanner.GroupFilesBySize(directories, filterConfig, s, verbose)
