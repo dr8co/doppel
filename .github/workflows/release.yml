@@ -52,4 +52,4 @@ jobs:
       - name: attest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-checksums: checksums.txt
+          subject-checksums: ./dist/checksums.txt
