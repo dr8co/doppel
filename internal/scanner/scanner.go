@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/urfave/cli/v3"
 
@@ -90,21 +91,71 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 func GetDirectoriesFromArgs(c *cli.Command) ([]string, error) {
 	directories := c.Args().Slice()
 	if len(directories) == 0 {
-		directories = []string{"."}
-	} else {
-		// Ensure all directories exist and are valid
-		for _, dir := range directories {
-			info, err := os.Stat(dir)
-			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					return nil, fmt.Errorf("path does not exist: %s", dir)
-				} else {
-					return nil, fmt.Errorf("error accessing directory %s: %w", dir, err)
-				}
-			} else if !info.IsDir() {
-				return nil, fmt.Errorf("not a directory: %s", dir)
+		absDot, err := filepath.Abs(".")
+		return []string{absDot}, err
+	}
+
+	// Use a map to track unique absolute paths for deduplication
+	uniqueDirs := make(map[string]bool)
+	var absDirs []string
+
+	for _, dir := range directories {
+		// Make the path absolute
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			return nil, fmt.Errorf("error converting to absolute path %s: %w", dir, err)
+		}
+
+		// Check if the directory exists and is valid
+		info, err := os.Stat(absDir)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("path does not exist: %s", dir)
+			} else {
+				return nil, fmt.Errorf("error accessing directory %s: %w", dir, err)
 			}
+		} else if !info.IsDir() {
+			return nil, fmt.Errorf("not a directory: %s", dir)
+		}
+
+		// Add to the result only if not already present (deduplication)
+		if !uniqueDirs[absDir] {
+			uniqueDirs[absDir] = true
+			absDirs = append(absDirs, absDir)
 		}
 	}
-	return directories, nil
+
+	// Remove directories that are subdirectories of other directories
+	var result []string
+	for i, dir := range absDirs {
+		isSubdir := false
+		for j, otherDir := range absDirs {
+			if i != j && isSubdirectory(dir, otherDir) {
+				isSubdir = true
+				break
+			}
+		}
+		if !isSubdir {
+			result = append(result, dir)
+		}
+	}
+
+	return result, nil
+}
+
+// isSubdirectory checks if child is a subdirectory of parent
+func isSubdirectory(child, parent string) bool {
+	// A directory cannot be a subdirectory of itself
+	if child == parent {
+		return false
+	}
+
+	// Check if the child path starts with the parent path followed by the separator
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+
+	// If the relative path doesn't start with ".." then child is under parent
+	return !filepath.IsAbs(rel) && !strings.HasPrefix(rel, "..")
 }

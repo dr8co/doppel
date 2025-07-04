@@ -32,8 +32,9 @@ processing and extensive filtering options to skip unwanted files and directorie
 			cmd.FindCommand(),
 			cmd.PresetCommand(),
 		},
-		DefaultCommand: "find",
-		Suggest:        true,
+		DefaultCommand:        "find",
+		Suggest:               true,
+		EnableShellCompletion: true,
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
