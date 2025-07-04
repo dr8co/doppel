@@ -24,6 +24,8 @@ func FindCommand() *cli.Command {
 		Description: `Scan directories for duplicate files. If no directories are specified, 
 the current directory is used. Files are compared using Blake3 hashes after 
 initial size-based filtering.`,
+		ArgsUsage:             "[directories...]",
+		EnableShellCompletion: true,
 		Flags: []cli.Flag{
 			&cli.IntFlag{
 				Name:    "workers",
@@ -80,6 +82,10 @@ initial size-based filtering.`,
 }
 
 func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
+	directories, err := scanner.GetDirectoriesFromArgs(c)
+	if err != nil {
+		return err
+	}
 
 	// Build filter configuration
 	filterConfig, err := config.BuildFilterConfig(
@@ -94,12 +100,10 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
-	return findDuplicates(c, filterConfig)
+	return findDuplicates(c, directories, filterConfig)
 }
 
-func findDuplicates(c *cli.Command, filterConfig *config.FilterConfig) error {
-	directories := scanner.GetDirectoriesFromArgs(c)
-
+func findDuplicates(c *cli.Command, directories []string, filterConfig *config.FilterConfig) error {
 	if c.Bool("show-filters") {
 		config.DisplayFilterConfig(filterConfig)
 		return nil

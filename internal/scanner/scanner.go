@@ -87,10 +87,24 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 }
 
 // GetDirectoriesFromArgs returns the directories to scan from command arguments
-func GetDirectoriesFromArgs(c *cli.Command) []string {
+func GetDirectoriesFromArgs(c *cli.Command) ([]string, error) {
 	directories := c.Args().Slice()
 	if len(directories) == 0 {
 		directories = []string{"."}
+	} else {
+		// Ensure all directories exist and are valid
+		for _, dir := range directories {
+			info, err := os.Stat(dir)
+			if err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					return nil, fmt.Errorf("path does not exist: %s", dir)
+				} else {
+					return nil, fmt.Errorf("error accessing directory %s: %w", dir, err)
+				}
+			} else if !info.IsDir() {
+				return nil, fmt.Errorf("not a directory: %s", dir)
+			}
+		}
 	}
-	return directories
+	return directories, nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/internal/config"
+	"github.com/dr8co/doppel/internal/scanner"
 )
 
 // PresetCommand returns the preset command configuration
@@ -18,6 +19,8 @@ func PresetCommand() *cli.Command {
 - media: Focus on media files, skip small files
 - docs: Focus on document files
 - clean: Skip temporary and cache files`,
+		ArgsUsage:             "[directories...]",
+		EnableShellCompletion: true,
 		Flags: []cli.Flag{
 			&cli.IntFlag{
 				Name:    "workers",
@@ -69,7 +72,11 @@ func PresetCommand() *cli.Command {
 }
 
 func findDuplicatesWithPreset(_ context.Context, c *cli.Command, preset string) error {
+	directories, err := scanner.GetDirectoriesFromArgs(c)
+	if err != nil {
+		return err
+	}
 	filterConfig := config.GetPresetConfig(preset)
 
-	return findDuplicates(c, filterConfig)
+	return findDuplicates(c, directories, filterConfig)
 }
