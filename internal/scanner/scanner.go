@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/urfave/cli/v3"
@@ -89,15 +90,21 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 
 // GetDirectoriesFromArgs returns the directories to scan from command arguments
 func GetDirectoriesFromArgs(c *cli.Command) ([]string, error) {
-	directories := c.Args().Slice()
+	return processDirectories(c.Args().Slice())
+}
+
+// processDirectories receives a list of directories, resolves absolute paths, validates them, and returns unique paths.
+// Handles subdirectory elimination and ensures consistent output by sorting the final result.
+// Returns an error if any directory is invalid or inaccessible.
+func processDirectories(directories []string) ([]string, error) {
 	if len(directories) == 0 {
 		absDot, err := filepath.Abs(".")
 		return []string{absDot}, err
 	}
 
 	// Use a map to track unique absolute paths for deduplication
-	uniqueDirs := make(map[string]bool)
-	var absDirs []string
+	uniqueDirs := make(map[string]bool, len(directories))
+	absDirs := make([]string, 0, len(directories))
 
 	for _, dir := range directories {
 		// Make the path absolute
@@ -106,56 +113,78 @@ func GetDirectoriesFromArgs(c *cli.Command) ([]string, error) {
 			return nil, fmt.Errorf("error converting to absolute path %s: %w", dir, err)
 		}
 
+		// skip if we've already processed this path
+		if uniqueDirs[absDir] {
+			continue
+		}
+
 		// Check if the directory exists and is valid
 		info, err := os.Stat(absDir)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				return nil, fmt.Errorf("path does not exist: %s", dir)
+				return nil, fmt.Errorf("path does not exist: %s", absDir)
 			} else {
-				return nil, fmt.Errorf("error accessing directory %s: %w", dir, err)
+				return nil, fmt.Errorf("error accessing directory %s: %w", absDir, err)
 			}
 		} else if !info.IsDir() {
-			return nil, fmt.Errorf("not a directory: %s", dir)
+			return nil, fmt.Errorf("not a directory: %s", absDir)
 		}
 
-		// Add to the result only if not already present (deduplication)
+		// Add to the result only if not already present
 		if !uniqueDirs[absDir] {
 			uniqueDirs[absDir] = true
 			absDirs = append(absDirs, absDir)
 		}
 	}
 
-	// Remove directories that are subdirectories of other directories
-	var result []string
-	for i, dir := range absDirs {
-		isSubdir := false
-		for j, otherDir := range absDirs {
-			if i != j && isSubdirectory(dir, otherDir) {
-				isSubdir = true
-				break
-			}
-		}
-		if !isSubdir {
+	return removeSubdirectories(absDirs), nil
+}
+
+// removeSubdirectories removes paths that are subdirectories of other paths.
+// The paths are expected to be absolute.
+func removeSubdirectories(dirs []string) []string {
+	if len(dirs) <= 1 {
+		return dirs
+	}
+
+	// Sort paths lexicographically - this ensures parents come before their children
+	sort.Strings(dirs)
+
+	result := make([]string, 0, len(dirs))
+	result = append(result, dirs[0])
+	for _, dir := range dirs[1:] {
+		if !isSubdirectory(dir, result[len(result)-1]) {
 			result = append(result, dir)
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 // isSubdirectory checks if child is a subdirectory of parent
+// This function assumes both paths are absolute
 func isSubdirectory(child, parent string) bool {
-	// A directory cannot be a subdirectory of itself
-	if child == parent {
+	// Empty paths are not valid
+	if child == "" || parent == "" {
 		return false
 	}
 
-	// Check if the child path starts with the parent path followed by the separator
-	rel, err := filepath.Rel(parent, child)
-	if err != nil {
+	// Clean both paths for a consistent comparison
+	child = filepath.Clean(child)
+	parent = filepath.Clean(parent)
+
+	if len(parent) >= len(child) {
 		return false
 	}
 
-	// If the relative path doesn't start with ".." then child is under parent
-	return !filepath.IsAbs(rel) && !strings.HasPrefix(rel, "..")
+	if !strings.HasPrefix(child, parent) {
+		return false
+	}
+
+	// Special case: parent is root
+	if parent == string(filepath.Separator) {
+		return child[0] == filepath.Separator
+	}
+
+	return child[len(parent)] == filepath.Separator
 }
