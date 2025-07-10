@@ -55,7 +55,6 @@ func (f *PrettyFormatter) Format(report *DuplicateReport, w io.Writer) error {
 	}
 
 	// Show detailed stats if showStats is true in ShowResults, but here always print detailed stats
-	duration := time.Since(report.Stats.StartTime)
 	if _, err := fmt.Fprintf(w, "\n📈 Detailed Statistics:\n"); err != nil {
 		return err
 	}
@@ -74,11 +73,11 @@ func (f *PrettyFormatter) Format(report *DuplicateReport, w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "   ❌ Files with errors: %d\n", report.Stats.ErrorCount); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   ⏱️ Processing time: %v\n", duration.Round(time.Millisecond)); err != nil {
+	if _, err := fmt.Fprintf(w, "   ⏱️ Processing time: %v\n", report.Stats.Duration.Round(time.Millisecond)); err != nil {
 		return err
 	}
-	if report.Stats.ProcessedFiles > 0 && duration > 0 {
-		rate := float64(report.Stats.ProcessedFiles) / duration.Seconds()
+	if report.Stats.ProcessedFiles > 0 && report.Stats.Duration > 0 {
+		rate := float64(report.Stats.ProcessedFiles) / report.Stats.Duration.Seconds()
 		if _, err := fmt.Fprintf(w, "   🚀 Processing rate: %.1f files/second\n", rate); err != nil {
 			return err
 		}

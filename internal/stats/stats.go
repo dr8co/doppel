@@ -8,14 +8,15 @@ import (
 
 // Stats tracks various statistics during the duplicate file finding process
 type Stats struct {
-	TotalFiles      uint64
-	ProcessedFiles  uint64
-	SkippedDirs     uint64
-	SkippedFiles    uint64
-	ErrorCount      uint64
-	DuplicateGroups uint64
-	DuplicateFiles  uint64
-	StartTime       time.Time
+	TotalFiles      uint64        `json:"total_files"`
+	ProcessedFiles  uint64        `json:"processed_files"`
+	SkippedDirs     uint64        `json:"skipped_dirs"`
+	SkippedFiles    uint64        `json:"skipped_files"`
+	ErrorCount      uint64        `json:"error_count"`
+	DuplicateGroups uint64        `json:"duplicate_groups"`
+	DuplicateFiles  uint64        `json:"duplicate_files"`
+	StartTime       time.Time     `json:"start_time"`
+	Duration        time.Duration `json:"duration"`
 }
 
 func (s *Stats) IncrementErrorCount() {

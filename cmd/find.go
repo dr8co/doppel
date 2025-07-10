@@ -142,6 +142,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)
 	}
+	s.Duration = time.Since(s.StartTime)
 
 	// Phase 3: Output the results
 	reg, err := display.InitFormatters()
