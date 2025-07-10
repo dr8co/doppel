@@ -1,10 +1,26 @@
-package stats
+package model
 
 import (
-	"fmt"
 	"sync/atomic"
 	"time"
 )
+
+// DuplicateGroup represents a group of duplicate files with their metadata
+type DuplicateGroup struct {
+	Id          int      `json:"id"`
+	Count       int      `json:"count"`
+	Size        int64    `json:"size"`
+	WastedSpace uint64   `json:"wasted_space"`
+	Files       []string `json:"files"`
+}
+
+// DuplicateReport represents the report of duplicate files found during a scan
+type DuplicateReport struct {
+	ScanDate         time.Time        `json:"scan_date"`
+	Stats            *Stats           `json:"stats"`
+	TotalWastedSpace uint64           `json:"total_wasted_space"`
+	Groups           []DuplicateGroup `json:"groups"`
+}
 
 // Stats tracks various statistics during the duplicate file finding process
 type Stats struct {
@@ -57,18 +73,4 @@ func (s *Stats) GetDuplicateGroups() uint64 {
 // GetDuplicateFiles atomically retrieves the duplicate files count
 func (s *Stats) GetDuplicateFiles() uint64 {
 	return atomic.LoadUint64(&s.DuplicateFiles)
-}
-
-// FormatBytes converts a byte count to a human-readable string
-func FormatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }

@@ -6,14 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dr8co/doppel/internal/stats"
-	"github.com/dr8co/doppel/pkg/duplicate"
+	"github.com/dr8co/doppel/internal/model"
 )
 
 func TestJSONFormatter_Format(t *testing.T) {
-	report := &duplicate.DuplicateReport{
+	report := &model.DuplicateReport{
 		ScanDate: time.Date(2025, 7, 10, 12, 0, 0, 0, time.UTC),
-		Stats: &stats.Stats{
+		Stats: &model.Stats{
 			TotalFiles:      10,
 			ProcessedFiles:  8,
 			SkippedDirs:     1,
@@ -24,7 +23,7 @@ func TestJSONFormatter_Format(t *testing.T) {
 			StartTime:       time.Date(2025, 7, 10, 12, 0, 0, 0, time.UTC),
 		},
 		TotalWastedSpace: 2048,
-		Groups: []duplicate.DuplicateGroup{
+		Groups: []model.DuplicateGroup{
 			{
 				Id:          1,
 				Count:       2,
@@ -50,7 +49,7 @@ func TestJSONFormatter_Format(t *testing.T) {
 	}
 
 	// Validate output is valid JSON and matches the expected structure
-	var decoded duplicate.DuplicateReport
+	var decoded model.DuplicateReport
 	err = json.Unmarshal(buf.Bytes(), &decoded)
 	if err != nil {
 		t.Fatalf("Output is not valid JSON: %v", err)

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/dr8co/doppel/internal/config"
-	"github.com/dr8co/doppel/internal/stats"
+	"github.com/dr8co/doppel/internal/model"
 )
 
 func TestGroupFilesBySize(t *testing.T) {
@@ -35,7 +35,7 @@ func TestGroupFilesBySize(t *testing.T) {
 	}
 
 	// Test a directory tree without any files
-	sizeGroups, err := GroupFilesBySize([]string{tempDir}, &config.FilterConfig{}, &stats.Stats{}, false)
+	sizeGroups, err := GroupFilesBySize([]string{tempDir}, &config.FilterConfig{}, &model.Stats{}, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestGroupFilesBySize(t *testing.T) {
 	}
 
 	// Create stats object
-	s := &stats.Stats{}
+	s := &model.Stats{}
 
 	// Test GroupFilesBySize
 	sizeGroups, err = GroupFilesBySize([]string{tempDir}, filterConfig, s, false)
@@ -120,7 +120,7 @@ func TestGroupFilesBySize(t *testing.T) {
 
 	// All files skipped due to size
 	filterConfig2 := &config.FilterConfig{MinSize: 1000}
-	sizeGroups, err = GroupFilesBySize([]string{tempDir}, filterConfig2, &stats.Stats{}, false)
+	sizeGroups, err = GroupFilesBySize([]string{tempDir}, filterConfig2, &model.Stats{}, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

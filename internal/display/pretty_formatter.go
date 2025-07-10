@@ -5,8 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/dr8co/doppel/internal/stats"
-	"github.com/dr8co/doppel/pkg/duplicate"
+	"github.com/dr8co/doppel/internal/model"
 )
 
 // PrettyFormatter formats duplicate reports in a human-readable way
@@ -18,7 +17,7 @@ func NewPrettyFormatter() *PrettyFormatter {
 }
 
 // Format formats the duplicate report in a human-readable way and writes it to the provided writer
-func (f *PrettyFormatter) Format(report *duplicate.DuplicateReport, w io.Writer) error {
+func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
 	for _, group := range report.Groups {
 		// Print group header
 		if _, err := fmt.Fprintf(w, "\n🔗 Duplicate group %d (%d files):\n", group.Id, group.Count); err != nil {
@@ -26,7 +25,7 @@ func (f *PrettyFormatter) Format(report *duplicate.DuplicateReport, w io.Writer)
 		}
 
 		// Print size and wasted space
-		if _, err := fmt.Fprintf(w, "   Size: %s each, %s wasted space\n", stats.FormatBytes(group.Size), stats.FormatBytes(int64(group.WastedSpace))); err != nil {
+		if _, err := fmt.Fprintf(w, "   Size: %s each, %s wasted space\n", FormatBytes(group.Size), FormatBytes(int64(group.WastedSpace))); err != nil {
 			return err
 		}
 
@@ -46,7 +45,7 @@ func (f *PrettyFormatter) Format(report *duplicate.DuplicateReport, w io.Writer)
 		if _, err := fmt.Fprintf(w, "   🔗 Duplicate files found: %d (in %d groups)\n", report.Stats.DuplicateFiles, report.Stats.DuplicateGroups); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "   💾 Total wasted space: %s\n", stats.FormatBytes(int64(report.TotalWastedSpace))); err != nil {
+		if _, err := fmt.Fprintf(w, "   💾 Total wasted space: %s\n", FormatBytes(int64(report.TotalWastedSpace))); err != nil {
 			return err
 		}
 	} else {

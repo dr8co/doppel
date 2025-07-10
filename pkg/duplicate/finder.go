@@ -8,29 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dr8co/doppel/internal/model"
 	"github.com/dr8co/doppel/internal/scanner"
-	"github.com/dr8co/doppel/internal/stats"
 )
 
-// DuplicateGroup represents a group of duplicate files with their metadata
-type DuplicateGroup struct {
-	Id          int      `json:"id"`
-	Count       int      `json:"count"`
-	Size        int64    `json:"size"`
-	WastedSpace uint64   `json:"wasted_space"`
-	Files       []string `json:"files"`
-}
-
-// DuplicateReport represents the report of duplicate files found during a scan
-type DuplicateReport struct {
-	ScanDate         time.Time        `json:"scan_date"`
-	Stats            *stats.Stats     `json:"stats"`
-	TotalWastedSpace uint64           `json:"total_wasted_space"`
-	Groups           []DuplicateGroup `json:"groups"`
-}
-
 // FindDuplicatesByHash processes files with same sizes and returns a DuplicateReport directly
-func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *stats.Stats, verbose bool) (*DuplicateReport, error) {
+func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error) {
 	var candidateFiles []string
 	for _, files := range sizeGroups {
 		if len(files) > 1 {
@@ -39,7 +22,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	}
 
 	if len(candidateFiles) < 2 {
-		return &DuplicateReport{
+		return &model.DuplicateReport{
 			ScanDate:         time.Now(),
 			Stats:            stats,
 			TotalWastedSpace: 0,
@@ -119,7 +102,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		stats.ProcessedFiles++
 	}
 
-	var groups []DuplicateGroup
+	var groups []model.DuplicateGroup
 	totalWasted := uint64(0)
 	groupId := 0
 	for _, files := range hashGroups {
@@ -132,7 +115,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 			size := files[0].Size
 			wasted := uint64(size) * uint64(len(files)-1)
 			totalWasted += wasted
-			groups = append(groups, DuplicateGroup{
+			groups = append(groups, model.DuplicateGroup{
 				Id:          groupId,
 				Count:       len(files),
 				Size:        size,
@@ -144,7 +127,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		}
 	}
 
-	return &DuplicateReport{
+	return &model.DuplicateReport{
 		ScanDate:         time.Now(),
 		Stats:            stats,
 		TotalWastedSpace: totalWasted,

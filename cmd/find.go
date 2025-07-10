@@ -13,8 +13,8 @@ import (
 
 	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/display"
+	"github.com/dr8co/doppel/internal/model"
 	"github.com/dr8co/doppel/internal/scanner"
-	"github.com/dr8co/doppel/internal/stats"
 	"github.com/dr8co/doppel/pkg/duplicate"
 )
 
@@ -126,7 +126,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 		config.DisplayFilterConfig(filterConfig)
 	}
 
-	s := &stats.Stats{StartTime: time.Now()}
+	s := &model.Stats{StartTime: time.Now()}
 
 	// Phase 1: Group files by size
 	sizeGroups, err := scanner.GroupFilesBySize(directories, filterConfig, s, verbose)
