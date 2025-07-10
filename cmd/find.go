@@ -22,7 +22,7 @@ import (
 func FindCommand() *cli.Command {
 	return &cli.Command{
 		Name:    "find",
-		Aliases: []string{"f"},
+		Aliases: []string{"search", "f"},
 		Usage:   "Find duplicate files in specified directories",
 		Description: `Scan directories for duplicate files. If no directories are specified, 
 the current directory is used. Files are compared using Blake3 hashes after 
@@ -77,7 +77,7 @@ initial size-based filtering.`,
 			},
 			&cli.StringFlag{
 				Name:  "output-format",
-				Usage: "Output format: pretty (default), json",
+				Usage: "Output format: pretty, json",
 				Value: "pretty",
 			},
 			&cli.StringFlag{

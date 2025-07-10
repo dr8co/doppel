@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"github.com/urfave/cli/v3"
+	"runtime"
 
 	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/scanner"
@@ -25,17 +26,27 @@ func PresetCommand() *cli.Command {
 			&cli.IntFlag{
 				Name:    "workers",
 				Aliases: []string{"w"},
-				Value:   4,
+				Value:   runtime.NumCPU(),
 				Usage:   "Number of worker goroutines for parallel hashing",
 			},
 			&cli.BoolFlag{
 				Name:    "verbose",
 				Aliases: []string{"v"},
-				Usage:   "Enable verbose output",
+				Usage:   "Enable verbose output with detailed progress information",
 			},
 			&cli.BoolFlag{
-				Name:  "stats",
-				Usage: "Show detailed statistics",
+				Name:  "show-filters",
+				Usage: "Show active filters and exit without scanning",
+			},
+			&cli.StringFlag{
+				Name:  "output-format",
+				Usage: "Output format: pretty, json",
+				Value: "pretty",
+			},
+			&cli.StringFlag{
+				Name:  "output-file",
+				Usage: "Write output to file (default: stdout)",
+				Value: "",
 			},
 		},
 		Commands: []*cli.Command{
