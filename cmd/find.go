@@ -3,6 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -72,9 +75,15 @@ initial size-based filtering.`,
 				Name:  "show-filters",
 				Usage: "Show active filters and exit without scanning",
 			},
-			&cli.BoolFlag{
-				Name:  "stats",
-				Usage: "Show detailed statistics at the end",
+			&cli.StringFlag{
+				Name:  "output-format",
+				Usage: "Output format: pretty (default), json",
+				Value: "pretty",
+			},
+			&cli.StringFlag{
+				Name:  "output-file",
+				Usage: "Write output to file (default: stdout)",
+				Value: "",
 			},
 		},
 		Action: findDuplicatesCmd,
@@ -110,9 +119,6 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 	}
 
 	verbose := c.Bool("verbose")
-	showStats := c.Bool("stats")
-	workers := c.Int("workers")
-
 	if verbose {
 		fmt.Printf("🔍 Scanning directories: %v\n", directories)
 		config.DisplayFilterConfig(filterConfig)
@@ -131,13 +137,57 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 	}
 
 	// Phase 2: Hash files that have potential duplicates
+	workers := c.Int("workers")
 	duplicates, err := duplicate.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)
 	}
 
-	// Phase 3: Display results
-	display.ShowResults(duplicates, s, showStats || verbose)
+	// Phase 3: Output the results
+	reg, err := display.InitFormatters()
+	if err != nil {
+		return fmt.Errorf("error initializing formatters: %w", err)
+	}
+
+	report := display.ConvertToReport(duplicates, s)
+	format := c.String("output-format")
+
+	outputFile := c.String("output-file")
+	var out io.Writer = os.Stdout
+
+	if outputFile != "" {
+		outputFile = filepath.Clean(outputFile)
+		if outputFile == "." {
+			outputFile = "doppel-report.txt"
+		}
+
+		outputFile, err = filepath.Abs(outputFile)
+		if err != nil {
+			return fmt.Errorf("error getting absolute path for output file: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(outputFile), 0755); err != nil {
+			return fmt.Errorf("error creating output directory: %w", err)
+		}
+
+		file, err := os.Create(outputFile)
+		if err != nil {
+			return fmt.Errorf("error opening output file: %w", err)
+		}
+		defer func(file *os.File) {
+			_ = file.Close()
+		}(file)
+
+		out = file
+	}
+
+	err = reg.Format(format, report, out)
+	if err != nil {
+		return fmt.Errorf("error formatting report: %w", err)
+	}
+
+	if out != os.Stdout {
+		fmt.Println("\n✅ Results written to", outputFile)
+	}
 
 	return nil
 }

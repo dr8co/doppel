@@ -8,12 +8,15 @@ import (
 	"github.com/dr8co/doppel/internal/stats"
 )
 
+// PrettyFormatter formats duplicate reports in a human-readable way
 type PrettyFormatter struct{}
 
+// NewPrettyFormatter creates a new PrettyFormatter instance
 func NewPrettyFormatter() *PrettyFormatter {
 	return &PrettyFormatter{}
 }
 
+// Format formats the duplicate report in a human-readable way and writes it to the provided writer
 func (f *PrettyFormatter) Format(report *DuplicateReport, w io.Writer) error {
 	for _, group := range report.Groups {
 		// Print group header
