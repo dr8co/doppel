@@ -90,6 +90,7 @@ initial size-based filtering.`,
 	}
 }
 
+// findDuplicatesCmd is the action function for the find command.
 func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 	directories, err := scanner.GetDirectoriesFromArgs(c)
 	if err != nil {
@@ -112,6 +113,7 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 	return findDuplicates(c, directories, filterConfig)
 }
 
+// findDuplicates performs the main logic of finding duplicate files.
 func findDuplicates(c *cli.Command, directories []string, filterConfig *config.FilterConfig) error {
 	if c.Bool("show-filters") {
 		config.DisplayFilterConfig(filterConfig)

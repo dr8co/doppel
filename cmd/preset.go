@@ -82,6 +82,7 @@ func PresetCommand() *cli.Command {
 	}
 }
 
+// findDuplicatesWithPreset finds duplicates using a specific preset configuration
 func findDuplicatesWithPreset(_ context.Context, c *cli.Command, preset string) error {
 	directories, err := scanner.GetDirectoriesFromArgs(c)
 	if err != nil {

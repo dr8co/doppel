@@ -7,6 +7,7 @@ import (
 	"github.com/dr8co/doppel/internal/stats"
 )
 
+// DuplicateGroup represents a group of duplicate files with their metadata
 type DuplicateGroup struct {
 	Id          int      `json:"id"`
 	Count       int      `json:"count"`
@@ -15,6 +16,7 @@ type DuplicateGroup struct {
 	Files       []string `json:"files"`
 }
 
+// DuplicateReport represents the report of duplicate files found during a scan
 type DuplicateReport struct {
 	ScanDate         time.Time        `json:"scan_date"`
 	Stats            *stats.Stats     `json:"stats"`
@@ -22,6 +24,7 @@ type DuplicateReport struct {
 	Groups           []DuplicateGroup `json:"groups"`
 }
 
+// ConvertToReport converts a map of duplicate files to a DuplicateReport
 func ConvertToReport(duplicates map[string][]string, s *stats.Stats) *DuplicateReport {
 	report := &DuplicateReport{
 		ScanDate:         time.Now(),
