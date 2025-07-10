@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/dr8co/doppel/internal/stats"
+	"github.com/dr8co/doppel/pkg/duplicate"
 )
 
 func TestPrettyFormatter_Format(t *testing.T) {
-	report := &DuplicateReport{
+	report := &duplicate.DuplicateReport{
 		ScanDate: time.Date(2025, 7, 10, 12, 0, 0, 0, time.UTC),
 		Stats: &stats.Stats{
 			TotalFiles:      10,
@@ -23,7 +24,7 @@ func TestPrettyFormatter_Format(t *testing.T) {
 			Duration:        2 * time.Second,
 		},
 		TotalWastedSpace: 2048,
-		Groups: []DuplicateGroup{
+		Groups: []duplicate.DuplicateGroup{
 			{
 				Id:          1,
 				Count:       2,

@@ -3,6 +3,8 @@ package display
 import (
 	"encoding/json"
 	"io"
+
+	"github.com/dr8co/doppel/pkg/duplicate"
 )
 
 // JSONFormatter formats duplicate reports as JSON
@@ -14,7 +16,7 @@ func NewJSONFormatter() *JSONFormatter {
 }
 
 // Format writes the duplicate report as formatted JSON to the writer
-func (f *JSONFormatter) Format(report *DuplicateReport, w io.Writer) error {
+func (f *JSONFormatter) Format(report *duplicate.DuplicateReport, w io.Writer) error {
 	encoder := json.NewEncoder(w)
 	// Pretty print with 2-space indentation
 	encoder.SetIndent("", "  ")

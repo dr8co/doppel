@@ -140,7 +140,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 
 	// Phase 2: Hash files that have potential duplicates
 	workers := c.Int("workers")
-	duplicates, err := duplicate.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
+	report, err := duplicate.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)
 	}
@@ -152,7 +152,6 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 		return fmt.Errorf("error initializing formatters: %w", err)
 	}
 
-	report := display.ConvertToReport(duplicates, s)
 	format := c.String("output-format")
 
 	outputFile := c.String("output-file")

@@ -6,13 +6,31 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/dr8co/doppel/internal/scanner"
 	"github.com/dr8co/doppel/internal/stats"
 )
 
-// FindDuplicatesByHash processes files with same sizes and finds actual duplicates
-func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *stats.Stats, verbose bool) (map[string][]string, error) {
+// DuplicateGroup represents a group of duplicate files with their metadata
+type DuplicateGroup struct {
+	Id          int      `json:"id"`
+	Count       int      `json:"count"`
+	Size        int64    `json:"size"`
+	WastedSpace uint64   `json:"wasted_space"`
+	Files       []string `json:"files"`
+}
+
+// DuplicateReport represents the report of duplicate files found during a scan
+type DuplicateReport struct {
+	ScanDate         time.Time        `json:"scan_date"`
+	Stats            *stats.Stats     `json:"stats"`
+	TotalWastedSpace uint64           `json:"total_wasted_space"`
+	Groups           []DuplicateGroup `json:"groups"`
+}
+
+// FindDuplicatesByHash processes files with same sizes and returns a DuplicateReport directly
+func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *stats.Stats, verbose bool) (*DuplicateReport, error) {
 	var candidateFiles []string
 	for _, files := range sizeGroups {
 		if len(files) > 1 {
@@ -20,8 +38,13 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		}
 	}
 
-	if len(candidateFiles) == 0 {
-		return make(map[string][]string), nil
+	if len(candidateFiles) < 2 {
+		return &DuplicateReport{
+			ScanDate:         time.Now(),
+			Stats:            stats,
+			TotalWastedSpace: 0,
+			Groups:           nil,
+		}, nil
 	}
 
 	if verbose {
@@ -90,20 +113,41 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	}()
 
 	// Collect results and group by hash
-	hashGroups := make(map[string][]string)
+	hashGroups := make(map[string][]scanner.FileInfo)
 	for result := range resultChan {
-		hashGroups[result.Hash] = append(hashGroups[result.Hash], result.Path)
+		hashGroups[result.Hash] = append(hashGroups[result.Hash], result)
 		stats.ProcessedFiles++
 	}
 
-	duplicates := make(map[string][]string)
-	for hash, files := range hashGroups {
+	var groups []DuplicateGroup
+	totalWasted := uint64(0)
+	groupId := 0
+	for _, files := range hashGroups {
 		if len(files) > 1 {
-			duplicates[hash] = files
+			groupId++
+			filePaths := make([]string, len(files))
+			for i, fi := range files {
+				filePaths[i] = fi.Path
+			}
+			size := files[0].Size
+			wasted := uint64(size) * uint64(len(files)-1)
+			totalWasted += wasted
+			groups = append(groups, DuplicateGroup{
+				Id:          groupId,
+				Count:       len(files),
+				Size:        size,
+				WastedSpace: wasted,
+				Files:       filePaths,
+			})
 			stats.DuplicateGroups++
 			stats.DuplicateFiles += uint64(len(files))
 		}
 	}
 
-	return duplicates, nil
+	return &DuplicateReport{
+		ScanDate:         time.Now(),
+		Stats:            stats,
+		TotalWastedSpace: totalWasted,
+		Groups:           groups,
+	}, nil
 }

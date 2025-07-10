@@ -3,11 +3,13 @@ package display
 import (
 	"fmt"
 	"io"
+
+	"github.com/dr8co/doppel/pkg/duplicate"
 )
 
 // OutputFormatter formats duplicate reports to different output formats
 type OutputFormatter interface {
-	Format(report *DuplicateReport, w io.Writer) error
+	Format(report *duplicate.DuplicateReport, w io.Writer) error
 }
 
 // OutputFormatterRegistry manages available output formatters
@@ -50,7 +52,7 @@ func (r *OutputFormatterRegistry) List() []string {
 }
 
 // Format formats the duplicate report using the specified formatter and writes it to the provided writer
-func (r *OutputFormatterRegistry) Format(name string, report *DuplicateReport, w io.Writer) error {
+func (r *OutputFormatterRegistry) Format(name string, report *duplicate.DuplicateReport, w io.Writer) error {
 	formatter, exists := r.formatters[name]
 	if !exists {
 		return fmt.Errorf("formatter '%s' not found", name)

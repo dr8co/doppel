@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dr8co/doppel/internal/stats"
+	"github.com/dr8co/doppel/pkg/duplicate"
 )
 
 // PrettyFormatter formats duplicate reports in a human-readable way
@@ -17,7 +18,7 @@ func NewPrettyFormatter() *PrettyFormatter {
 }
 
 // Format formats the duplicate report in a human-readable way and writes it to the provided writer
-func (f *PrettyFormatter) Format(report *DuplicateReport, w io.Writer) error {
+func (f *PrettyFormatter) Format(report *duplicate.DuplicateReport, w io.Writer) error {
 	for _, group := range report.Groups {
 		// Print group header
 		if _, err := fmt.Fprintf(w, "\n🔗 Duplicate group %d (%d files):\n", group.Id, group.Count); err != nil {
