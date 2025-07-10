@@ -8,6 +8,53 @@ import (
 	"github.com/dr8co/doppel/internal/stats"
 )
 
+type DuplicateGroup struct {
+	Id          int      `json:"id"`
+	Count       int      `json:"count"`
+	Size        int64    `json:"size"`
+	WastedSpace uint64   `json:"wasted_space"`
+	Files       []string `json:"files"`
+}
+
+type DuplicateReport struct {
+	ScanDate         time.Time        `json:"scan_date"`
+	Stats            *stats.Stats     `json:"stats"`
+	TotalWastedSpace uint64           `json:"total_wasted_space"`
+	Groups           []DuplicateGroup `json:"groups"`
+}
+
+func ConvertToReport(duplicates map[string][]string, s *stats.Stats) *DuplicateReport {
+	report := &DuplicateReport{
+		ScanDate:         time.Now(),
+		Stats:            s,
+		TotalWastedSpace: 0,
+		Groups:           make([]DuplicateGroup, 0, len(duplicates)),
+	}
+
+	id := 0
+
+	for _, files := range duplicates {
+		if len(files) < 2 {
+			continue
+		}
+		id++
+		group := DuplicateGroup{
+			Id:    id,
+			Count: len(files),
+			Files: files,
+		}
+
+		if info, err := os.Stat(files[0]); err == nil {
+			group.Size = info.Size()
+			group.WastedSpace = uint64(group.Size) * uint64(len(files)-1)
+			report.TotalWastedSpace += group.WastedSpace
+		}
+
+		report.Groups = append(report.Groups, group)
+	}
+	return report
+}
+
 // ShowResults shows the duplicate files found and optionally displays statistics
 func ShowResults(duplicates map[string][]string, s *stats.Stats, showStats bool) {
 	groupCount := 0
