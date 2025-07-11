@@ -7,25 +7,25 @@ import (
 	"github.com/dr8co/doppel/internal/model"
 )
 
-// OutputFormatter formats duplicate reports to different output formats
-type OutputFormatter interface {
+// Formatter formats duplicate reports to different output formats
+type Formatter interface {
 	Format(report *model.DuplicateReport, w io.Writer) error
 }
 
-// OutputFormatterRegistry manages available output formatters
-type OutputFormatterRegistry struct {
-	formatters map[string]OutputFormatter
+// FormatterRegistry manages available output formatters
+type FormatterRegistry struct {
+	formatters map[string]Formatter
 }
 
-// NewOutputFormatterRegistry creates a new OutputFormatterRegistry
-func NewOutputFormatterRegistry() *OutputFormatterRegistry {
-	return &OutputFormatterRegistry{
-		formatters: make(map[string]OutputFormatter),
+// NewFormatterRegistry creates a new OutputFormatterRegistry
+func NewFormatterRegistry() *FormatterRegistry {
+	return &FormatterRegistry{
+		formatters: make(map[string]Formatter),
 	}
 }
 
 // Register adds a new formatter to the registry
-func (r *OutputFormatterRegistry) Register(name string, formatter OutputFormatter) error {
+func (r *FormatterRegistry) Register(name string, formatter Formatter) error {
 	if name == "" {
 		return fmt.Errorf("formatter name cannot be empty")
 	}
@@ -37,13 +37,13 @@ func (r *OutputFormatterRegistry) Register(name string, formatter OutputFormatte
 }
 
 // Get retrieves a formatter by name from the registry
-func (r *OutputFormatterRegistry) Get(name string) (OutputFormatter, bool) {
+func (r *FormatterRegistry) Get(name string) (Formatter, bool) {
 	formatter, exists := r.formatters[name]
 	return formatter, exists
 }
 
 // List returns a list of registered formatter names
-func (r *OutputFormatterRegistry) List() []string {
+func (r *FormatterRegistry) List() []string {
 	names := make([]string, 0, len(r.formatters))
 	for name := range r.formatters {
 		names = append(names, name)
@@ -52,7 +52,7 @@ func (r *OutputFormatterRegistry) List() []string {
 }
 
 // Format formats the duplicate report using the specified formatter and writes it to the provided writer
-func (r *OutputFormatterRegistry) Format(name string, report *model.DuplicateReport, w io.Writer) error {
+func (r *FormatterRegistry) Format(name string, report *model.DuplicateReport, w io.Writer) error {
 	formatter, exists := r.formatters[name]
 	if !exists {
 		return fmt.Errorf("formatter '%s' not found", name)
@@ -61,8 +61,8 @@ func (r *OutputFormatterRegistry) Format(name string, report *model.DuplicateRep
 }
 
 // InitFormatters initializes the default output formatters and returns a registry
-func InitFormatters() (*OutputFormatterRegistry, error) {
-	registry := NewOutputFormatterRegistry()
+func InitFormatters() (*FormatterRegistry, error) {
+	registry := NewFormatterRegistry()
 
 	err := registry.Register("json", NewJSONFormatter())
 	if err != nil {
