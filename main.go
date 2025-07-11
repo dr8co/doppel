@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/cmd"
+	"github.com/dr8co/doppel/internal/logger"
 )
 
 const (
@@ -28,6 +28,23 @@ func main() {
 This tool scans directories for duplicate files by comparing file sizes first, 
 then computing Blake3 hashes for files of the same size. It supports parallel 
 processing and extensive filtering options to skip unwanted files and directories.`,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "log-level",
+				Usage: "Set the log level (debug, info, warn, error)",
+				Value: "info",
+			},
+			&cli.StringFlag{
+				Name:  "log-format",
+				Usage: "Set the log format (text, json)",
+				Value: "text",
+			},
+			&cli.StringFlag{
+				Name:  "log-output",
+				Usage: "Set the log output (stdout, stderr, null, or file path)",
+				Value: "stdout",
+			},
+		},
 		Commands: []*cli.Command{
 			cmd.FindCommand(),
 			cmd.PresetCommand(),
@@ -35,9 +52,21 @@ processing and extensive filtering options to skip unwanted files and directorie
 		DefaultCommand:        "find",
 		Suggest:               true,
 		EnableShellCompletion: true,
+		Before: func(ctx context.Context, command *cli.Command) (context.Context, error) {
+			logLevel := command.String("log-level")
+			logFormat := command.String("log-format")
+			logOutput := command.String("log-output")
+
+			logger.InitLogger(logLevel, logFormat, logOutput)
+
+			return ctx, nil
+		},
 	}
 
+	defer logger.Close()
+
 	if err := app.Run(context.Background(), os.Args); err != nil {
-		log.Fatal(err)
+		logger.Error(err)
+		os.Exit(1)
 	}
 }
