@@ -12,9 +12,9 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/internal/config"
-	"github.com/dr8co/doppel/internal/display"
 	"github.com/dr8co/doppel/internal/finder"
 	"github.com/dr8co/doppel/internal/model"
+	"github.com/dr8co/doppel/internal/output"
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
@@ -147,7 +147,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 	s.Duration = time.Since(s.StartTime)
 
 	// Phase 3: Output the results
-	reg, err := display.InitFormatters()
+	reg, err := output.InitFormatters()
 	if err != nil {
 		return fmt.Errorf("error initializing formatters: %w", err)
 	}

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dr8co/doppel/internal/display"
+	"github.com/dr8co/doppel/internal/output"
 )
 
 // FilterConfig defines criteria for excluding files and directories
@@ -183,10 +183,10 @@ func DisplayFilterConfig(config *FilterConfig) {
 		fmt.Printf("  📄 Exclude file regex: %s\n", strings.Join(patterns, ", "))
 	}
 	if config.MinSize > 0 {
-		fmt.Printf("  📏 Minimum file size: %s\n", display.FormatBytes(config.MinSize))
+		fmt.Printf("  📏 Minimum file size: %s\n", output.FormatBytes(config.MinSize))
 	}
 	if config.MaxSize > 0 {
-		fmt.Printf("  📏 Maximum file size: %s\n", display.FormatBytes(config.MaxSize))
+		fmt.Printf("  📏 Maximum file size: %s\n", output.FormatBytes(config.MaxSize))
 	}
 	if len(config.ExcludeDirs) == 0 && len(config.ExcludeFiles) == 0 &&
 		len(config.ExcludeDirRegex) == 0 && len(config.ExcludeFileRegex) == 0 &&
