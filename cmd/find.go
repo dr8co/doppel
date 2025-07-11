@@ -13,9 +13,9 @@ import (
 
 	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/display"
+	"github.com/dr8co/doppel/internal/finder"
 	"github.com/dr8co/doppel/internal/model"
 	"github.com/dr8co/doppel/internal/scanner"
-	"github.com/dr8co/doppel/pkg/duplicate"
 )
 
 // FindCommand returns the find command configuration
@@ -140,7 +140,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 
 	// Phase 2: Hash files that have potential duplicates
 	workers := c.Int("workers")
-	report, err := duplicate.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
+	report, err := finder.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)
 	}

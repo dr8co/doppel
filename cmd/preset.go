@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"context"
-	"github.com/urfave/cli/v3"
 	"runtime"
+
+	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/scanner"

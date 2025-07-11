@@ -1,4 +1,4 @@
-package duplicate
+package finder
 
 import (
 	"os"

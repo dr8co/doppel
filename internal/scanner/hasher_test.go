@@ -2,10 +2,11 @@ package scanner
 
 import (
 	"fmt"
-	"lukechampine.com/blake3"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"lukechampine.com/blake3"
 )
 
 func TestHashFile(t *testing.T) {
