@@ -3,11 +3,12 @@ package finder
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/dr8co/doppel/internal/logger"
 	"github.com/dr8co/doppel/internal/model"
 	"github.com/dr8co/doppel/internal/scanner"
 )
@@ -40,7 +41,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 
 	// Start workers
 	var wg sync.WaitGroup
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -50,9 +51,9 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							log.Printf("❌ Error hashing: %v", filepathErr)
+							logger.ErrorAttrs("error hashing", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 						} else {
-							log.Printf("❌ Error hashing %s: %v", filePath, err)
+							logger.Errorf("error hashing %s: %v", filePath, err)
 						}
 					}
 					stats.IncrementErrorCount()
@@ -65,9 +66,9 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							log.Printf("❌ Error stating: %v", filepathErr)
+							logger.Errorf("❌ Error stating: %v", filepathErr)
 						} else {
-							log.Printf("❌ Error stating %s: %v", filePath, err)
+							logger.Errorf("❌ Error stating %s: %v", filePath, err)
 						}
 					}
 					stats.IncrementErrorCount()

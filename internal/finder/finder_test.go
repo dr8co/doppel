@@ -84,13 +84,14 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	foundGroup2 := false
 
 	for _, group := range report.Groups {
-		if group.Count == 3 {
+		switch group.Count {
+		case 3:
 			// This should be the content1 group
 			foundGroup1 = true
 			if !containsAll(group.Files, []string{file1, file2, file3}) {
 				t.Errorf("Duplicate group missing expected files: %v", group.Files)
 			}
-		} else if group.Count == 2 {
+		case 2:
 			// This should be the content2 group
 			foundGroup2 = true
 			if !containsAll(group.Files, []string{file4, file5}) {
