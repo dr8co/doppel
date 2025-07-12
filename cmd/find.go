@@ -29,6 +29,8 @@ the current directory is used. Files are compared using Blake3 hashes after
 initial size-based filtering.`,
 		ArgsUsage:             "[directories...]",
 		EnableShellCompletion: true,
+		Suggest:               true,
+
 		Flags: []cli.Flag{
 			&cli.IntFlag{
 				Name:    "workers",

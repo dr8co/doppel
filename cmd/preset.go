@@ -23,6 +23,8 @@ func PresetCommand() *cli.Command {
 - clean: Skip temporary and cache files`,
 		ArgsUsage:             "[directories...]",
 		EnableShellCompletion: true,
+		Suggest:               true,
+
 		Flags: []cli.Flag{
 			&cli.IntFlag{
 				Name:    "workers",
@@ -57,6 +59,8 @@ func PresetCommand() *cli.Command {
 				Action: func(ctx context.Context, c *cli.Command) error {
 					return findDuplicatesWithPreset(ctx, c, "dev")
 				},
+				Suggest:               true,
+				EnableShellCompletion: true,
 			},
 			{
 				Name:  "media",
@@ -64,6 +68,8 @@ func PresetCommand() *cli.Command {
 				Action: func(ctx context.Context, c *cli.Command) error {
 					return findDuplicatesWithPreset(ctx, c, "media")
 				},
+				Suggest:               true,
+				EnableShellCompletion: true,
 			},
 			{
 				Name:  "docs",
@@ -71,6 +77,8 @@ func PresetCommand() *cli.Command {
 				Action: func(ctx context.Context, c *cli.Command) error {
 					return findDuplicatesWithPreset(ctx, c, "docs")
 				},
+				Suggest:               true,
+				EnableShellCompletion: true,
 			},
 			{
 				Name:  "clean",
@@ -78,6 +86,8 @@ func PresetCommand() *cli.Command {
 				Action: func(ctx context.Context, c *cli.Command) error {
 					return findDuplicatesWithPreset(ctx, c, "clean")
 				},
+				Suggest:               true,
+				EnableShellCompletion: true,
 			},
 		},
 	}
