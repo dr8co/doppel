@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -40,8 +41,9 @@ func InitLogger(level string, format string, output string) {
 		writer = os.Stdout
 	case "stderr":
 		writer = os.Stderr
-	case "null":
+	case "null", "discard":
 		writer = io.Discard
+		format = "null"
 	default:
 		file, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
@@ -60,10 +62,12 @@ func InitLogger(level string, format string, output string) {
 
 	var handler slog.Handler
 	switch strings.ToLower(format) {
-	case "json":
-		handler = slog.NewJSONHandler(writer, opts)
 	case "text", "":
 		handler = slog.NewTextHandler(writer, opts)
+	case "json":
+		handler = slog.NewJSONHandler(writer, opts)
+	case "null", "discard":
+		handler = slog.DiscardHandler
 	default:
 		// Default to text format for unknown formats
 		_, _ = fmt.Fprintf(os.Stderr, "Unknown log format '%s'. Using text format.\n", format)
@@ -71,16 +75,17 @@ func InitLogger(level string, format string, output string) {
 	}
 
 	Log = slog.New(handler)
+	slog.SetDefault(Log)
 	initialized = true
 }
 
 // parseLogLevel converts string log level to slog.Level
 func parseLogLevel(levelStr string) slog.Level {
 	switch strings.ToLower(levelStr) {
-	case "debug":
-		return slog.LevelDebug
 	case "info", "":
 		return slog.LevelInfo
+	case "debug":
+		return slog.LevelDebug
 	case "warn", "warning":
 		return slog.LevelWarn
 	case "error":
@@ -91,54 +96,91 @@ func parseLogLevel(levelStr string) slog.Level {
 	}
 }
 
-func Info(args ...interface{}) {
+// Info logs an informational message.
+func Info(args ...any) {
 	if Log != nil {
 		Log.Info(fmt.Sprint(args...))
 	}
 }
 
-func Infof(format string, args ...interface{}) {
+// Infof logs an informational message with formatting.
+func Infof(format string, args ...any) {
 	if Log != nil {
 		Log.Info(fmt.Sprintf(format, args...))
 	}
 }
 
-func Warn(args ...interface{}) {
+// InfoAttrs logs an informational message with attributes.
+func InfoAttrs(message string, attrs ...slog.Attr) {
+	if Log != nil {
+		Log.LogAttrs(context.TODO(), slog.LevelInfo, message, attrs...)
+	}
+}
+
+// Warn logs a warning message.
+func Warn(args ...any) {
 	if Log != nil {
 		Log.Warn(fmt.Sprint(args...))
 	}
 }
 
-func Warnf(format string, args ...interface{}) {
+// Warnf logs a warning message with formatting.
+func Warnf(format string, args ...any) {
 	if Log != nil {
 		Log.Warn(fmt.Sprintf(format, args...))
 	}
 }
 
-func Error(args ...interface{}) {
+// WarnAttrs logs a warning message with attributes.
+func WarnAttrs(message string, attrs ...slog.Attr) {
+	if Log != nil {
+		Log.LogAttrs(context.TODO(), slog.LevelWarn, message, attrs...)
+	}
+}
+
+// Error logs an error message.
+func Error(args ...any) {
 	if Log != nil {
 		Log.Error(fmt.Sprint(args...))
 	}
 }
 
-func Errorf(format string, args ...interface{}) {
+// Errorf logs an error message with formatting.
+func Errorf(format string, args ...any) {
 	if Log != nil {
 		Log.Error(fmt.Sprintf(format, args...))
 	}
 }
 
-func Debug(args ...interface{}) {
+// ErrorAttrs logs an error message with attributes.
+func ErrorAttrs(message string, attrs ...slog.Attr) {
+	if Log != nil {
+		Log.LogAttrs(context.TODO(), slog.LevelError, message, attrs...)
+	}
+}
+
+// Debug logs a debug message.
+func Debug(args ...any) {
 	if Log != nil {
 		Log.Debug(fmt.Sprint(args...))
 	}
 }
 
-func Debugf(format string, args ...interface{}) {
+// Debugf logs a debug message with formatting.
+func Debugf(format string, args ...any) {
 	if Log != nil {
 		Log.Debug(fmt.Sprintf(format, args...))
 	}
 }
 
+// DebugAttrs logs a debug message with attributes.
+func DebugAttrs(message string, attrs ...slog.Attr) {
+	if Log != nil {
+		Log.LogAttrs(context.TODO(), slog.LevelDebug, message, attrs...)
+	}
+}
+
+// Close closes the log file if it was opened.
 func Close() {
 	if logFile != nil {
 		_ = logFile.Close()
