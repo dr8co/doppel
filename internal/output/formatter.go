@@ -9,6 +9,7 @@ import (
 
 // Formatter formats duplicate reports to different output formats
 type Formatter interface {
+	Name() string
 	Format(report *model.DuplicateReport, w io.Writer) error
 }
 

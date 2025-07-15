@@ -85,3 +85,8 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 
 	return nil
 }
+
+// Name returns the name of the formatter
+func (f *PrettyFormatter) Name() string {
+	return "pretty"
+}

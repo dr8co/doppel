@@ -22,3 +22,8 @@ func (f *JSONFormatter) Format(report *model.DuplicateReport, w io.Writer) error
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(report)
 }
+
+// Name returns the name of the formatter
+func (f *JSONFormatter) Name() string {
+	return "json"
+}
