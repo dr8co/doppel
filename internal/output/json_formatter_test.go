@@ -3,6 +3,7 @@ package output
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 
 func TestJSONFormatter_Format(t *testing.T) {
 	report := &model.DuplicateReport{
-		ScanDate: time.Date(2025, 7, 10, 12, 0, 0, 0, time.UTC),
+		ScanDate: time.Now().UTC(),
 		Stats: &model.Stats{
 			TotalFiles:      10,
 			ProcessedFiles:  8,
@@ -20,7 +21,8 @@ func TestJSONFormatter_Format(t *testing.T) {
 			ErrorCount:      0,
 			DuplicateFiles:  4,
 			DuplicateGroups: 2,
-			StartTime:       time.Date(2025, 7, 10, 12, 0, 0, 0, time.UTC),
+			StartTime:       time.Now().UTC(),
+			Duration:        2 * time.Millisecond,
 		},
 		TotalWastedSpace: 2048,
 		Groups: []model.DuplicateGroup{
@@ -49,19 +51,25 @@ func TestJSONFormatter_Format(t *testing.T) {
 	}
 
 	// Validate output is valid JSON and matches the expected structure
-	var decoded model.DuplicateReport
-	err = json.Unmarshal(buf.Bytes(), &decoded)
+	var got model.DuplicateReport
+	err = json.Unmarshal(buf.Bytes(), &got)
 	if err != nil {
 		t.Fatalf("Output is not valid JSON: %v", err)
 	}
 
-	if decoded.TotalWastedSpace != report.TotalWastedSpace {
-		t.Errorf("TotalWastedSpace mismatch: got %d, want %d", decoded.TotalWastedSpace, report.TotalWastedSpace)
+	if !reflect.DeepEqual(got.Stats, report.Stats) {
+		t.Errorf("Stats mismatch: got %v, want %v", got.Stats, report.Stats)
 	}
-	if len(decoded.Groups) != len(report.Groups) {
-		t.Errorf("Groups length mismatch: got %d, want %d", len(decoded.Groups), len(report.Groups))
+
+	if !reflect.DeepEqual(got.Groups, report.Groups) {
+		t.Errorf("Groups mismatch: got %v, want %v", got.Groups, report.Groups)
 	}
-	if decoded.Stats.TotalFiles != report.Stats.TotalFiles {
-		t.Errorf("Stats.TotalFiles mismatch: got %d, want %d", decoded.Stats.TotalFiles, report.Stats.TotalFiles)
+
+	if got.TotalWastedSpace != report.TotalWastedSpace {
+		t.Errorf("TotalWastedSpace mismatch: got %d, want %d", got.TotalWastedSpace, report.TotalWastedSpace)
+	}
+
+	if got.ScanDate != report.ScanDate {
+		t.Errorf("ScanDate mismatch: got %v, want %v", got.ScanDate, report.ScanDate)
 	}
 }
