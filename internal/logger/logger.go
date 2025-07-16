@@ -184,5 +184,7 @@ func DebugAttrs(message string, attrs ...slog.Attr) {
 func Close() {
 	if logFile != nil {
 		_ = logFile.Close()
+		logFile = nil
+		initialized = false
 	}
 }

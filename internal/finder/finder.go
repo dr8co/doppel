@@ -51,9 +51,9 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							logger.ErrorAttrs("error hashing", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
+							logger.ErrorAttrs("error hashing file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 						} else {
-							logger.Errorf("error hashing %s: %v", filePath, err)
+							logger.ErrorAttrs("error hashing file", slog.String("path", filePath), slog.String("err", err.Error()))
 						}
 					}
 					stats.IncrementErrorCount()
@@ -66,9 +66,9 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							logger.Errorf("❌ Error stating: %v", filepathErr)
+							logger.ErrorAttrs("error stating file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 						} else {
-							logger.Errorf("❌ Error stating %s: %v", filePath, err)
+							logger.ErrorAttrs("error stating file", slog.String("path", filePath), slog.String("err", err.Error()))
 						}
 					}
 					stats.IncrementErrorCount()
@@ -106,16 +106,20 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	var groups []model.DuplicateGroup
 	totalWasted := uint64(0)
 	groupId := 0
+
 	for _, files := range hashGroups {
 		if len(files) > 1 {
 			groupId++
 			filePaths := make([]string, len(files))
+
 			for i, fi := range files {
 				filePaths[i] = fi.Path
 			}
+
 			size := files[0].Size
 			wasted := uint64(size) * uint64(len(files)-1)
 			totalWasted += wasted
+
 			groups = append(groups, model.DuplicateGroup{
 				Id:          groupId,
 				Count:       len(files),
@@ -123,6 +127,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 				WastedSpace: wasted,
 				Files:       filePaths,
 			})
+
 			stats.DuplicateGroups++
 			stats.DuplicateFiles += uint64(len(files))
 		}

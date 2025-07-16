@@ -17,10 +17,10 @@ func PresetCommand() *cli.Command {
 		Aliases: []string{"p"},
 		Usage:   "Use predefined filter presets",
 		Description: `Apply common filter presets for different scenarios:
-- dev: Skip development directories and files
-- media: Focus on media files, skip small files
-- docs: Focus on document files
-- clean: Skip temporary and cache files`,
+  - dev: Skip development directories and files
+  - media: Focus on media files, skip small files
+  - docs: Focus on document files
+  - clean: Skip temporary and cache files`,
 		ArgsUsage:             "[directories...]",
 		EnableShellCompletion: true,
 		Suggest:               true,

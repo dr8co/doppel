@@ -9,9 +9,9 @@ import (
 
 // FileInfo represents a file with its path, size, and hash
 type FileInfo struct {
-	Path string
-	Size int64
-	Hash string
+	Path string `json:"path" yaml:"path"`
+	Size int64  `json:"size" yaml:"size"`
+	Hash string `json:"hash" yaml:"hash"`
 }
 
 // HashFile computes Blake3 hash of the entire file
@@ -20,6 +20,7 @@ func HashFile(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	defer func(file *os.File) {
 		_ = file.Close()
 	}(file)
@@ -35,12 +36,15 @@ func HashFile(filePath string) (string, error) {
 				return "", err2
 			}
 		}
+
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
 			return "", err
 		}
 	}
+
 	return string(hasher.Sum(nil)), nil
 }

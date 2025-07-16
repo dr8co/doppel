@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/urfave/cli/v3"
 
@@ -15,6 +18,20 @@ const (
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+
+	go func() {
+		sig := <-c
+		logger.InfoAttrs("received signal, shutting down", slog.String("signal", sig.String()))
+		cancel()
+		logger.Close()
+		os.Exit(1)
+	}()
+
 	app := &cli.Command{
 		Name:    "doppel",
 		Usage:   "Find duplicate files across directories",
@@ -65,8 +82,10 @@ processing and extensive filtering options to skip unwanted files and directorie
 
 	defer logger.Close()
 
-	if err := app.Run(context.Background(), os.Args); err != nil {
+	if err := app.Run(ctx, os.Args); err != nil {
 		logger.Error(err)
+		cancel()
+		logger.Close()
 		os.Exit(1)
 	}
 }

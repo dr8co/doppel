@@ -69,14 +69,17 @@ func InitFormatters() (*FormatterRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = registry.Register("pretty", NewPrettyFormatter())
 	if err != nil {
 		return nil, err
 	}
+
 	err = registry.Register("yaml", NewYAMLFormatter())
 	if err != nil {
 		return nil, err
 	}
+
 	return registry, nil
 }
 
@@ -86,10 +89,12 @@ func FormatBytes(bytes int64) string {
 	if bytes < unit {
 		return fmt.Sprintf("%d B", bytes)
 	}
+
 	div, exp := int64(unit), 0
 	for n := bytes / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
+
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }

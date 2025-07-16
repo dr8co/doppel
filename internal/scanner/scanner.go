@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,6 +13,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/internal/config"
+	"github.com/dr8co/doppel/internal/logger"
 	"github.com/dr8co/doppel/internal/model"
 )
 
@@ -26,9 +27,9 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 				if verbose {
 					var filepathErr *os.PathError
 					if errors.As(err, &filepathErr) {
-						log.Printf("❌ Error accessing: %v", filepathErr)
+						logger.ErrorAttrs("error accessing file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 					} else {
-						log.Printf("❌ Error accessing %s: %v", path, err)
+						logger.ErrorAttrs("error accessing file", slog.String("path", path), slog.String("err", err.Error()))
 					}
 				}
 				stats.ErrorCount++
@@ -38,7 +39,7 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 			// Check if we should skip this directory
 			if dirEnt.IsDir() && filterConfig.ShouldExcludeDir(path) {
 				if verbose {
-					log.Printf("⏭️  Skipping directory: %s", path)
+					logger.InfoAttrs("skipping directory", slog.String("path", path))
 				}
 				stats.SkippedDirs++
 				return filepath.SkipDir
@@ -50,9 +51,9 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							log.Printf("❌ Error getting info: %v", filepathErr)
+							logger.ErrorAttrs("error getting file info", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 						} else {
-							log.Printf("❌ Error getting info for %s: %v", path, err)
+							logger.ErrorAttrs("error getting file info", slog.String("path", path), slog.String("err", err.Error()))
 						}
 					}
 					stats.ErrorCount++
@@ -64,7 +65,7 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 				// Check if we should skip this file
 				if filterConfig.ShouldExcludeFile(path, size) {
 					if verbose {
-						log.Printf("⏭️  Skipping file: %s", path)
+						logger.InfoAttrs("skipping file", slog.String("path", path), slog.Int64("size", size))
 					}
 					stats.SkippedFiles++
 					return nil

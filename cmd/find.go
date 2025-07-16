@@ -108,6 +108,7 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 		c.Int64("min-size"),
 		c.Int64("max-size"),
 	)
+
 	if err != nil {
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
@@ -169,6 +170,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 		if err != nil {
 			return fmt.Errorf("error getting absolute path for output file: %w", err)
 		}
+
 		if err := os.MkdirAll(filepath.Dir(outputFile), 0755); err != nil {
 			return fmt.Errorf("error creating output directory: %w", err)
 		}
@@ -177,6 +179,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 		if err != nil {
 			return fmt.Errorf("error opening output file: %w", err)
 		}
+
 		defer func(file *os.File) {
 			_ = file.Close()
 		}(file)

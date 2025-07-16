@@ -21,6 +21,7 @@ func (f *YAMLFormatter) Format(report *model.DuplicateReport, w io.Writer) error
 	defer func(encoder *yaml.Encoder) {
 		_ = encoder.Close()
 	}(encoder)
+
 	return encoder.Encode(report)
 }
 
