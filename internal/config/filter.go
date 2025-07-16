@@ -11,12 +11,12 @@ import (
 
 // FilterConfig defines criteria for excluding files and directories
 type FilterConfig struct {
-	ExcludeDirs      []string         `json:"exclude_dirs"`
-	ExcludeFiles     []string         `json:"exclude_files"`
-	ExcludeDirRegex  []*regexp.Regexp `json:"exclude_dir_regex"`
-	ExcludeFileRegex []*regexp.Regexp `json:"exclude_file_regex"`
-	MinSize          int64            `json:"min_size"`
-	MaxSize          int64            `json:"max_size"`
+	ExcludeDirs      []string         `json:"exclude_dirs" yaml:"exclude_dirs"`
+	ExcludeFiles     []string         `json:"exclude_files" yaml:"exclude_files"`
+	ExcludeDirRegex  []*regexp.Regexp `json:"exclude_dir_regex" yaml:"exclude_dir_regex"`
+	ExcludeFileRegex []*regexp.Regexp `json:"exclude_file_regex" yaml:"exclude_file_regex"`
+	MinSize          int64            `json:"min_size" yaml:"min_size"`
+	MaxSize          int64            `json:"max_size" yaml:"max_size"`
 }
 
 // BuildFilterConfig creates a FilterConfig from command line arguments

@@ -7,32 +7,32 @@ import (
 
 // DuplicateGroup represents a group of duplicate files with their metadata
 type DuplicateGroup struct {
-	Id          int      `json:"id"`
-	Count       int      `json:"count"`
-	Size        int64    `json:"size"`
-	WastedSpace uint64   `json:"wasted_space"`
-	Files       []string `json:"files"`
+	Id          int      `json:"id" yaml:"id"`
+	Count       int      `json:"count" yaml:"count"`
+	Size        int64    `json:"size" yaml:"size"`
+	WastedSpace uint64   `json:"wasted_space" yaml:"wasted_space"`
+	Files       []string `json:"files" yaml:"files"`
 }
 
 // DuplicateReport represents the report of duplicate files found during a scan
 type DuplicateReport struct {
-	ScanDate         time.Time        `json:"scan_date"`
-	Stats            *Stats           `json:"stats"`
-	TotalWastedSpace uint64           `json:"total_wasted_space"`
-	Groups           []DuplicateGroup `json:"groups"`
+	ScanDate         time.Time        `json:"scan_date" yaml:"scan_date"`
+	Stats            *Stats           `json:"stats" yaml:"stats"`
+	TotalWastedSpace uint64           `json:"total_wasted_space" yaml:"total_wasted_space"`
+	Groups           []DuplicateGroup `json:"groups" yaml:"groups"`
 }
 
 // Stats tracks various statistics during the duplicate file finding process
 type Stats struct {
-	TotalFiles      uint64        `json:"total_files"`
-	ProcessedFiles  uint64        `json:"processed_files"`
-	SkippedDirs     uint64        `json:"skipped_dirs"`
-	SkippedFiles    uint64        `json:"skipped_files"`
-	ErrorCount      uint64        `json:"error_count"`
-	DuplicateGroups uint64        `json:"duplicate_groups"`
-	DuplicateFiles  uint64        `json:"duplicate_files"`
-	StartTime       time.Time     `json:"start_time"`
-	Duration        time.Duration `json:"duration"`
+	TotalFiles      uint64        `json:"total_files" yaml:"total_files"`
+	ProcessedFiles  uint64        `json:"processed_files" yaml:"processed_files"`
+	SkippedDirs     uint64        `json:"skipped_dirs" yaml:"skipped_dirs"`
+	SkippedFiles    uint64        `json:"skipped_files" yaml:"skipped_files"`
+	ErrorCount      uint64        `json:"error_count" yaml:"error_count"`
+	DuplicateGroups uint64        `json:"duplicate_groups" yaml:"duplicate_groups"`
+	DuplicateFiles  uint64        `json:"duplicate_files" yaml:"duplicate_files"`
+	StartTime       time.Time     `json:"start_time" yaml:"start_time"`
+	Duration        time.Duration `json:"duration" yaml:"duration"`
 }
 
 // IncrementErrorCount atomically increments the error count

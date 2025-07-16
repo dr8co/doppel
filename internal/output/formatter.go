@@ -73,6 +73,10 @@ func InitFormatters() (*FormatterRegistry, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = registry.Register("yaml", NewYAMLFormatter())
+	if err != nil {
+		return nil, err
+	}
 	return registry, nil
 }
 
