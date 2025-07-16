@@ -8,6 +8,6 @@ require (
 )
 
 require (
-	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 )
