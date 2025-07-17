@@ -7,20 +7,36 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
 )
 
 var (
-	Log         *slog.Logger
+	log         *slog.Logger
 	logFile     *os.File
 	initialized bool
+	mu          sync.RWMutex
 )
 
-// InitLogger configures the global logger using the provided Config struct.
+// init initializes the logger with safe defaults for testing.
+func init() {
+	if !initialized {
+		initLoggerUnsafe("", "", "")
+		initialized = false
+	}
+}
+
+// InitLogger configures the global logger with thread safety.
 func InitLogger(level string, format string, output string) {
-	if initialized {
-		return
+	if !initialized {
+		mu.Lock()
+		defer mu.Unlock()
+		initLoggerUnsafe(level, format, output)
 	}
 
+}
+
+// initLoggerUnsafe is the internal implementation that initializes the logger without locks.
+func initLoggerUnsafe(level string, format string, output string) {
 	lvl := parseLogLevel(level)
 
 	var opts *slog.HandlerOptions
@@ -35,48 +51,54 @@ func InitLogger(level string, format string, output string) {
 		}
 	}
 
-	var writer io.Writer
+	writer, err := createWriter(output)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to create writer for %s: %v.\nFalling back to stdout.\n", output, err)
+		writer = os.Stdout
+	}
+
+	handler := createHandler(writer, format, opts)
+
+	log = slog.New(handler)
+	initialized = true
+}
+
+// createWriter creates an io.Writer based on the output string.
+func createWriter(output string) (io.Writer, error) {
 	switch output {
 	case "stdout", "":
-		writer = os.Stdout
+		return os.Stdout, nil
 	case "stderr":
-		writer = os.Stderr
+		return os.Stderr, nil
 	case "null", "discard":
-		writer = io.Discard
-		format = "null"
+		return io.Discard, nil
 	default:
 		file, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Failed to open log file %s: %v.\nFalling back to stdout.\n", output, err)
-			writer = os.Stdout
-		} else {
-			// Close the previous log if it exists
-			if logFile != nil {
-				_ = logFile.Close()
-			}
-			logFile = file
-			writer = file
+			return nil, fmt.Errorf("failed to open log file %s: %w", output, err)
 		}
 
+		if logFile != nil {
+			_ = logFile.Close()
+		}
+		logFile = file
+		return file, nil
 	}
+}
 
-	var handler slog.Handler
+// createHandler creates a slog.Handler based on the format string.
+func createHandler(writer io.Writer, format string, opts *slog.HandlerOptions) slog.Handler {
 	switch strings.ToLower(format) {
 	case "text", "":
-		handler = slog.NewTextHandler(writer, opts)
+		return slog.NewTextHandler(writer, opts)
 	case "json":
-		handler = slog.NewJSONHandler(writer, opts)
+		return slog.NewJSONHandler(writer, opts)
 	case "null", "discard":
-		handler = slog.DiscardHandler
+		return slog.DiscardHandler
 	default:
-		// Default to text format for unknown formats
 		_, _ = fmt.Fprintf(os.Stderr, "Unknown log format '%s'. Using text format.\n", format)
-		handler = slog.NewTextHandler(writer, opts)
+		return slog.NewTextHandler(writer, opts)
 	}
-
-	Log = slog.New(handler)
-	slog.SetDefault(Log)
-	initialized = true
 }
 
 // parseLogLevel converts string log level to slog.Level
@@ -96,95 +118,84 @@ func parseLogLevel(levelStr string) slog.Level {
 	}
 }
 
-// Info logs an informational message.
-func Info(args ...any) {
-	if Log != nil {
-		Log.Info(fmt.Sprint(args...))
-	}
+// GetLogger returns the global logger instance (thread-safe).
+func GetLogger() *slog.Logger {
+	mu.RLock()
+	defer mu.RUnlock()
+	return log
 }
 
-// Infof logs an informational message with formatting.
-func Infof(format string, args ...any) {
-	if Log != nil {
-		Log.Info(fmt.Sprintf(format, args...))
-	}
+// Info logs an informational message.
+func Info(msg string, args ...any) {
+	GetLogger().Info(msg, args...)
+}
+
+// InfoCtx logs an informational message with context.
+func InfoCtx(ctx context.Context, msg string, args ...any) {
+	GetLogger().InfoContext(ctx, msg, args...)
 }
 
 // InfoAttrs logs an informational message with attributes.
-func InfoAttrs(message string, attrs ...slog.Attr) {
-	if Log != nil {
-		Log.LogAttrs(context.TODO(), slog.LevelInfo, message, attrs...)
-	}
+func InfoAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	GetLogger().LogAttrs(ctx, slog.LevelInfo, message, attrs...)
 }
 
 // Warn logs a warning message.
-func Warn(args ...any) {
-	if Log != nil {
-		Log.Warn(fmt.Sprint(args...))
-	}
+func Warn(msg string, args ...any) {
+	GetLogger().Warn(msg, args...)
 }
 
-// Warnf logs a warning message with formatting.
-func Warnf(format string, args ...any) {
-	if Log != nil {
-		Log.Warn(fmt.Sprintf(format, args...))
-	}
+// WarnCtx logs a warning message with context.
+func WarnCtx(ctx context.Context, msg string, args ...any) {
+	GetLogger().WarnContext(ctx, msg, args...)
 }
 
 // WarnAttrs logs a warning message with attributes.
-func WarnAttrs(message string, attrs ...slog.Attr) {
-	if Log != nil {
-		Log.LogAttrs(context.TODO(), slog.LevelWarn, message, attrs...)
-	}
+func WarnAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	GetLogger().LogAttrs(ctx, slog.LevelWarn, message, attrs...)
 }
 
 // Error logs an error message.
-func Error(args ...any) {
-	if Log != nil {
-		Log.Error(fmt.Sprint(args...))
-	}
+func Error(msg string, args ...any) {
+	GetLogger().Error(msg, args...)
 }
 
-// Errorf logs an error message with formatting.
-func Errorf(format string, args ...any) {
-	if Log != nil {
-		Log.Error(fmt.Sprintf(format, args...))
-	}
+// ErrorCtx logs an error message with context.
+func ErrorCtx(ctx context.Context, msg string, args ...any) {
+	GetLogger().ErrorContext(ctx, msg, args...)
 }
 
 // ErrorAttrs logs an error message with attributes.
-func ErrorAttrs(message string, attrs ...slog.Attr) {
-	if Log != nil {
-		Log.LogAttrs(context.TODO(), slog.LevelError, message, attrs...)
-	}
+func ErrorAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	GetLogger().LogAttrs(ctx, slog.LevelError, message, attrs...)
 }
 
 // Debug logs a debug message.
-func Debug(args ...any) {
-	if Log != nil {
-		Log.Debug(fmt.Sprint(args...))
-	}
+func Debug(msg string, args ...any) {
+	GetLogger().Debug(msg, args...)
 }
 
-// Debugf logs a debug message with formatting.
-func Debugf(format string, args ...any) {
-	if Log != nil {
-		Log.Debug(fmt.Sprintf(format, args...))
-	}
+// DebugCtx logs a debug message with context.
+func DebugCtx(ctx context.Context, msg string, args ...any) {
+	GetLogger().DebugContext(ctx, msg, args...)
 }
 
 // DebugAttrs logs a debug message with attributes.
-func DebugAttrs(message string, attrs ...slog.Attr) {
-	if Log != nil {
-		Log.LogAttrs(context.TODO(), slog.LevelDebug, message, attrs...)
-	}
+func DebugAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	GetLogger().LogAttrs(ctx, slog.LevelDebug, message, attrs...)
 }
 
 // Close closes the log file if it was opened.
 func Close() {
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Close the log file if it was opened
 	if logFile != nil {
 		_ = logFile.Close()
 		logFile = nil
-		initialized = false
 	}
+
+	initialized = false
+	log = nil
 }

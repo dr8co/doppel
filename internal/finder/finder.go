@@ -1,6 +1,7 @@
 package finder
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -35,6 +36,8 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		fmt.Printf("\n🔐 Hashing %d candidate files with %d workers\n\n", len(candidateFiles), numWorkers)
 	}
 
+	ctx := context.TODO()
+
 	// Create the work channel and the result channel
 	workChan := make(chan string, len(candidateFiles))
 	resultChan := make(chan scanner.FileInfo, len(candidateFiles))
@@ -51,9 +54,9 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							logger.ErrorAttrs("error hashing file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
+							logger.ErrorAttrs(ctx, "error hashing file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 						} else {
-							logger.ErrorAttrs("error hashing file", slog.String("path", filePath), slog.String("err", err.Error()))
+							logger.ErrorAttrs(ctx, "error hashing file", slog.String("path", filePath), slog.String("err", err.Error()))
 						}
 					}
 					stats.IncrementErrorCount()
@@ -66,9 +69,9 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							logger.ErrorAttrs("error stating file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
+							logger.ErrorAttrs(ctx, "error stating file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 						} else {
-							logger.ErrorAttrs("error stating file", slog.String("path", filePath), slog.String("err", err.Error()))
+							logger.ErrorAttrs(ctx, "error stating file", slog.String("path", filePath), slog.String("err", err.Error()))
 						}
 					}
 					stats.IncrementErrorCount()

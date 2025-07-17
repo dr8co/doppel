@@ -26,7 +26,7 @@ func main() {
 
 	go func() {
 		sig := <-c
-		logger.InfoAttrs("received signal, shutting down", slog.String("signal", sig.String()))
+		logger.InfoAttrs(ctx, "received signal, shutting down", slog.String("signal", sig.String()))
 		cancel()
 		logger.Close()
 		os.Exit(1)
@@ -83,7 +83,7 @@ processing and extensive filtering options to skip unwanted files and directorie
 	defer logger.Close()
 
 	if err := app.Run(ctx, os.Args); err != nil {
-		logger.Error(err)
+		logger.Error("error running the application", err)
 		cancel()
 		logger.Close()
 		os.Exit(1)

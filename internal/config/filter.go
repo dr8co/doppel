@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -36,11 +37,11 @@ type FilterConfig struct {
 func BuildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64) (*FilterConfig, error) {
 	// Handle negative values
 	if minSize < 0 {
-		logger.DebugAttrs("minSize is negative, setting to 0", slog.Int64("minSize", minSize))
+		logger.DebugAttrs(context.TODO(), "minSize is negative, setting to 0", slog.Int64("minSize", minSize))
 		minSize = 0
 	}
 	if maxSize < 0 {
-		logger.DebugAttrs("maxSize is negative, setting to 0", slog.Int64("maxSize", maxSize))
+		logger.DebugAttrs(context.TODO(), "maxSize is negative, setting to 0", slog.Int64("maxSize", maxSize))
 		maxSize = 0
 	}
 

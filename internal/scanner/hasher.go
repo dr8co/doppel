@@ -7,6 +7,8 @@ import (
 	"lukechampine.com/blake3"
 )
 
+const chunkSize = 64 * 1024 // 64 KB
+
 // FileInfo represents a file with its path, size, and hash
 type FileInfo struct {
 	Path string `json:"path" yaml:"path"`
@@ -26,7 +28,6 @@ func HashFile(filePath string) (string, error) {
 	}(file)
 
 	hasher := blake3.New(32, nil)
-	const chunkSize = 64 * 1024 // 64 KB
 	buf := make([]byte, chunkSize)
 
 	for {

@@ -11,7 +11,7 @@ import (
 
 func TestPrettyFormatter_Format(t *testing.T) {
 	report := &model.DuplicateReport{
-		ScanDate: time.Date(2025, 7, 10, 12, 0, 0, 0, time.UTC),
+		ScanDate: time.Now().UTC(),
 		Stats: &model.Stats{
 			TotalFiles:      10,
 			ProcessedFiles:  8,
@@ -20,6 +20,7 @@ func TestPrettyFormatter_Format(t *testing.T) {
 			ErrorCount:      0,
 			DuplicateFiles:  4,
 			DuplicateGroups: 2,
+			StartTime:       time.Now().UTC(),
 			Duration:        2 * time.Second,
 		},
 		TotalWastedSpace: 2048,
