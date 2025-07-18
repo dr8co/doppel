@@ -53,8 +53,8 @@ processing and extensive filtering options to skip unwanted files and directorie
 			},
 			&cli.StringFlag{
 				Name:  "log-format",
-				Usage: "Set the log format (text, json)",
-				Value: "text",
+				Usage: "Set the log format (text, json, pretty, discard)",
+				Value: "pretty",
 			},
 			&cli.StringFlag{
 				Name:  "log-output",

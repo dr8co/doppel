@@ -95,6 +95,8 @@ func createHandler(writer io.Writer, format string, opts *slog.HandlerOptions) s
 		return slog.NewJSONHandler(writer, opts)
 	case "null", "discard":
 		return slog.DiscardHandler
+	case "pretty", "color", "terminal", "human":
+		return NewPrettyHandler(writer, opts)
 	default:
 		_, _ = fmt.Fprintf(os.Stderr, "Unknown log format '%s'. Using text format.\n", format)
 		return slog.NewTextHandler(writer, opts)
