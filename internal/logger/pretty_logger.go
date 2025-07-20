@@ -58,7 +58,7 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 		warn:      color.New(color.FgYellow, color.Bold),
 		error:     color.New(color.FgRed, color.Bold),
 		source:    color.New(color.FgCyan),
-		message:   color.New(color.FgWhite, color.Bold),
+		message:   color.New(color.Bold),
 		attrKey:   color.New(color.FgCyan),
 		attrValue: color.New(color.FgHiBlack),
 		bracket:   color.New(color.FgHiBlack),
@@ -115,7 +115,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	// Attributes
 	if r.NumAttrs() > 0 || len(h.attrs) > 0 {
 		buf.WriteString(" ")
-		_, _ = h.colors.bracket.Fprint(&buf, "{")
+		_, _ = h.colors.bracket.Fprint(&buf, "{\n  ")
 
 		first := true
 
@@ -138,7 +138,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 			return true
 		})
 
-		_, _ = h.colors.bracket.Fprint(&buf, "}")
+		_, _ = h.colors.bracket.Fprint(&buf, "\n}")
 	}
 
 	buf.WriteString("\n")
@@ -193,7 +193,7 @@ func (h *PrettyHandler) getLevelColor(level slog.Level) *color.Color {
 	}
 }
 
-// formatLevelString returns formatted level string with proper padding
+// formatLevelString returns a formatted level string with proper padding
 func (h *PrettyHandler) formatLevelString(level slog.Level) string {
 	switch level {
 	case slog.LevelDebug:
