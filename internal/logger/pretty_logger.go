@@ -6,11 +6,14 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/mattn/go-colorable"
 )
 
 // PrettyHandler implements slog.Handler for human-friendly terminal output
@@ -29,6 +32,10 @@ type PrettyHandler struct {
 
 	// Colors for different log elements
 	colors *prettyColors
+
+	mu *sync.Mutex
+
+	builderPool sync.Pool
 }
 
 // prettyColors holds color functions for different elements
@@ -64,9 +71,15 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 		bracket:   color.New(color.FgHiBlack),
 	}
 
+	writer := w
 	// Configure color output based on the writer
 	if f, ok := w.(*os.File); ok {
-		color.Output = f
+		if f == os.Stderr {
+			writer = colorable.NewColorableStderr()
+		} else if f != os.Stdout {
+			writer = colorable.NewColorable(f)
+		}
+		color.Output = writer
 	} else {
 		// Disable colors for non-file writers
 		color.NoColor = true
@@ -74,8 +87,30 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 
 	return &PrettyHandler{
 		opts:   *opts,
-		writer: w,
+		writer: writer,
 		colors: colors,
+		mu:     &sync.Mutex{},
+		builderPool: sync.Pool{
+			New: func() interface{} {
+				builder := &strings.Builder{}
+				// Pre-allocate 1024 bytes
+				builder.Grow(1024)
+				return builder
+			},
+		},
+	}
+}
+
+// clone creates a copy of the handler with the same options and writer
+func (h *PrettyHandler) clone() *PrettyHandler {
+	return &PrettyHandler{
+		opts:        h.opts,
+		writer:      h.writer,
+		attrs:       slices.Clip(h.attrs),
+		groups:      slices.Clip(h.groups),
+		colors:      h.colors,
+		mu:          h.mu,
+		builderPool: h.builderPool,
 	}
 }
 
@@ -90,32 +125,47 @@ func (h *PrettyHandler) Enabled(_ context.Context, level slog.Level) bool {
 
 // Handle formats and outputs a log record
 func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
-	var buf strings.Builder
+	buf := h.builderPool.Get().(*strings.Builder)
+	defer func() {
+		buf.Reset()
+		h.builderPool.Put(buf)
+	}()
 
+	h.formatRecord(buf, r)
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	_, err := h.writer.Write([]byte(buf.String()))
+	return err
+}
+
+// formatRecord formats a log record into the provided buffer
+func (h *PrettyHandler) formatRecord(buf *strings.Builder, r slog.Record) {
 	// Timestamp
-	_, _ = h.colors.timestamp.Fprint(&buf, r.Time.Format("15:04:05.000"))
+	buf.WriteString(h.colors.timestamp.Sprint(r.Time.Format("15:04:05.000")))
 	buf.WriteString(" ")
 
 	// Level with color and padding
 	levelColor := h.getLevelColor(r.Level)
 	levelStr := h.formatLevelString(r.Level)
-	_, _ = levelColor.Fprint(&buf, levelStr)
+	buf.WriteString(levelColor.Sprint(levelStr))
 	buf.WriteString(" ")
 
 	// Source information (if enabled)
 	if h.opts.AddSource && r.PC != 0 {
 		frame := getFrame(r.PC)
-		_, _ = h.colors.source.Fprintf(&buf, "[%s:%d]", frame.File, frame.Line)
+		buf.WriteString(h.colors.source.Sprintf("[%s:%d]", frame.File, frame.Line))
 		buf.WriteString(" ")
 	}
 
 	// Message
-	_, _ = h.colors.message.Fprint(&buf, r.Message)
+	buf.WriteString(h.colors.message.Sprint(r.Message))
 
 	// Attributes
 	if r.NumAttrs() > 0 || len(h.attrs) > 0 {
 		buf.WriteString(" ")
-		_, _ = h.colors.bracket.Fprint(&buf, "{\n  ")
+		buf.WriteString(h.colors.bracket.Sprint("{\n  "))
 
 		first := true
 
@@ -124,7 +174,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 			if !first {
 				buf.WriteString(", ")
 			}
-			h.formatAttr(&buf, attr)
+			h.formatAttr(buf, attr)
 			first = false
 		}
 
@@ -133,48 +183,33 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 			if !first {
 				buf.WriteString(", ")
 			}
-			h.formatAttr(&buf, attr)
+			h.formatAttr(buf, attr)
 			first = false
 			return true
 		})
 
-		_, _ = h.colors.bracket.Fprint(&buf, "\n}")
+		buf.WriteString(h.colors.bracket.Sprint("\n}"))
 	}
 
 	buf.WriteString("\n")
-
-	_, err := h.writer.Write([]byte(buf.String()))
-	return err
 }
 
 // WithAttrs returns a new handler with the given attributes
 func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	newAttrs := make([]slog.Attr, 0, len(h.attrs)+len(attrs))
-	newAttrs = append(newAttrs, h.attrs...)
-	newAttrs = append(newAttrs, attrs...)
-
-	return &PrettyHandler{
-		opts:   h.opts,
-		writer: h.writer,
-		attrs:  newAttrs,
-		groups: h.groups,
-		colors: h.colors,
-	}
+	h2 := h.clone()
+	h2.attrs = append(h2.attrs, attrs...)
+	return h2
 }
 
 // WithGroup returns a new handler with the given group
 func (h *PrettyHandler) WithGroup(name string) slog.Handler {
-	newGroups := make([]string, 0, len(h.groups)+1)
-	newGroups = append(newGroups, h.groups...)
-	newGroups = append(newGroups, name)
-
-	return &PrettyHandler{
-		opts:   h.opts,
-		writer: h.writer,
-		attrs:  h.attrs,
-		groups: newGroups,
-		colors: h.colors,
+	if name == "" {
+		return h
 	}
+
+	h2 := h.clone()
+	h2.groups = append(h2.groups, name)
+	return h2
 }
 
 // getLevelColor returns the appropriate color for a log level
@@ -205,36 +240,55 @@ func (h *PrettyHandler) formatLevelString(level slog.Level) string {
 	case slog.LevelError:
 		return "ERROR"
 	default:
-		return strings.ToUpper(level.String())
+		// Pad to 5 characters for consistency
+		s := strings.ToUpper(level.String())
+		if len(s) < 5 {
+			s += strings.Repeat(" ", 5-len(s))
+		}
+		return s
 	}
 }
 
 // formatAttr formats a single attribute with colors
 func (h *PrettyHandler) formatAttr(buf *strings.Builder, attr slog.Attr) {
-	_, _ = h.colors.attrKey.Fprint(buf, attr.Key)
-	_, _ = h.colors.attrValue.Fprint(buf, "=")
+	buf.WriteString(h.colors.attrKey.Sprint(attr.Key))
+	buf.WriteString(h.colors.attrValue.Sprint("="))
 
 	// Format value based on type
 	switch attr.Value.Kind() {
 	case slog.KindString:
-		_, _ = h.colors.attrValue.Fprint(buf, strconv.Quote(attr.Value.String()))
+		buf.WriteString(h.colors.attrValue.Sprint(strconv.Quote(attr.Value.String())))
 	case slog.KindInt64:
-		_, _ = h.colors.attrValue.Fprint(buf, strconv.FormatInt(attr.Value.Int64(), 10))
+		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatInt(attr.Value.Int64(), 10)))
+	case slog.KindUint64:
+		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatUint(attr.Value.Uint64(), 10)))
 	case slog.KindFloat64:
-		_, _ = h.colors.attrValue.Fprint(buf, strconv.FormatFloat(attr.Value.Float64(), 'f', -1, 64))
+		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatFloat(attr.Value.Float64(), 'f', -1, 64)))
 	case slog.KindBool:
-		_, _ = h.colors.attrValue.Fprint(buf, strconv.FormatBool(attr.Value.Bool()))
+		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatBool(attr.Value.Bool())))
 	case slog.KindDuration:
-		_, _ = h.colors.attrValue.Fprint(buf, attr.Value.Duration().String())
+		buf.WriteString(h.colors.attrValue.Sprint(attr.Value.Duration().String()))
 	case slog.KindTime:
-		_, _ = h.colors.attrValue.Fprint(buf, attr.Value.Time().Format(time.RFC3339))
+		buf.WriteString(h.colors.attrValue.Sprint(attr.Value.Time().Format(time.RFC3339)))
 	default:
-		_, _ = h.colors.attrValue.Fprint(buf, strconv.Quote(attr.Value.String()))
+		buf.WriteString(h.colors.attrValue.Sprint(strconv.Quote(attr.Value.String())))
 	}
 }
 
+// Frame cache for better performance
+var (
+	frameCache        sync.Map
+	frameCacheSize    uint32
+	maxFrameCacheSize = uint32(10000)
+)
+
 // getFrame extracts frame information from PC with proper skip calculation
 func getFrame(pc uintptr) runtime.Frame {
+	// Check cache first
+	if cached, ok := frameCache.Load(pc); ok {
+		return cached.(runtime.Frame)
+	}
+
 	// Get the full stack trace
 	frames := runtime.CallersFrames([]uintptr{pc})
 	frame, _ := frames.Next()
@@ -264,6 +318,17 @@ func getFrame(pc uintptr) runtime.Frame {
 	// Simplify the file path - show only the filename
 	if idx := strings.LastIndex(frame.File, "/"); idx >= 0 {
 		frame.File = frame.File[idx+1:]
+	}
+
+	// Cache the result
+	if frameCacheSize < maxFrameCacheSize {
+		frameCache.Store(pc, frame)
+		frameCacheSize++
+	} else {
+		// If the cache is full, clear it
+		frameCache.Clear()
+		frameCacheSize = 0
+		frameCache.Store(pc, frame)
 	}
 
 	return frame
