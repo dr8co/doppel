@@ -8,31 +8,29 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 var (
-	log         *slog.Logger
-	logFile     *os.File
-	initialized bool
-	mu          sync.RWMutex
+	log     atomic.Pointer[slog.Logger]
+	logFile atomic.Pointer[os.File]
+	initMu  sync.Mutex
 )
-
-// init initializes the logger with safe defaults for testing.
-func init() {
-	if !initialized {
-		initLoggerUnsafe("", "", "")
-		initialized = false
-	}
-}
 
 // InitLogger configures the global logger with thread safety.
 func InitLogger(level string, format string, output string) {
-	if !initialized {
-		mu.Lock()
-		defer mu.Unlock()
-		initLoggerUnsafe(level, format, output)
+	if log.Load() != nil {
+		return
+	}
+	initMu.Lock()
+	defer initMu.Unlock()
+
+	// Double-check after acquiring the lock
+	if log.Load() != nil {
+		return
 	}
 
+	initLoggerUnsafe(level, format, output)
 }
 
 // initLoggerUnsafe is the internal implementation that initializes the logger without locks.
@@ -59,8 +57,7 @@ func initLoggerUnsafe(level string, format string, output string) {
 
 	handler := createHandler(writer, format, opts)
 
-	log = slog.New(handler)
-	initialized = true
+	log.Store(slog.New(handler))
 }
 
 // createWriter creates an io.Writer based on the output string.
@@ -78,10 +75,10 @@ func createWriter(output string) (io.Writer, error) {
 			return nil, fmt.Errorf("failed to open log file %s: %w", output, err)
 		}
 
-		if logFile != nil {
-			_ = logFile.Close()
+		if oldFile := logFile.Swap(nil); oldFile != nil {
+			_ = oldFile.Close()
 		}
-		logFile = file
+
 		return file, nil
 	}
 }
@@ -122,9 +119,12 @@ func parseLogLevel(levelStr string) slog.Level {
 
 // GetLogger returns the global logger instance (thread-safe).
 func GetLogger() *slog.Logger {
-	mu.RLock()
-	defer mu.RUnlock()
-	return log
+	logger := log.Load()
+
+	if logger == nil {
+		return slog.Default()
+	}
+	return logger
 }
 
 // Info logs an informational message.
@@ -187,17 +187,17 @@ func DebugAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
 	GetLogger().LogAttrs(ctx, slog.LevelDebug, message, attrs...)
 }
 
+// IsInitialized returns whether the logger has been initialized.
+func IsInitialized() bool {
+	return log.Load() != nil
+}
+
 // Close closes the log file if it was opened.
 func Close() {
-	mu.Lock()
-	defer mu.Unlock()
-
 	// Close the log file if it was opened
-	if logFile != nil {
-		_ = logFile.Close()
-		logFile = nil
+	if file := logFile.Swap(nil); file != nil {
+		_ = file.Close()
 	}
 
-	initialized = false
-	log = nil
+	log.Store(nil)
 }
