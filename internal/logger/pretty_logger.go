@@ -81,7 +81,7 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 		styles:   styles,
 		mu:       &sync.Mutex{},
 		builderPool: &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				builder := &strings.Builder{}
 				// Pre-allocate 1024 bytes
 				builder.Grow(1024)

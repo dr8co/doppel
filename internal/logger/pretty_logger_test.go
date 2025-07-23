@@ -27,7 +27,7 @@ func TestConcurrentHandle(t *testing.T) {
 	wg.Add(numGoroutines)
 
 	// Start multiple goroutines that log concurrently
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(goroutineID int) {
 			defer wg.Done()
 			for j := 0; j < numLogsPerGoroutine; j++ {
@@ -76,7 +76,7 @@ func TestConcurrentWithAttrs(t *testing.T) {
 	handlers := make(chan slog.Handler, numGoroutines)
 
 	// Create handlers with attributes concurrently
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(id int) {
 			defer wg.Done()
 			attrs := []slog.Attr{
@@ -119,7 +119,7 @@ func TestConcurrentWithGroup(t *testing.T) {
 	handlers := make(chan slog.Handler, numGoroutines)
 
 	// Create grouped handlers concurrently
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(id int) {
 			defer wg.Done()
 			handler := baseHandler.WithGroup(fmt.Sprintf("group_%d", id))
@@ -156,7 +156,7 @@ func TestSharedBufferConcurrency(t *testing.T) {
 	wg.Add(numGoroutines)
 
 	// This test specifically targets the strings.Builder reuse issue
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(id int) {
 			defer wg.Done()
 			record := slog.NewRecord(time.Now(), slog.LevelInfo,
@@ -185,7 +185,7 @@ func TestSharedBufferConcurrency(t *testing.T) {
 	}
 
 	// Check that each unique message appears exactly once
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		expected := fmt.Sprintf("Unique message %d", i)
 		if count := found[expected]; count != 1 {
 			t.Errorf("Expected message %q to appear exactly once, found %d times", expected, count)
@@ -213,7 +213,7 @@ func TestRaceDetectorStress(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Goroutines that continuously log
-	for i := 0; i < numGoroutines/2; i++ {
+	for i := range numGoroutines / 2 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -282,7 +282,7 @@ func TestColorOutputConcurrency(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(numHandlers)
 
-	for i := 0; i < numHandlers; i++ {
+	for i := range numHandlers {
 		go func(id int) {
 			defer wg.Done()
 			var buf bytes.Buffer
@@ -336,7 +336,7 @@ func TestIntegrationWithSlog(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(id int) {
 			defer wg.Done()
 
@@ -347,7 +347,8 @@ func TestIntegrationWithSlog(t *testing.T) {
 			logger.Error("Error message", "id", id)
 
 			// Test with context
-			ctx := context.WithValue(context.Background(), "test", "value")
+			type ctxKey string
+			ctx := context.WithValue(context.Background(), ctxKey("test"), "value")
 			logger.InfoContext(ctx, "Context message", "id", id)
 
 			// Test with groups

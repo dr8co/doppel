@@ -23,7 +23,7 @@ func TestConcurrentInitialization(t *testing.T) {
 	errors := make(chan error, numGoroutines)
 
 	// Start multiple goroutines trying to initialize simultaneously
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -91,7 +91,7 @@ func TestConcurrentLogging(t *testing.T) {
 	errors := make(chan error, numGoroutines)
 
 	// Start concurrent logging
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -140,7 +140,7 @@ func TestConcurrentGetLogger(t *testing.T) {
 	results := make(chan *slog.Logger, numGoroutines)
 
 	// Test concurrent reads
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -182,7 +182,7 @@ func TestConcurrentInitAndLog(t *testing.T) {
 	errors := make(chan error, numInitGoroutines+numLogGoroutines)
 
 	// Start initialization goroutines
-	for i := 0; i < numInitGoroutines; i++ {
+	for i := range numInitGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -198,7 +198,7 @@ func TestConcurrentInitAndLog(t *testing.T) {
 	}
 
 	// Start logging goroutines
-	for i := 0; i < numLogGoroutines; i++ {
+	for i := range numLogGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -236,7 +236,7 @@ func TestConcurrentClose(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -246,16 +246,17 @@ func TestConcurrentClose(t *testing.T) {
 				}
 			}()
 
-			if id%3 == 0 {
+			switch id % 3 {
+			case 0:
 				// Some goroutines try to close
 				Close()
-			} else if id%3 == 1 {
+			case 1:
 				// Some try to log
 				logger := GetLogger()
 				if logger != nil {
 					logger.Info("message during close", "goroutine", id)
 				}
-			} else {
+			default:
 				// Some try to reinitialize
 				InitLogger("debug", "json", "stderr")
 			}
@@ -277,14 +278,14 @@ func TestRaceDetection(t *testing.T) {
 	resetLogger()
 
 	// This test is designed to trigger race conditions
-	for iteration := 0; iteration < 10; iteration++ {
+	for range 10 {
 		var wg sync.WaitGroup
 
 		// Reset for each iteration
 		resetLogger()
 
 		// Multiple goroutines doing different operations
-		for i := 0; i < 20; i++ {
+		for i := range 20 {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
@@ -331,7 +332,7 @@ func TestFileHandleConcurrency(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -426,7 +427,7 @@ func TestMemoryUsage(t *testing.T) {
 	runtime.ReadMemStats(&m1)
 
 	// Perform many operations
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		resetLogger()
 		InitLogger("info", "json", "discard")
 
@@ -494,7 +495,7 @@ func TestConcurrentFileLogging(t *testing.T) {
 	var wg sync.WaitGroup
 	count := 100
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -529,7 +530,7 @@ func TestConcurrentCloseAndLogging(t *testing.T) {
 		Close()
 	}()
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -572,7 +573,7 @@ func TestMultipleCloseCalls(t *testing.T) {
 	var wg sync.WaitGroup
 	count := 10
 
-	for i := 0; i < count; i++ {
+	for range count {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
