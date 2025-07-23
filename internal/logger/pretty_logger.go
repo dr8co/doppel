@@ -37,7 +37,7 @@ type PrettyHandler struct {
 	mu *sync.Mutex
 
 	// Pool for reusing string builders to reduce allocations
-	builderPool sync.Pool
+	builderPool *sync.Pool
 }
 
 // prettyStyles holds color functions for different elements
@@ -80,7 +80,7 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 		renderer: renderer,
 		styles:   styles,
 		mu:       &sync.Mutex{},
-		builderPool: sync.Pool{
+		builderPool: &sync.Pool{
 			New: func() interface{} {
 				builder := &strings.Builder{}
 				// Pre-allocate 1024 bytes
