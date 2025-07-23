@@ -2,18 +2,18 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"runtime"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/mattn/go-colorable"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // PrettyHandler implements slog.Handler for human-friendly terminal output
@@ -22,7 +22,7 @@ type PrettyHandler struct {
 	opts slog.HandlerOptions
 
 	// Writer where logs will be written
-	writer io.Writer
+	renderer *lipgloss.Renderer
 
 	// Attributes to include in every log record
 	attrs []slog.Attr
@@ -30,26 +30,28 @@ type PrettyHandler struct {
 	// Groups for log records
 	groups []string
 
-	// Colors for different log elements
-	colors *prettyColors
+	// Styles for different log elements
+	styles *prettyStyles
 
+	// Mutex to protect concurrent writes
 	mu *sync.Mutex
 
+	// Pool for reusing string builders to reduce allocations
 	builderPool sync.Pool
 }
 
-// prettyColors holds color functions for different elements
-type prettyColors struct {
-	timestamp *color.Color
-	debug     *color.Color
-	info      *color.Color
-	warn      *color.Color
-	error     *color.Color
-	source    *color.Color
-	message   *color.Color
-	attrKey   *color.Color
-	attrValue *color.Color
-	bracket   *color.Color
+// prettyStyles holds color functions for different elements
+type prettyStyles struct {
+	timestamp lipgloss.Style
+	debug     lipgloss.Style
+	info      lipgloss.Style
+	warn      lipgloss.Style
+	error     lipgloss.Style
+	source    lipgloss.Style
+	message   lipgloss.Style
+	attrKey   lipgloss.Style
+	attrValue lipgloss.Style
+	bracket   lipgloss.Style
 }
 
 // NewPrettyHandler creates a new pretty handler
@@ -58,38 +60,26 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 		opts = &slog.HandlerOptions{}
 	}
 
-	colors := &prettyColors{
-		timestamp: color.New(color.FgHiBlack),
-		debug:     color.New(color.FgMagenta, color.Bold),
-		info:      color.New(color.FgGreen, color.Bold),
-		warn:      color.New(color.FgYellow, color.Bold),
-		error:     color.New(color.FgRed, color.Bold),
-		source:    color.New(color.FgCyan),
-		message:   color.New(color.Bold),
-		attrKey:   color.New(color.FgCyan),
-		attrValue: color.New(color.FgHiBlack),
-		bracket:   color.New(color.FgHiBlack),
-	}
+	renderer := lipgloss.NewRenderer(w)
 
-	writer := w
-	// Configure color output based on the writer
-	if f, ok := w.(*os.File); ok {
-		if f == os.Stderr {
-			writer = colorable.NewColorableStderr()
-		} else if f != os.Stdout {
-			writer = colorable.NewColorable(f)
-		}
-		color.Output = writer
-	} else {
-		// Disable colors for non-file writers
-		color.NoColor = true
+	styles := &prettyStyles{
+		timestamp: renderer.NewStyle().Foreground(lipgloss.Color("#888888")),
+		debug:     renderer.NewStyle().Foreground(lipgloss.Color("#ff00ff")).Bold(true),
+		info:      renderer.NewStyle().Foreground(lipgloss.Color("#00ff00")).Bold(true),
+		warn:      renderer.NewStyle().Foreground(lipgloss.Color("#ffff00")).Bold(true),
+		error:     renderer.NewStyle().Foreground(lipgloss.Color("#ff0000")).Bold(true),
+		source:    renderer.NewStyle().Foreground(lipgloss.Color("#00ffff")),
+		message:   renderer.NewStyle().Bold(true),
+		attrKey:   renderer.NewStyle().Foreground(lipgloss.Color("#00ffff")),
+		attrValue: renderer.NewStyle().Foreground(lipgloss.Color("#888888")),
+		bracket:   renderer.NewStyle().Foreground(lipgloss.Color("#666666")),
 	}
 
 	return &PrettyHandler{
-		opts:   *opts,
-		writer: writer,
-		colors: colors,
-		mu:     &sync.Mutex{},
+		opts:     *opts,
+		renderer: renderer,
+		styles:   styles,
+		mu:       &sync.Mutex{},
 		builderPool: sync.Pool{
 			New: func() interface{} {
 				builder := &strings.Builder{}
@@ -101,14 +91,14 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 	}
 }
 
-// clone creates a copy of the handler with the same options and writer
+// clone creates a copy of the handler with the same options and renderer
 func (h *PrettyHandler) clone() *PrettyHandler {
 	return &PrettyHandler{
 		opts:        h.opts,
-		writer:      h.writer,
+		renderer:    h.renderer,
 		attrs:       slices.Clip(h.attrs),
 		groups:      slices.Clip(h.groups),
-		colors:      h.colors,
+		styles:      h.styles,
 		mu:          h.mu,
 		builderPool: h.builderPool,
 	}
@@ -136,36 +126,36 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	_, err := h.writer.Write([]byte(buf.String()))
+	_, err := h.renderer.Output().Write([]byte(buf.String()))
 	return err
 }
 
 // formatRecord formats a log record into the provided buffer
 func (h *PrettyHandler) formatRecord(buf *strings.Builder, r slog.Record) {
 	// Timestamp
-	buf.WriteString(h.colors.timestamp.Sprint(r.Time.Format("15:04:05.000")))
+	buf.WriteString(h.styles.timestamp.Render(r.Time.Format("15:04:05.000")))
 	buf.WriteString(" ")
 
 	// Level with color and padding
-	levelColor := h.getLevelColor(r.Level)
+	levelStyle := h.getLevelStyle(r.Level)
 	levelStr := h.formatLevelString(r.Level)
-	buf.WriteString(levelColor.Sprint(levelStr))
+	buf.WriteString(levelStyle.Render(levelStr))
 	buf.WriteString(" ")
 
 	// Source information (if enabled)
 	if h.opts.AddSource && r.PC != 0 {
 		frame := getFrame(r.PC)
-		buf.WriteString(h.colors.source.Sprintf("[%s:%d]", frame.File, frame.Line))
+		buf.WriteString(h.styles.source.Render(fmt.Sprintf("[%s:%d]", frame.File, frame.Line)))
 		buf.WriteString(" ")
 	}
 
 	// Message
-	buf.WriteString(h.colors.message.Sprint(r.Message))
+	buf.WriteString(h.styles.message.Render(r.Message))
 
 	// Attributes
 	if r.NumAttrs() > 0 || len(h.attrs) > 0 {
 		buf.WriteString(" ")
-		buf.WriteString(h.colors.bracket.Sprint("{\n  "))
+		buf.WriteString(h.styles.bracket.Render("{\n  "))
 
 		first := true
 
@@ -188,7 +178,7 @@ func (h *PrettyHandler) formatRecord(buf *strings.Builder, r slog.Record) {
 			return true
 		})
 
-		buf.WriteString(h.colors.bracket.Sprint("\n}"))
+		buf.WriteString(h.styles.bracket.Render("\n}"))
 	}
 
 	buf.WriteString("\n")
@@ -213,18 +203,18 @@ func (h *PrettyHandler) WithGroup(name string) slog.Handler {
 }
 
 // getLevelColor returns the appropriate color for a log level
-func (h *PrettyHandler) getLevelColor(level slog.Level) *color.Color {
+func (h *PrettyHandler) getLevelStyle(level slog.Level) lipgloss.Style {
 	switch level {
 	case slog.LevelDebug:
-		return h.colors.debug
+		return h.styles.debug
 	case slog.LevelInfo:
-		return h.colors.info
+		return h.styles.info
 	case slog.LevelWarn:
-		return h.colors.warn
+		return h.styles.warn
 	case slog.LevelError:
-		return h.colors.error
+		return h.styles.error
 	default:
-		return h.colors.info
+		return h.renderer.NewStyle().Foreground(lipgloss.Color("240"))
 	}
 }
 
@@ -251,34 +241,34 @@ func (h *PrettyHandler) formatLevelString(level slog.Level) string {
 
 // formatAttr formats a single attribute with colors
 func (h *PrettyHandler) formatAttr(buf *strings.Builder, attr slog.Attr) {
-	buf.WriteString(h.colors.attrKey.Sprint(attr.Key))
-	buf.WriteString(h.colors.attrValue.Sprint("="))
+	buf.WriteString(h.styles.attrKey.Render(attr.Key))
+	buf.WriteString(h.styles.attrValue.Render("="))
 
 	// Format value based on type
 	switch attr.Value.Kind() {
 	case slog.KindString:
-		buf.WriteString(h.colors.attrValue.Sprint(strconv.Quote(attr.Value.String())))
+		buf.WriteString(h.styles.attrValue.Render(strconv.Quote(attr.Value.String())))
 	case slog.KindInt64:
-		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatInt(attr.Value.Int64(), 10)))
+		buf.WriteString(h.styles.attrValue.Render(strconv.FormatInt(attr.Value.Int64(), 10)))
 	case slog.KindUint64:
-		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatUint(attr.Value.Uint64(), 10)))
+		buf.WriteString(h.styles.attrValue.Render(strconv.FormatUint(attr.Value.Uint64(), 10)))
 	case slog.KindFloat64:
-		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatFloat(attr.Value.Float64(), 'f', -1, 64)))
+		buf.WriteString(h.styles.attrValue.Render(strconv.FormatFloat(attr.Value.Float64(), 'f', -1, 64)))
 	case slog.KindBool:
-		buf.WriteString(h.colors.attrValue.Sprint(strconv.FormatBool(attr.Value.Bool())))
+		buf.WriteString(h.styles.attrValue.Render(strconv.FormatBool(attr.Value.Bool())))
 	case slog.KindDuration:
-		buf.WriteString(h.colors.attrValue.Sprint(attr.Value.Duration().String()))
+		buf.WriteString(h.styles.attrValue.Render(attr.Value.Duration().String()))
 	case slog.KindTime:
-		buf.WriteString(h.colors.attrValue.Sprint(attr.Value.Time().Format(time.RFC3339)))
+		buf.WriteString(h.styles.attrValue.Render(attr.Value.Time().Format(time.RFC3339)))
 	default:
-		buf.WriteString(h.colors.attrValue.Sprint(strconv.Quote(attr.Value.String())))
+		buf.WriteString(h.styles.attrValue.Render(strconv.Quote(attr.Value.String())))
 	}
 }
 
 // Frame cache for better performance
 var (
 	frameCache        sync.Map
-	frameCacheSize    uint32
+	frameCacheSize    atomic.Uint32
 	maxFrameCacheSize = uint32(10000)
 )
 
@@ -321,13 +311,13 @@ func getFrame(pc uintptr) runtime.Frame {
 	}
 
 	// Cache the result
-	if frameCacheSize < maxFrameCacheSize {
+	if frameCacheSize.Load() < maxFrameCacheSize {
 		frameCache.Store(pc, frame)
-		frameCacheSize++
+		frameCacheSize.Add(1)
 	} else {
 		// If the cache is full, clear it
 		frameCache.Clear()
-		frameCacheSize = 0
+		frameCacheSize.Store(0)
 		frameCache.Store(pc, frame)
 	}
 
