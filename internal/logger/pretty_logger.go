@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -265,20 +264,8 @@ func (h *PrettyHandler) formatAttr(buf *strings.Builder, attr slog.Attr) {
 	}
 }
 
-// Frame cache for better performance
-var (
-	frameCache        sync.Map
-	frameCacheSize    atomic.Uint32
-	maxFrameCacheSize = uint32(10000)
-)
-
 // getFrame extracts frame information from PC with proper skip calculation
 func getFrame(pc uintptr) runtime.Frame {
-	// Check cache first
-	if cached, ok := frameCache.Load(pc); ok {
-		return cached.(runtime.Frame)
-	}
-
 	// Get the full stack trace
 	frames := runtime.CallersFrames([]uintptr{pc})
 	frame, _ := frames.Next()
@@ -294,11 +281,8 @@ func getFrame(pc uintptr) runtime.Frame {
 			for {
 				var more bool
 				frame, more = frames.Next()
-				if !more {
-					break
-				}
 				// Skip the frames from the logger package and slog package
-				if !isLoggerFrame(frame) && !isSlogFrame(frame) {
+				if !more || (!isLoggerFrame(frame) && !isSlogFrame(frame)) {
 					break
 				}
 			}
@@ -308,17 +292,6 @@ func getFrame(pc uintptr) runtime.Frame {
 	// Simplify the file path - show only the filename
 	if idx := strings.LastIndex(frame.File, "/"); idx >= 0 {
 		frame.File = frame.File[idx+1:]
-	}
-
-	// Cache the result
-	if frameCacheSize.Load() < maxFrameCacheSize {
-		frameCache.Store(pc, frame)
-		frameCacheSize.Add(1)
-	} else {
-		// If the cache is full, clear it
-		frameCache.Clear()
-		frameCacheSize.Store(0)
-		frameCache.Store(pc, frame)
 	}
 
 	return frame
