@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -70,9 +71,22 @@ func createWriter(output string) (io.Writer, error) {
 	case "null", "discard":
 		return io.Discard, nil
 	default:
-		file, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		outFile := filepath.Clean(output)
+		if outFile == "." {
+			return os.Stdout, nil
+		}
+		outFile, err := filepath.Abs(outFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open log file %s: %w", output, err)
+			return nil, fmt.Errorf("failed to get absolute path for log file: %w", err)
+		}
+
+		if err = os.MkdirAll(filepath.Dir(outFile), 0755); err != nil {
+			return nil, fmt.Errorf("error creating log directory: %w", err)
+		}
+
+		file, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open log file %s: %w", outFile, err)
 		}
 
 		if oldFile := logFile.Swap(nil); oldFile != nil {
