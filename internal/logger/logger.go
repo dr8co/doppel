@@ -79,6 +79,11 @@ func (l *Logger) Logger() *slog.Logger {
 	return l.logger
 }
 
+// LogAttrs logs a message with attributes at the specified level.
+func (l *Logger) LogAttrs(ctx context.Context, level slog.Level, message string, attrs ...slog.Attr) {
+	l.logger.LogAttrs(ctx, level, message, attrs...)
+}
+
 // InfoAttrs logs an informational message with attributes.
 func (l *Logger) InfoAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
 	l.logger.LogAttrs(ctx, slog.LevelInfo, message, attrs...)
@@ -97,6 +102,72 @@ func (l *Logger) ErrorAttrs(ctx context.Context, message string, attrs ...slog.A
 // DebugAttrs logs a debug message with attributes.
 func (l *Logger) DebugAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
 	l.logger.LogAttrs(ctx, slog.LevelDebug, message, attrs...)
+}
+
+// Log logs a message at the specified level.
+func (l *Logger) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	l.logger.Log(ctx, level, msg, args...)
+}
+
+// Debug logs a debug message.
+func (l *Logger) Debug(msg string, args ...any) {
+	l.logger.Debug(msg, args...)
+}
+
+// Info logs an informational message.
+func (l *Logger) Info(msg string, args ...any) {
+	l.logger.Info(msg, args...)
+}
+
+// Warn logs a warning message.
+func (l *Logger) Warn(msg string, args ...any) {
+	l.logger.Warn(msg, args...)
+}
+
+// Error logs an error message.
+func (l *Logger) Error(msg string, args ...any) {
+	l.logger.Error(msg, args...)
+}
+
+// DebugContext logs a debug message with context.
+func (l *Logger) DebugContext(ctx context.Context, msg string, args ...any) {
+	l.logger.DebugContext(ctx, msg, args...)
+}
+
+// InfoContext logs an informational message with context.
+func (l *Logger) InfoContext(ctx context.Context, msg string, args ...any) {
+	l.logger.InfoContext(ctx, msg, args...)
+}
+
+// WarnContext logs a warning message with context.
+func (l *Logger) WarnContext(ctx context.Context, msg string, args ...any) {
+	l.logger.WarnContext(ctx, msg, args...)
+}
+
+// ErrorContext logs an error message with context.
+func (l *Logger) ErrorContext(ctx context.Context, msg string, args ...any) {
+	l.logger.ErrorContext(ctx, msg, args...)
+}
+
+// Handler returns the underlying slog.Handler used by the logger.
+func (l *Logger) Handler() slog.Handler {
+	return l.logger.Handler()
+}
+
+// With returns a Logger that includes the given attributes in each output operation.
+func (l *Logger) With(args ...any) *Logger {
+	return &Logger{
+		logger: l.logger.With(args...),
+		config: l.config,
+	}
+}
+
+// WithGroup returns a Logger that starts a group
+func (l *Logger) WithGroup(name string) *Logger {
+	return &Logger{
+		logger: l.logger.WithGroup(name),
+		config: l.config,
+	}
 }
 
 // InitDefault initializes the default logger with the provided configuration.
@@ -175,10 +246,10 @@ func NewConfig(level, format, output string) (Config, io.Closer, error) {
 		config.Writer = io.Discard
 	default:
 		outFile := filepath.Clean(output)
-		if outFile == "." || outFile == "" {
+		if outFile == "." {
 			return Config{}, nil, fmt.Errorf("invalid file path")
 		}
-		
+
 		var err error
 		outFile, err = filepath.Abs(outFile)
 		if err != nil {
