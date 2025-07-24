@@ -9,100 +9,125 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 )
 
 var (
-	log     atomic.Pointer[slog.Logger]
-	logFile atomic.Pointer[os.File]
-	initMu  sync.Mutex
+	defaultLogger *Logger
+	once          sync.Once
 )
 
-// InitLogger configures the global logger with thread safety.
-func InitLogger(level string, format string, output string) {
-	if log.Load() != nil {
-		return
-	}
-	initMu.Lock()
-	defer initMu.Unlock()
-
-	// Double-check after acquiring the lock
-	if log.Load() != nil {
-		return
-	}
-
-	initLoggerUnsafe(level, format, output)
+// Config holds the configuration for the logger
+type Config struct {
+	Level  string
+	Format string
+	Writer io.Writer
 }
 
-// initLoggerUnsafe is the internal implementation that initializes the logger without locks.
-func initLoggerUnsafe(level string, format string, output string) {
-	lvl := parseLogLevel(level)
+// Logger is a wrapper around slog.Logger with additional configuration
+// and convenience methods for logging at different levels.
+type Logger struct {
+	logger *slog.Logger
+	config Config
+}
+
+// init initializes the default logger with a basic configuration.
+// It is intended for use in tests or when no specific configuration is provided.
+func init() {
+	defaultLogger = &Logger{
+		logger: slog.Default(),
+		config: Config{
+			Level:  "",
+			Format: "",
+			Writer: nil,
+		},
+	}
+}
+
+// New creates a new Logger instance with the provided configuration.
+func New(config Config) (*Logger, error) {
+	if config.Writer == nil {
+		return nil, fmt.Errorf("writer cannot be nil")
+	}
+
+	level := parseLogLevel(config.Level)
 
 	var opts *slog.HandlerOptions
-	if lvl == slog.LevelDebug {
+	if level == slog.LevelDebug {
 		opts = &slog.HandlerOptions{
-			Level:     lvl,
+			Level:     level,
 			AddSource: true,
 		}
 	} else {
 		opts = &slog.HandlerOptions{
-			Level: lvl,
+			Level: level,
 		}
 	}
 
-	writer, err := createWriter(output)
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Failed to create writer for %s: %v.\nFalling back to stdout.\n", output, err)
-		writer = os.Stdout
-	}
+	handler := createHandler(config.Writer, config.Format, opts)
 
-	handler := createHandler(writer, format, opts)
+	return &Logger{logger: slog.New(handler), config: config}, nil
 
-	log.Store(slog.New(handler))
 }
 
-// createWriter creates an io.Writer based on the output string.
-func createWriter(output string) (io.Writer, error) {
-	switch output {
-	case "stdout", "":
-		return os.Stdout, nil
-	case "stderr":
-		return os.Stderr, nil
-	case "null", "discard":
-		return io.Discard, nil
-	default:
-		outFile := filepath.Clean(output)
-		if outFile == "." {
-			return os.Stdout, nil
-		}
-		outFile, err := filepath.Abs(outFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get absolute path for log file: %w", err)
-		}
+// Config returns the current configuration of the logger.
+func (l *Logger) Config() Config {
+	return l.config
+}
 
-		if err = os.MkdirAll(filepath.Dir(outFile), 0755); err != nil {
-			return nil, fmt.Errorf("error creating log directory: %w", err)
-		}
+// Logger returns the underlying slog.Logger instance.
+func (l *Logger) Logger() *slog.Logger {
+	return l.logger
+}
 
-		file, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open log file %s: %w", outFile, err)
-		}
+// InfoAttrs logs an informational message with attributes.
+func (l *Logger) InfoAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	l.logger.LogAttrs(ctx, slog.LevelInfo, message, attrs...)
+}
 
-		if oldFile := logFile.Swap(nil); oldFile != nil {
-			_ = oldFile.Close()
-		}
+// WarnAttrs logs a warning message with attributes.
+func (l *Logger) WarnAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	l.logger.LogAttrs(ctx, slog.LevelWarn, message, attrs...)
+}
 
-		return file, nil
+// ErrorAttrs logs an error message with attributes.
+func (l *Logger) ErrorAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	l.logger.LogAttrs(ctx, slog.LevelError, message, attrs...)
+}
+
+// DebugAttrs logs a debug message with attributes.
+func (l *Logger) DebugAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
+	l.logger.LogAttrs(ctx, slog.LevelDebug, message, attrs...)
+}
+
+// InitDefault initializes the default logger with the provided configuration.
+func InitDefault(config Config) error {
+	var err error
+	once.Do(func() {
+		defaultLogger, err = New(config)
+	})
+	return err
+}
+
+func GetDefault() *Logger {
+	return defaultLogger
+}
+
+func SetDefault(logger *Logger) error {
+	if logger == nil {
+		return fmt.Errorf("logger cannot be nil")
 	}
+	defaultLogger = logger
+	return nil
 }
 
 // createHandler creates a slog.Handler based on the format string.
 func createHandler(writer io.Writer, format string, opts *slog.HandlerOptions) slog.Handler {
 	switch strings.ToLower(format) {
 	case "text", "":
+		// TODO: Fix frame detection.
 		return slog.NewTextHandler(writer, opts)
 	case "json":
+		// TODO: Fix frame detection here, too.
 		return slog.NewJSONHandler(writer, opts)
 	case "null", "discard":
 		return slog.DiscardHandler
@@ -131,87 +156,106 @@ func parseLogLevel(levelStr string) slog.Level {
 	}
 }
 
-// GetLogger returns the global logger instance (thread-safe).
-func GetLogger() *slog.Logger {
-	logger := log.Load()
-
-	if logger == nil {
-		return slog.Default()
+// NewConfig creates a new Config instance based on the provided parameters.
+// If the output is a file, it is opened and a closer is returned.
+// The closer can be used to close the file when done.
+func NewConfig(level, format, output string) (Config, io.Closer, error) {
+	config := Config{
+		Level:  level,
+		Format: format,
 	}
-	return logger
+	var closer io.Closer = nil
+
+	switch output {
+	case "stdout", "":
+		config.Writer = os.Stdout
+	case "stderr":
+		config.Writer = os.Stderr
+	case "null", "discard":
+		config.Writer = io.Discard
+	default:
+		outFile := filepath.Clean(output)
+		if outFile == "." || outFile == "" {
+			return Config{}, nil, fmt.Errorf("invalid file path")
+		}
+		
+		var err error
+		outFile, err = filepath.Abs(outFile)
+		if err != nil {
+			return Config{}, nil, fmt.Errorf("failed to get absolute path for log file: %w", err)
+		}
+
+		if err = os.MkdirAll(filepath.Dir(outFile), 0755); err != nil {
+			return Config{}, nil, fmt.Errorf("error creating log directory: %w", err)
+		}
+
+		file, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			return Config{}, nil, fmt.Errorf("failed to open log file %s: %w", outFile, err)
+		}
+
+		config.Writer = file
+		closer = file
+	}
+	return config, closer, nil
 }
 
 // Info logs an informational message.
 func Info(msg string, args ...any) {
-	GetLogger().Info(msg, args...)
+	defaultLogger.logger.Info(msg, args...)
 }
 
 // InfoCtx logs an informational message with context.
 func InfoCtx(ctx context.Context, msg string, args ...any) {
-	GetLogger().InfoContext(ctx, msg, args...)
+	defaultLogger.logger.InfoContext(ctx, msg, args...)
 }
 
 // InfoAttrs logs an informational message with attributes.
 func InfoAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	GetLogger().LogAttrs(ctx, slog.LevelInfo, message, attrs...)
+	defaultLogger.logger.LogAttrs(ctx, slog.LevelInfo, message, attrs...)
 }
 
 // Warn logs a warning message.
 func Warn(msg string, args ...any) {
-	GetLogger().Warn(msg, args...)
+	defaultLogger.logger.Warn(msg, args...)
 }
 
 // WarnCtx logs a warning message with context.
 func WarnCtx(ctx context.Context, msg string, args ...any) {
-	GetLogger().WarnContext(ctx, msg, args...)
+	defaultLogger.logger.WarnContext(ctx, msg, args...)
 }
 
 // WarnAttrs logs a warning message with attributes.
 func WarnAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	GetLogger().LogAttrs(ctx, slog.LevelWarn, message, attrs...)
+	defaultLogger.logger.LogAttrs(ctx, slog.LevelWarn, message, attrs...)
 }
 
 // Error logs an error message.
 func Error(msg string, args ...any) {
-	GetLogger().Error(msg, args...)
+	defaultLogger.logger.Error(msg, args...)
 }
 
 // ErrorCtx logs an error message with context.
 func ErrorCtx(ctx context.Context, msg string, args ...any) {
-	GetLogger().ErrorContext(ctx, msg, args...)
+	defaultLogger.logger.ErrorContext(ctx, msg, args...)
 }
 
 // ErrorAttrs logs an error message with attributes.
 func ErrorAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	GetLogger().LogAttrs(ctx, slog.LevelError, message, attrs...)
+	defaultLogger.logger.LogAttrs(ctx, slog.LevelError, message, attrs...)
 }
 
 // Debug logs a debug message.
 func Debug(msg string, args ...any) {
-	GetLogger().Debug(msg, args...)
+	defaultLogger.logger.Debug(msg, args...)
 }
 
 // DebugCtx logs a debug message with context.
 func DebugCtx(ctx context.Context, msg string, args ...any) {
-	GetLogger().DebugContext(ctx, msg, args...)
+	defaultLogger.logger.DebugContext(ctx, msg, args...)
 }
 
 // DebugAttrs logs a debug message with attributes.
 func DebugAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	GetLogger().LogAttrs(ctx, slog.LevelDebug, message, attrs...)
-}
-
-// IsInitialized returns whether the logger has been initialized.
-func IsInitialized() bool {
-	return log.Load() != nil
-}
-
-// Close closes the log file if it was opened.
-func Close() {
-	// Close the log file if it was opened
-	if file := logFile.Swap(nil); file != nil {
-		_ = file.Close()
-	}
-
-	log.Store(nil)
+	defaultLogger.logger.LogAttrs(ctx, slog.LevelDebug, message, attrs...)
 }
