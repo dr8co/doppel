@@ -8,70 +8,52 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
+	"sync/atomic"
 )
 
-var (
-	defaultLogger *Logger
-	once          sync.Once
-)
+var defaultLogger atomic.Pointer[Logger]
 
-// Config holds the configuration for the logger
+// Config holds the configuration for the logger.
 type Config struct {
-	Level  string
+	// Format specifies the log format (e.g., "text", "json", "pretty", etc.)
 	Format string
+
+	// Writer is the output destination for the logs (e.g., os.Stdout, os.Stderr, or a file)
 	Writer io.Writer
+
+	// Options holds additional options for the slog.Handler
+	Options *slog.HandlerOptions
 }
 
 // Logger is a wrapper around slog.Logger with additional configuration
 // and convenience methods for logging at different levels.
 type Logger struct {
 	logger *slog.Logger
-	config Config
 }
 
 // init initializes the default logger with a basic configuration.
-// It is intended for use in tests or when no specific configuration is provided.
 func init() {
-	defaultLogger = &Logger{
-		logger: slog.Default(),
-		config: Config{
-			Level:  "",
-			Format: "",
-			Writer: nil,
-		},
-	}
+	ResetDefault()
 }
 
 // New creates a new Logger instance with the provided configuration.
-func New(config Config) (*Logger, error) {
+func New(config *Config) (*Logger, error) {
+	if config == nil {
+		config = &Config{Writer: os.Stdout}
+	}
+
 	if config.Writer == nil {
 		return nil, fmt.Errorf("writer cannot be nil")
 	}
 
-	level := parseLogLevel(config.Level)
-
-	var opts *slog.HandlerOptions
-	if level == slog.LevelDebug {
-		opts = &slog.HandlerOptions{
-			Level:     level,
-			AddSource: true,
-		}
-	} else {
-		opts = &slog.HandlerOptions{
-			Level: level,
-		}
+	if config.Options == nil {
+		config.Options = &slog.HandlerOptions{}
 	}
 
-	handler := createHandler(config.Writer, config.Format, opts)
+	handler := createHandler(config)
 
-	return &Logger{logger: slog.New(handler), config: config}, nil
+	return &Logger{logger: slog.New(handler)}, nil
 
-}
-
-// Config returns the current configuration of the logger.
-func (l *Logger) Config() Config {
-	return l.config
 }
 
 // Logger returns the underlying slog.Logger instance.
@@ -156,84 +138,72 @@ func (l *Logger) Handler() slog.Handler {
 
 // With returns a Logger that includes the given attributes in each output operation.
 func (l *Logger) With(args ...any) *Logger {
-	return &Logger{
-		logger: l.logger.With(args...),
-		config: l.config,
-	}
+	return &Logger{l.logger.With(args...)}
 }
 
 // WithGroup returns a Logger that starts a group
 func (l *Logger) WithGroup(name string) *Logger {
-	return &Logger{
-		logger: l.logger.WithGroup(name),
-		config: l.config,
-	}
+	return &Logger{l.logger.WithGroup(name)}
 }
 
-// InitDefault initializes the default logger with the provided configuration.
-func InitDefault(config Config) error {
-	var err error
-	once.Do(func() {
-		defaultLogger, err = New(config)
-	})
-	return err
+// Default returns the default logger.
+func Default() *Logger {
+	return defaultLogger.Load()
 }
 
-func GetDefault() *Logger {
-	return defaultLogger
-}
-
+// SetDefault sets the default logger to the provided logger.
 func SetDefault(logger *Logger) error {
 	if logger == nil {
 		return fmt.Errorf("logger cannot be nil")
 	}
-	defaultLogger = logger
+	defaultLogger.Store(logger)
+	return nil
+}
+
+// ResetDefault resets the default logger to the standard slog.Default logger.
+func ResetDefault() {
+	defaultLogger.Store(&Logger{slog.Default()})
+}
+
+// NewDefault creates a new default logger with the provided configuration.
+func NewDefault(config *Config) error {
+	newLogger, err := New(config)
+	if err != nil {
+		return err
+	}
+	defaultLogger.Store(newLogger)
 	return nil
 }
 
 // createHandler creates a slog.Handler based on the format string.
-func createHandler(writer io.Writer, format string, opts *slog.HandlerOptions) slog.Handler {
-	switch strings.ToLower(format) {
+func createHandler(config *Config) slog.Handler {
+	switch strings.ToLower(config.Format) {
 	case "text", "":
 		// TODO: Fix frame detection.
-		return slog.NewTextHandler(writer, opts)
+		return slog.NewTextHandler(config.Writer, config.Options)
 	case "json":
 		// TODO: Fix frame detection here, too.
-		return slog.NewJSONHandler(writer, opts)
+		return slog.NewJSONHandler(config.Writer, config.Options)
 	case "null", "discard":
 		return slog.DiscardHandler
 	case "pretty", "color", "terminal", "human":
-		return NewPrettyHandler(writer, opts)
+		return NewPrettyHandler(config.Writer, config.Options)
 	default:
-		_, _ = fmt.Fprintf(os.Stderr, "Unknown log format '%s'. Using text format.\n", format)
-		return slog.NewTextHandler(writer, opts)
-	}
-}
-
-// parseLogLevel converts string log level to slog.Level
-func parseLogLevel(levelStr string) slog.Level {
-	switch strings.ToLower(levelStr) {
-	case "info", "":
-		return slog.LevelInfo
-	case "debug":
-		return slog.LevelDebug
-	case "warn", "warning":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	default:
-		_, _ = fmt.Fprintf(os.Stderr, "Unknown log level '%s'. Using info level.\n", levelStr)
-		return slog.LevelInfo
+		_, _ = fmt.Fprintf(os.Stderr, "Unknown log format '%s'. Using text format.\n", config.Format)
+		return slog.NewTextHandler(config.Writer, config.Options)
 	}
 }
 
 // NewConfig creates a new Config instance based on the provided parameters.
 // If the output is a file, it is opened and a closer is returned.
 // The closer can be used to close the file when done.
-func NewConfig(level, format, output string) (Config, io.Closer, error) {
+func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Closer, error) {
+	if opts == nil {
+		opts = &slog.HandlerOptions{}
+	}
 	config := Config{
-		Level:  level,
-		Format: format,
+		Options: opts,
+		Format:  format,
 	}
 	var closer io.Closer = nil
 
@@ -273,60 +243,60 @@ func NewConfig(level, format, output string) (Config, io.Closer, error) {
 
 // Info logs an informational message.
 func Info(msg string, args ...any) {
-	defaultLogger.logger.Info(msg, args...)
+	defaultLogger.Load().logger.Info(msg, args...)
 }
 
 // InfoCtx logs an informational message with context.
 func InfoCtx(ctx context.Context, msg string, args ...any) {
-	defaultLogger.logger.InfoContext(ctx, msg, args...)
+	defaultLogger.Load().logger.InfoContext(ctx, msg, args...)
 }
 
 // InfoAttrs logs an informational message with attributes.
 func InfoAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	defaultLogger.logger.LogAttrs(ctx, slog.LevelInfo, message, attrs...)
+	defaultLogger.Load().logger.LogAttrs(ctx, slog.LevelInfo, message, attrs...)
 }
 
 // Warn logs a warning message.
 func Warn(msg string, args ...any) {
-	defaultLogger.logger.Warn(msg, args...)
+	defaultLogger.Load().logger.Warn(msg, args...)
 }
 
 // WarnCtx logs a warning message with context.
 func WarnCtx(ctx context.Context, msg string, args ...any) {
-	defaultLogger.logger.WarnContext(ctx, msg, args...)
+	defaultLogger.Load().logger.WarnContext(ctx, msg, args...)
 }
 
 // WarnAttrs logs a warning message with attributes.
 func WarnAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	defaultLogger.logger.LogAttrs(ctx, slog.LevelWarn, message, attrs...)
+	defaultLogger.Load().logger.LogAttrs(ctx, slog.LevelWarn, message, attrs...)
 }
 
 // Error logs an error message.
 func Error(msg string, args ...any) {
-	defaultLogger.logger.Error(msg, args...)
+	defaultLogger.Load().logger.Error(msg, args...)
 }
 
 // ErrorCtx logs an error message with context.
 func ErrorCtx(ctx context.Context, msg string, args ...any) {
-	defaultLogger.logger.ErrorContext(ctx, msg, args...)
+	defaultLogger.Load().logger.ErrorContext(ctx, msg, args...)
 }
 
 // ErrorAttrs logs an error message with attributes.
 func ErrorAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	defaultLogger.logger.LogAttrs(ctx, slog.LevelError, message, attrs...)
+	defaultLogger.Load().logger.LogAttrs(ctx, slog.LevelError, message, attrs...)
 }
 
 // Debug logs a debug message.
 func Debug(msg string, args ...any) {
-	defaultLogger.logger.Debug(msg, args...)
+	defaultLogger.Load().logger.Debug(msg, args...)
 }
 
 // DebugCtx logs a debug message with context.
 func DebugCtx(ctx context.Context, msg string, args ...any) {
-	defaultLogger.logger.DebugContext(ctx, msg, args...)
+	defaultLogger.Load().logger.DebugContext(ctx, msg, args...)
 }
 
 // DebugAttrs logs a debug message with attributes.
 func DebugAttrs(ctx context.Context, message string, attrs ...slog.Attr) {
-	defaultLogger.logger.LogAttrs(ctx, slog.LevelDebug, message, attrs...)
+	defaultLogger.Load().logger.LogAttrs(ctx, slog.LevelDebug, message, attrs...)
 }
