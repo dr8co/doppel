@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/urfave/cli/v3"
@@ -21,15 +24,29 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var closer io.Closer
+	defer func(closer io.Closer) {
+		if closer != nil {
+			_ = closer.Close()
+		}
+	}(closer)
+
+	// exit function to handle a graceful shutdown
+	exit := func(status int) {
+		cancel()
+		if closer != nil {
+			_ = closer.Close()
+		}
+		os.Exit(status)
+	}
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
 		sig := <-c
 		logger.InfoAttrs(ctx, "received signal, shutting down", slog.String("signal", sig.String()))
-		cancel()
-		logger.Close()
-		os.Exit(1)
+		exit(1)
 	}()
 
 	app := &cli.Command{
@@ -74,18 +91,40 @@ processing and extensive filtering options to skip unwanted files and directorie
 			logFormat := command.String("log-format")
 			logOutput := command.String("log-output")
 
-			logger.InitLogger(logLevel, logFormat, logOutput)
+			var level slog.Level
 
-			return ctx, nil
+			switch strings.ToLower(logLevel) {
+			case "info", "":
+				level = slog.LevelInfo
+			case "debug":
+				level = slog.LevelDebug
+			case "warn", "warning":
+				level = slog.LevelWarn
+			case "error":
+				level = slog.LevelError
+			default:
+				_, _ = fmt.Fprintf(os.Stderr, "Unknown log level '%s'. Using info level.\n", logLevel)
+				level = slog.LevelInfo
+			}
+
+			var err error
+			var cfg logger.Config
+			opts := &slog.HandlerOptions{Level: level}
+
+			cfg, closer, err = logger.NewConfig(opts, logFormat, logOutput)
+			if err != nil {
+				return ctx, err
+			}
+
+			err = logger.NewDefault(&cfg)
+
+			return ctx, err
 		},
 	}
 
-	defer logger.Close()
-
 	if err := app.Run(ctx, os.Args); err != nil {
-		logger.Error("error running the application", err)
-		cancel()
-		logger.Close()
-		os.Exit(1)
+		fmt.Println()
+		logger.Error("error running the application", "error", err)
+		exit(1)
 	}
 }
