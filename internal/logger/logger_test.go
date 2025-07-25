@@ -11,50 +11,93 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 )
 
-var mu sync.Mutex
+// TestNew tests creating a new logger with valid/invalid configurations
+func TestNew(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  *Config
+		wantErr bool
+	}{
+		{
+			name: "valid config with stdout",
+			config: &Config{
+				Format:  "json",
+				Writer:  os.Stdout,
+				Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "nil config uses defaults",
+			config:  nil,
+			wantErr: false,
+		},
+		{
+			name: "nil writer should fail",
+			config: &Config{
+				Format:  "json",
+				Writer:  nil,
+				Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+			},
+			wantErr: true,
+		},
+		{
+			name: "nil options gets default",
+			config: &Config{
+				Format:  "text",
+				Writer:  os.Stdout,
+				Options: nil,
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty config with writer",
+			config: &Config{
+				Writer: os.Stderr,
+			},
+			wantErr: false,
+		},
+	}
 
-// reconfigure reconfigures the default logger with the provided configuration.
-func reconfigure(config Config) error {
-	mu.Lock()
-	defer mu.Unlock()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger, err := New(tt.config)
 
-	var err error
-	defaultLogger, err = New(config)
-	return err
-}
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error, got nil")
+				}
+				if logger != nil {
+					t.Error("expected logger to be nil on error")
+				}
+				return
+			}
 
-// TestNewLogger tests creating a new logger with valid/invalid configurations
-func TestNewLogger(t *testing.T) {
-	t.Run("ValidWriter", func(t *testing.T) {
-		buf := new(bytes.Buffer)
-		cfg := Config{Writer: buf, Format: "text", Level: "debug"}
-		l, err := New(cfg)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		l.Debug("test message")
-		if !strings.Contains(buf.String(), "test message") {
-			t.Error("Log message not found in output")
-		}
-	})
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
 
-	t.Run("NilWriter", func(t *testing.T) {
-		cfg := Config{Writer: nil}
-		_, err := New(cfg)
-		if err == nil {
-			t.Fatal("Expected error for nil writer")
-		}
-	})
+			if logger == nil {
+				t.Error("expected logger to be non-nil")
+				return
+			}
+
+			// Test that the logger is functional
+			logger.Info("test message")
+		})
+	}
 }
 
 // TestNewConfig tests logger configuration creation
 func TestNewConfig(t *testing.T) {
 	tests := []struct {
 		name         string
-		level        string
+		opts         *slog.HandlerOptions
 		format       string
 		output       string
 		expectError  bool
@@ -62,7 +105,7 @@ func TestNewConfig(t *testing.T) {
 	}{
 		{
 			name:         "stdout output",
-			level:        "info",
+			opts:         &slog.HandlerOptions{Level: slog.LevelInfo},
 			format:       "json",
 			output:       "stdout",
 			expectError:  false,
@@ -70,7 +113,7 @@ func TestNewConfig(t *testing.T) {
 		},
 		{
 			name:         "stderr output",
-			level:        "debug",
+			opts:         &slog.HandlerOptions{Level: slog.LevelDebug},
 			format:       "text",
 			output:       "stderr",
 			expectError:  false,
@@ -78,7 +121,7 @@ func TestNewConfig(t *testing.T) {
 		},
 		{
 			name:         "null output",
-			level:        "warn",
+			opts:         &slog.HandlerOptions{Level: slog.LevelWarn},
 			format:       "null",
 			output:       "null",
 			expectError:  false,
@@ -86,7 +129,7 @@ func TestNewConfig(t *testing.T) {
 		},
 		{
 			name:         "file output",
-			level:        "error",
+			opts:         &slog.HandlerOptions{Level: slog.LevelError},
 			format:       "json",
 			output:       filepath.Join(t.TempDir(), "test.log"),
 			expectError:  false,
@@ -94,23 +137,32 @@ func TestNewConfig(t *testing.T) {
 		},
 		{
 			name:        "invalid file path",
-			level:       "info",
+			opts:        &slog.HandlerOptions{Level: slog.LevelInfo},
 			format:      "json",
 			output:      ".",
 			expectError: true,
 		},
 		{
 			name:        "empty file path",
-			level:       "info",
+			opts:        &slog.HandlerOptions{Level: slog.LevelInfo},
 			format:      "json",
 			output:      "",
 			expectError: false, // Should default to stdout
 		},
 		{
 			name:         "discard output",
-			level:        "warn",
+			opts:         &slog.HandlerOptions{Level: slog.LevelError},
 			format:       "json",
 			output:       "discard",
+			expectError:  false,
+			expectCloser: false,
+		},
+
+		{
+			name:         "nil options",
+			opts:         nil,
+			format:       "json",
+			output:       "stdout",
 			expectError:  false,
 			expectCloser: false,
 		},
@@ -118,7 +170,7 @@ func TestNewConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config, closer, err := NewConfig(tt.level, tt.format, tt.output)
+			config, closer, err := NewConfig(tt.opts, tt.format, tt.output)
 
 			if tt.expectError {
 				if err == nil {
@@ -139,9 +191,6 @@ func TestNewConfig(t *testing.T) {
 				t.Error("expected closer to be nil")
 			}
 
-			if config.Level != tt.level {
-				t.Errorf("expected level %s, got %s", tt.level, config.Level)
-			}
 			if config.Format != tt.format {
 				t.Errorf("expected format %s, got %s", tt.format, config.Format)
 			}
@@ -162,10 +211,10 @@ func TestNewConfig(t *testing.T) {
 // TestLogLevels tests all log levels work correctly
 func TestLogLevels(t *testing.T) {
 	var buf bytes.Buffer
-	config := Config{
-		Level:  "debug",
-		Format: "json",
-		Writer: &buf,
+	config := &Config{
+		Format:  "json",
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelDebug},
 	}
 
 	logger, err := New(config)
@@ -220,38 +269,13 @@ func TestLogLevels(t *testing.T) {
 	}
 }
 
-func TestParseLogLevel(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected slog.Level
-	}{
-		{"debug", slog.LevelDebug},
-		{"DEBUG", slog.LevelDebug},
-		{"info", slog.LevelInfo},
-		{"INFO", slog.LevelInfo},
-		{"", slog.LevelInfo}, // default
-		{"warn", slog.LevelWarn},
-		{"warning", slog.LevelWarn},
-		{"WARN", slog.LevelWarn},
-		{"error", slog.LevelError},
-		{"ERROR", slog.LevelError},
-		{"invalid", slog.LevelInfo}, // default for unknown
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := parseLogLevel(tt.input)
-			if result != tt.expected {
-				t.Errorf("parseLogLevel(%q) = %v, want %v", tt.input, result, tt.expected)
-			}
-		})
-	}
-}
-
 // TestCreateHandler tests the creation of log handlers.
 func TestCreateHandler(t *testing.T) {
 	var buf bytes.Buffer
-	opts := &slog.HandlerOptions{Level: slog.LevelInfo}
+	config := &Config{
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelDebug},
+	}
 
 	tests := []struct {
 		format   string
@@ -273,7 +297,8 @@ func TestCreateHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.format, func(t *testing.T) {
-			handler := createHandler(&buf, tt.format, opts)
+			config.Format = tt.format
+			handler := createHandler(config)
 			handlerType := fmt.Sprintf("%T", handler)
 			if handlerType != tt.expected {
 				t.Errorf("createHandler(%q) = %s, want %s", tt.format, handlerType, tt.expected)
@@ -284,49 +309,74 @@ func TestCreateHandler(t *testing.T) {
 
 // TestGlobalLoggerConcurrency tests that the global logger can be safely used from multiple goroutines.
 func TestGlobalLoggerConcurrency(t *testing.T) {
-	// Reset the default logger for this test
-	originalLogger := defaultLogger
-	defer func() { defaultLogger = originalLogger }()
+	// Save the original default logger
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
 
 	var buf bytes.Buffer
-	config := Config{
-		Level:  "info",
-		Format: "json",
-		Writer: &buf,
+	config := &Config{
+		Format:  "json",
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 	}
 
-	// Test concurrent initialization
+	newLogger, err := New(config)
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	// Test concurrent setting of default logger
 	const numGoroutines = 100
 	var wg sync.WaitGroup
-	errors := make(chan error, numGoroutines)
 
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
-		go func() {
+		go func(id int) {
 			defer wg.Done()
-			err := reconfigure(config)
-			//err := InitDefault(config)
-			if err != nil {
-				errors <- err
+
+			// Create a unique logger for this goroutine
+			var goroutineBuf bytes.Buffer
+			goroutineConfig := &Config{
+				Format:  "json",
+				Writer:  &goroutineBuf,
+				Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 			}
-		}()
+
+			goroutineLogger, err := New(goroutineConfig)
+			if err != nil {
+				t.Errorf("failed to create logger in goroutine %d: %v", id, err)
+				return
+			}
+
+			// Set this logger as default (last one wins)
+			err = SetDefault(goroutineLogger)
+			if err != nil {
+				t.Errorf("failed to set logger in goroutine %d: %v", id, err)
+				return
+			}
+
+			// Use the current default logger
+			currentDefault := Default()
+			if currentDefault == nil {
+				t.Errorf("default logger is nil in goroutine %d", id)
+				return
+			}
+		}(i)
 	}
 
 	wg.Wait()
-	close(errors)
 
-	// Check for any errors
-	for err := range errors {
-		t.Errorf("InitDefault error: %v", err)
-	}
-
-	// Verify logger was initialized
-	logger := GetDefault()
-	if logger == nil {
-		t.Error("default logger should not be nil after initialization")
+	// Verify we have a valid default logger
+	finalDefault := Default()
+	if finalDefault == nil {
+		t.Error("final default logger should not be nil")
 	}
 
 	// Test concurrent logging
+	err = SetDefault(newLogger)
+	if err != nil {
+		t.Fatalf("failed to set default logger: %v", err)
+	}
 	const numMessages = 1000
 	wg = sync.WaitGroup{}
 
@@ -351,53 +401,102 @@ func TestGlobalLoggerConcurrency(t *testing.T) {
 
 	// Count lines to ensure we got some reasonable number of log entries
 	lines := strings.Split(strings.TrimSpace(output), "\n")
-	// We expect at least some log entries (debug might be filtered out depending on level)
 	if len(lines) < numMessages {
 		t.Logf("Got %d log lines from %d concurrent operations", len(lines), numMessages*4)
 	}
 }
 
-// resetDefaultLogger is a helper function to reset the global state between tests.
-// This is crucial for ensuring tests are isolated.
-func resetDefaultLogger() {
-	// Re-initialize a new sync.Once to allow InitDefault to be called again in different tests.
-	once = sync.Once{}
-	// Reset the default logger to a clean state.
-	defaultLogger = &Logger{
-		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		config: Config{},
+// TestLoggerImmutability tests if the individual logger instances are truly immutable.
+func TestLoggerImmutability(t *testing.T) {
+	var buf bytes.Buffer
+	config := &Config{
+		Format:  "json",
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+	}
+
+	logger, err := New(config)
+	if err != nil {
+		t.Fatalf("failed to create logger: %v", err)
+	}
+
+	// Log a message
+	logger.logger.Info("immutable test message")
+
+	// Get the original underlying logger
+	originalSlogger := logger.Logger()
+
+	// Create another logger with a different config
+	var buf2 bytes.Buffer
+	config2 := &Config{
+		Format:  "text",
+		Writer:  &buf2,
+		Options: &slog.HandlerOptions{Level: slog.LevelDebug},
+	}
+
+	logger2, err := New(config2)
+	if err != nil {
+		t.Fatalf("failed to create second logger: %v", err)
+	}
+
+	// Verify original logger is unchanged
+	currentSlogger := logger.Logger()
+	if originalSlogger != currentSlogger {
+		t.Error("original logger's internal state should not change")
+	}
+
+	// Verify they log to different destinations
+	logger.logger.Info("first logger message")
+	logger2.logger.Info("second logger message")
+
+	output1 := buf.String()
+	output2 := buf2.String()
+
+	if !strings.Contains(output1, "first logger message") {
+		t.Error("first logger should log to its configured writer")
+	}
+
+	if !strings.Contains(output2, "second logger message") {
+		t.Error("second logger should log to its configured writer")
+	}
+
+	// Verify formats are different (JSON vs TEXT)
+	lines1 := strings.Split(strings.TrimSpace(output1), "\n")
+	lines2 := strings.Split(strings.TrimSpace(output2), "\n")
+
+	// The first should be JSON
+	var jsonEntry map[string]interface{}
+	if err := json.Unmarshal([]byte(lines1[0]), &jsonEntry); err != nil {
+		t.Error("first logger should produce JSON output")
+	}
+
+	// The second should be text (not valid JSON)
+	if json.Unmarshal([]byte(lines2[0]), &jsonEntry) == nil {
+		t.Error("second logger should produce text output, not JSON")
 	}
 }
 
 // TestConcurrencySafety tests that the global logger can be safely used from multiple goroutines.
 func TestConcurrencySafety(t *testing.T) {
-	// Save and restore the original logger
-	originalLogger := defaultLogger
-	defer func() { defaultLogger = originalLogger }()
+	// Reset the default logger for this test
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
 
-	resetDefaultLogger()
 	var buf bytes.Buffer
-	config := Config{Level: "info", Writer: &buf}
+	config := &Config{Writer: &buf, Options: &slog.HandlerOptions{Level: slog.LevelInfo}}
+	logger, err := New(config)
+	if err != nil {
+		t.Fatalf("failed to initialize logger: %v", err)
+	}
 
-	// This test will have multiple goroutines trying to initialize, set, and use the default logger.
-	// The `sync.Once` in `InitDefault` is the primary mechanism being tested for safety.
-	// We also test concurrent writes to the logger.
-	t.Run("Concurrent InitDefault and logging", func(t *testing.T) {
+	err = SetDefault(logger)
+	if err != nil {
+		t.Fatalf("failed to set the default logger: %v", err)
+	}
+
+	t.Run("Concurrent logging", func(t *testing.T) {
 		var wg sync.WaitGroup
 		numGoroutines := 100
-
-		// All goroutines will try to initialize the logger. Only one should succeed.
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func() {
-				defer wg.Done()
-				err := InitDefault(config)
-				if err != nil {
-					t.Errorf("Error from InitDefault in goroutine: %v\n", err)
-				}
-			}()
-		}
-		wg.Wait()
 
 		// All goroutines will now log concurrently to the initialized default logger.
 		wg.Add(numGoroutines)
@@ -422,20 +521,20 @@ func TestConcurrencySafety(t *testing.T) {
 
 // TestGlobalFunctions tests all global logging functions.
 func TestGlobalFunctions(t *testing.T) {
-	// Save and restore the original logger
-	originalLogger := defaultLogger
-	defer func() { defaultLogger = originalLogger }()
+	// Reset the default logger for this test
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
 
 	var buf bytes.Buffer
-	config := Config{
-		Level:  "debug",
-		Format: "json",
-		Writer: &buf,
+	config := &Config{
+		Format:  "json",
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelDebug},
 	}
 
-	err := reconfigure(config)
+	err := NewDefault(config)
 	if err != nil {
-		t.Fatalf("failed to initialize default logger: %v", err)
+		t.Fatalf("failed to set the default logger: %v", err)
 	}
 
 	ctx := context.Background()
@@ -476,14 +575,14 @@ func TestGlobalFunctions(t *testing.T) {
 // TestSetDefault tests setting a custom default logger.
 func TestSetDefault(t *testing.T) {
 	// Save original
-	originalLogger := defaultLogger
-	defer func() { defaultLogger = originalLogger }()
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
 
 	var buf bytes.Buffer
-	config := Config{
-		Level:  "debug",
-		Format: "text",
-		Writer: &buf,
+	config := &Config{
+		Format:  "text",
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelDebug},
 	}
 
 	newLogger, err := New(config)
@@ -497,7 +596,7 @@ func TestSetDefault(t *testing.T) {
 		t.Errorf("SetDefault with valid logger should not error: %v", err)
 	}
 
-	if GetDefault() != newLogger {
+	if Default() != newLogger {
 		t.Error("GetDefault should return the logger we just set")
 	}
 
@@ -508,23 +607,34 @@ func TestSetDefault(t *testing.T) {
 	}
 
 	// Verify logger wasn't changed after nil attempt
-	if GetDefault() != newLogger {
+	if Default() != newLogger {
 		t.Error("default logger should not change when SetDefault fails")
+	}
+
+	// Test that the logger works
+	Info("test message after setting default")
+	output := buf.String()
+	if !strings.Contains(output, "test message after setting default") {
+		t.Error("expected log message in output")
 	}
 }
 
 // TestContextMethods tests logging methods that accept context.
 func TestContextMethods(t *testing.T) {
+	// Save the original default logger
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
+
 	var buf bytes.Buffer
-	config := Config{
-		Level:  "debug",
-		Format: "json",
-		Writer: &buf,
+	config := &Config{
+		Format:  "json",
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelDebug},
 	}
 
-	err := reconfigure(config)
+	err := NewDefault(config)
 	if err != nil {
-		t.Fatalf("failed to create logger: %v", err)
+		t.Fatalf("failed to set default logger: %v", err)
 	}
 
 	type ctxKey string
@@ -570,10 +680,10 @@ func TestContextMethods(t *testing.T) {
 // TestLoggerInstance tests the logger instance methods.
 func TestLoggerInstance(t *testing.T) {
 	var buf bytes.Buffer
-	config := Config{
-		Level:  "info",
-		Format: "json",
-		Writer: &buf,
+	config := &Config{
+		Format:  "json",
+		Writer:  &buf,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 	}
 
 	logger, err := New(config)
@@ -605,107 +715,142 @@ func TestLoggerInstance(t *testing.T) {
 	}
 }
 
-// TestDebugSourceAddition tests that source information is added to debug logs.
-func TestDebugSourceAddition(t *testing.T) {
-	var buf bytes.Buffer
-	config := Config{
-		Level:  "debug",
-		Format: "json",
-		Writer: &buf,
+// TestSourceInformation tests the inclusion of the source information in the logs.
+func TestSourceInformation(t *testing.T) {
+	tests := []struct {
+		name         string
+		level        slog.Level
+		addSource    bool
+		expectSource bool
+	}{
+		{
+			name:         "debug level with AddSource true",
+			level:        slog.LevelDebug,
+			addSource:    true,
+			expectSource: true,
+		},
+		{
+			name:         "debug level with AddSource false",
+			level:        slog.LevelDebug,
+			addSource:    false,
+			expectSource: false,
+		},
+		{
+			name:         "info level with AddSource true",
+			level:        slog.LevelInfo,
+			addSource:    true,
+			expectSource: true,
+		},
+		{
+			name:         "info level with AddSource false",
+			level:        slog.LevelInfo,
+			addSource:    false,
+			expectSource: false,
+		},
 	}
 
-	logger, err := New(config)
-	if err != nil {
-		t.Fatalf("failed to create logger: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			config := &Config{
+				Format: "json",
+				Writer: &buf,
+				Options: &slog.HandlerOptions{
+					Level:     tt.level,
+					AddSource: tt.addSource,
+				},
+			}
 
-	logger.Debug("debug message with source")
+			logger, err := New(config)
+			if err != nil {
+				t.Fatalf("failed to create logger: %v", err)
+			}
 
-	output := buf.String()
-	var entry map[string]interface{}
-	if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &entry); err != nil {
-		t.Errorf("output is not valid JSON: %v", err)
-	}
+			logger.logger.Log(context.Background(), tt.level, "test message")
 
-	// When the level is 'debug', source information should be added
-	if _, hasSource := entry["source"]; !hasSource {
-		t.Error("expected source information in debug level logs")
+			output := buf.String()
+			var entry map[string]interface{}
+			if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &entry); err != nil {
+				t.Errorf("output is not valid JSON: %v", err)
+			}
+
+			_, hasSource := entry["source"]
+			if tt.expectSource && !hasSource {
+				t.Error("expected source information in log entry")
+			}
+			if !tt.expectSource && hasSource {
+				t.Error("did not expect source information in log entry")
+			}
+		})
 	}
 }
 
-// TestNonDebugNoSource tests that source information is not added to non-debug logs.
-func TestNonDebugNoSource(t *testing.T) {
-	var buf bytes.Buffer
-	config := Config{
-		Level:  "info",
-		Format: "json",
-		Writer: &buf,
+// TestAtomicDefaultLogger verifies the atomic nature of the default logger.
+func TestAtomicDefaultLogger(t *testing.T) {
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
+
+	var buf1, buf2 bytes.Buffer
+
+	config1 := &Config{
+		Format:  "json",
+		Writer:  &buf1,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 	}
 
-	logger, err := New(config)
+	config2 := &Config{
+		Format:  "text",
+		Writer:  &buf2,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+	}
+
+	logger1, err := New(config1)
 	if err != nil {
-		t.Fatalf("failed to create logger: %v", err)
+		t.Fatalf("failed to create logger1: %v", err)
 	}
 
-	logger.Info("info message without source")
-
-	output := buf.String()
-	var entry map[string]interface{}
-	if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &entry); err != nil {
-		t.Errorf("output is not valid JSON: %v", err)
-	}
-
-	// When the level is not 'debug', source information should not be added
-	if _, hasSource := entry["source"]; hasSource {
-		t.Error("did not expect source information in non-debug level logs")
-	}
-}
-
-// TestRaceConditionOnDefaultLogger tests for race conditions in the default logger.
-func TestRaceConditionOnDefaultLogger(t *testing.T) {
-	// This test specifically checks for race conditions in accessing the default logger
-	originalLogger := defaultLogger
-	defer func() { defaultLogger = originalLogger }()
-
-	var buf bytes.Buffer
-	config := Config{
-		Level:  "info",
-		Format: "json",
-		Writer: &buf,
-	}
-
-	err := reconfigure(config)
+	logger2, err := New(config2)
 	if err != nil {
-		t.Errorf("failed to create logger: %v", err)
-		return
+		t.Fatalf("failed to create logger2: %v", err)
 	}
 
 	const numGoroutines = 50
 	const messagesPerGoroutine = 20
 
 	var wg sync.WaitGroup
+	var swapCount int64
 
-	// Start goroutines that will all try to initialize and use the logger
+	// Start goroutines that will swap between loggers and log messages
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
 
-			// Try to initialize (only the first call should succeed due to sync.Once)
-			err := InitDefault(config)
-			if err != nil {
-				t.Errorf("failed to create logger: %v", err)
-				return
-			}
-
-			// Use the logger extensively
 			for j := 0; j < messagesPerGoroutine; j++ {
+				// Randomly swap between loggers
+				if id%2 == 0 {
+					err := SetDefault(logger1)
+					if err != nil {
+						t.Errorf("SetDefault() failed in goroutine %d: %v", id, err)
+						return
+					}
+					atomic.AddInt64(&swapCount, 1)
+				} else {
+					err := SetDefault(logger2)
+					if err != nil {
+						t.Errorf("SetDefault() failed in goroutine %d: %v", id, err)
+						return
+					}
+					atomic.AddInt64(&swapCount, 1)
+				}
+
+				// Log a message with the current default
 				Info("message from goroutine", "goroutine_id", id, "message_id", j)
 
-				// Also test getting and setting
-				logger := GetDefault()
-				if logger == nil {
-					t.Errorf("GetDefault returned nil in goroutine %d", id)
+				// Verify we can always get a valid logger
+				current := Default()
+				if current == nil {
+					t.Errorf("Default() returned nil in goroutine %d", id)
 				}
 			}
 		}(i)
@@ -713,17 +858,19 @@ func TestRaceConditionOnDefaultLogger(t *testing.T) {
 
 	wg.Wait()
 
-	// Verify we got some log output
-	output := buf.String()
-	if len(output) == 0 {
-		t.Error("expected log output from concurrent operations")
+	// Verify we performed swaps
+	if atomic.LoadInt64(&swapCount) == 0 {
+		t.Error("expected some logger swaps to occur")
 	}
 
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	expectedMessages := numGoroutines * messagesPerGoroutine
-	if len(lines) != expectedMessages {
-		t.Logf("Expected %d messages, got %d (this might be OK due to race conditions)", expectedMessages, len(lines))
+	// Verify we got some output in at least one buffer
+	totalOutput := len(buf1.String()) + len(buf2.String())
+	if totalOutput == 0 {
+		t.Error("expected some log output from concurrent operations")
 	}
+
+	t.Logf("Total swaps: %d, Output lengths: buf1=%d, buf2=%d",
+		atomic.LoadInt64(&swapCount), len(buf1.String()), len(buf2.String()))
 }
 
 // TestFileOutput tests logging to actual files.
@@ -731,20 +878,19 @@ func TestFileOutput(t *testing.T) {
 	tempDir := t.TempDir()
 	logFile := filepath.Join(tempDir, "test.log")
 
-	config, closer, err := NewConfig("info", "json", logFile)
+	config, closer, err := NewConfig(&slog.HandlerOptions{Level: slog.LevelInfo}, "json", logFile)
 	if err != nil {
 		t.Fatalf("failed to create config: %v", err)
 	}
 	defer func() {
 		if closer != nil {
-			err = closer.Close()
-			if err != nil {
+			if err := closer.Close(); err != nil {
 				t.Errorf("failed to close file: %v", err)
 			}
 		}
 	}()
 
-	logger, err := New(config)
+	logger, err := New(&config)
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
@@ -780,7 +926,7 @@ func TestFileOutput(t *testing.T) {
 // TestConcurrentLogging tests concurrent logging safety
 func TestConcurrentLogging(t *testing.T) {
 	buf := new(bytes.Buffer)
-	cfg := Config{Writer: buf, Level: "debug"}
+	cfg := &Config{Writer: buf, Options: &slog.HandlerOptions{Level: slog.LevelDebug}}
 	l, err := New(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -845,8 +991,8 @@ func TestLogFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.format, func(t *testing.T) {
 			buf := new(bytes.Buffer)
-			cfg := Config{Writer: buf, Format: tt.format, Level: "info"}
-			l, err := New(cfg)
+			cfg := Config{Writer: buf, Format: tt.format, Options: &slog.HandlerOptions{Level: slog.LevelInfo}}
+			l, err := New(&cfg)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -860,7 +1006,7 @@ func TestLogFormat(t *testing.T) {
 // TestLogLevelFiltering tests log level filtering
 func TestLogLevelFiltering(t *testing.T) {
 	buf := new(bytes.Buffer)
-	cfg := Config{Writer: buf, Level: "warn"}
+	cfg := &Config{Writer: buf, Options: &slog.HandlerOptions{Level: slog.LevelWarn}}
 	l, err := New(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -882,10 +1028,10 @@ func TestLogLevelFiltering(t *testing.T) {
 
 // BenchmarkLoggerCreation benchmarks the creation of a new logger.
 func BenchmarkLoggerCreation(b *testing.B) {
-	config := Config{
-		Level:  "info",
-		Format: "json",
-		Writer: io.Discard,
+	config := &Config{
+		Format:  "json",
+		Writer:  io.Discard,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 	}
 
 	b.ResetTimer()
@@ -900,18 +1046,18 @@ func BenchmarkLoggerCreation(b *testing.B) {
 
 // BenchmarkGlobalLogging benchmarks the global logging functions.
 func BenchmarkGlobalLogging(b *testing.B) {
-	originalLogger := defaultLogger
-	defer func() { defaultLogger = originalLogger }()
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
 
-	config := Config{
-		Level:  "info",
-		Format: "json",
-		Writer: io.Discard,
+	config := &Config{
+		Format:  "json",
+		Writer:  io.Discard,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 	}
 
-	err := InitDefault(config)
+	err := NewDefault(config)
 	if err != nil {
-		b.Fatalf("failed to initialize default logger: %v", err)
+		b.Fatalf("failed to set default logger: %v", err)
 	}
 
 	b.ResetTimer()
@@ -922,18 +1068,18 @@ func BenchmarkGlobalLogging(b *testing.B) {
 
 // BenchmarkConcurrentGlobalLogging benchmarks the concurrent global logging functions.
 func BenchmarkConcurrentGlobalLogging(b *testing.B) {
-	originalLogger := defaultLogger
-	defer func() { defaultLogger = originalLogger }()
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
 
-	config := Config{
-		Level:  "info",
-		Format: "json",
-		Writer: io.Discard,
+	config := &Config{
+		Format:  "json",
+		Writer:  io.Discard,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 	}
 
-	err := InitDefault(config)
+	err := NewDefault(config)
 	if err != nil {
-		b.Fatalf("failed to initialize default logger: %v", err)
+		b.Fatalf("failed to set default logger: %v", err)
 	}
 
 	b.ResetTimer()
@@ -942,6 +1088,37 @@ func BenchmarkConcurrentGlobalLogging(b *testing.B) {
 		for pb.Next() {
 			Info("concurrent benchmark message", "iteration", i, "key", "value")
 			i++
+		}
+	})
+}
+
+// BenchmarkAtomicLoggerAccess benchmarks access to the global logger
+func BenchmarkAtomicLoggerAccess(b *testing.B) {
+	originalLogger := defaultLogger.Load()
+	defer defaultLogger.Store(originalLogger)
+
+	config := &Config{
+		Format:  "json",
+		Writer:  io.Discard,
+		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+	}
+
+	logger, err := New(config)
+	if err != nil {
+		b.Fatalf("failed to create logger: %v", err)
+	}
+
+	err = SetDefault(logger)
+	if err != nil {
+		b.Fatalf("failed to set default logger: %v", err)
+	}
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			// Measure the cost of atomic access
+			current := Default()
+			_ = current
 		}
 	})
 }
