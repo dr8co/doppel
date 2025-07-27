@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/dr8co/doppel/internal/model"
 )
 
@@ -18,69 +19,91 @@ func NewPrettyFormatter() *PrettyFormatter {
 
 // Format formats the duplicate report in a human-readable way and writes it to the provided writer
 func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
+	renderer := lipgloss.NewRenderer(w)
+
+	// Define the styles
+	groupHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
+	sizeStyle := renderer.NewStyle().Foreground(lipgloss.Color("36"))
+	wastedStyle := renderer.NewStyle().Foreground(lipgloss.Color("202"))
+	fileStyle := renderer.NewStyle().Foreground(lipgloss.Color("39"))
+	summaryHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("99")).Bold(true)
+	statLabelStyle := renderer.NewStyle().Foreground(lipgloss.Color("244"))
+	statValueStyle := renderer.NewStyle().Foreground(lipgloss.Color("33")).Bold(true)
+	okStyle := renderer.NewStyle().Foreground(lipgloss.Color("42"))
+	errorStyle := renderer.NewStyle().Foreground(lipgloss.Color("196"))
+	rateStyle := renderer.NewStyle().Foreground(lipgloss.Color("220"))
+
 	for _, group := range report.Groups {
 		// Print group header
-		if _, err := fmt.Fprintf(w, "\n🔗 Duplicate group %d (%d files):\n", group.Id, group.Count); err != nil {
+		header := groupHeaderStyle.Render(fmt.Sprintf("\n🔗 Duplicate group %d (%d files):", group.Id, group.Count))
+		if _, err := fmt.Fprintln(w, header); err != nil {
 			return err
 		}
 
 		// Print size and wasted space
-		if _, err := fmt.Fprintf(w, "   Size: %s each, %s wasted space\n", FormatBytes(group.Size), FormatBytes(int64(group.WastedSpace))); err != nil {
+		sizeStr := sizeStyle.Render(fmt.Sprintf("Size: %s each", FormatBytes(group.Size)))
+		wastedStr := wastedStyle.Render(fmt.Sprintf("%s wasted space", FormatBytes(int64(group.WastedSpace))))
+		if _, err := fmt.Fprintf(w, "   %s, %s\n", sizeStr, wastedStr); err != nil {
 			return err
 		}
 
 		// Print files
 		for _, file := range group.Files {
-			if _, err := fmt.Fprintf(w, "   📄 %s\n", file); err != nil {
+			fileLine := fileStyle.Render(fmt.Sprintf("📄 \"%s\"", file))
+			if _, err := fmt.Fprintf(w, "   %s\n", fileLine); err != nil {
 				return err
 			}
 		}
 	}
 
-	if _, err := fmt.Fprintf(w, "\n📊 Summary:\n"); err != nil {
+	// Summary
+	if _, err := fmt.Fprintln(w, summaryHeaderStyle.Render("\n📊 Summary:")); err != nil {
 		return err
 	}
 
 	if report.Stats.DuplicateFiles > 0 {
-		if _, err := fmt.Fprintf(w, "   🔗 Duplicate files found: %d (in %d groups)\n", report.Stats.DuplicateFiles, report.Stats.DuplicateGroups); err != nil {
+		found := statLabelStyle.Render("🔗 Duplicate files found:") + " " + statValueStyle.Render(fmt.Sprintf("%d", report.Stats.DuplicateFiles)) +
+			statLabelStyle.Render(" (in ") + statValueStyle.Render(fmt.Sprintf("%d", report.Stats.DuplicateGroups)) + statLabelStyle.Render(" groups)")
+		if _, err := fmt.Fprintf(w, "   %s\n", found); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "   💾 Total wasted space: %s\n", FormatBytes(int64(report.TotalWastedSpace))); err != nil {
+		wasted := wastedStyle.Render("💾 Total wasted space:") + " " + statValueStyle.Render(FormatBytes(int64(report.TotalWastedSpace)))
+		if _, err := fmt.Fprintf(w, "   %s\n", wasted); err != nil {
 			return err
 		}
 	} else {
-		if _, err := fmt.Fprintf(w, "   ✅ No duplicate files found\n"); err != nil {
+		if _, err := fmt.Fprintf(w, "   %s\n", okStyle.Render("✅ No duplicate files found")); err != nil {
 			return err
 		}
 	}
 
-	// Show detailed stats
-	if _, err := fmt.Fprintf(w, "\n📈 Detailed Statistics:\n"); err != nil {
+	// Detailed stats
+	if _, err := fmt.Fprintln(w, summaryHeaderStyle.Render("\n📈 Detailed Statistics:")); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   📁 Total files scanned: %d\n", report.Stats.TotalFiles); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("📁 Total files scanned:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.TotalFiles))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   🔐 Files processed for hashing: %d\n", report.Stats.ProcessedFiles); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("🔐 Files processed for hashing:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.ProcessedFiles))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   ⏭️ Directories skipped: %d\n", report.Stats.SkippedDirs); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏭️ Directories skipped:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.SkippedDirs))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   ⏭️ Files skipped: %d\n", report.Stats.SkippedFiles); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏭️ Files skipped:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.SkippedFiles))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   ❌ Files with errors: %d\n", report.Stats.ErrorCount); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("❌ Files with errors:"), errorStyle.Render(fmt.Sprintf("%d", report.Stats.ErrorCount))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   ⏱️ Processing time: %v\n", report.Stats.Duration.Round(time.Millisecond)); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏱️ Processing time:"), statValueStyle.Render(report.Stats.Duration.Round(time.Millisecond).String())); err != nil {
 		return err
 	}
 
 	// Show processing rate if applicable
 	if report.Stats.ProcessedFiles > 0 && report.Stats.Duration > 0 {
 		rate := float64(report.Stats.ProcessedFiles) / report.Stats.Duration.Seconds()
-		if _, err := fmt.Fprintf(w, "   🚀 Processing rate: %.1f files/second\n", rate); err != nil {
+		if _, err := fmt.Fprintf(w, "   %s %.1f files/second\n", rateStyle.Render("🚀 Processing rate:"), rate); err != nil {
 			return err
 		}
 	}
