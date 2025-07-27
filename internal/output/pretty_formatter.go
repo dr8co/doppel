@@ -21,17 +21,17 @@ func NewPrettyFormatter() *PrettyFormatter {
 func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
 	renderer := lipgloss.NewRenderer(w)
 
-	// Define the styles
-	groupHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
-	sizeStyle := renderer.NewStyle().Foreground(lipgloss.Color("36"))
-	wastedStyle := renderer.NewStyle().Foreground(lipgloss.Color("202"))
-	fileStyle := renderer.NewStyle().Foreground(lipgloss.Color("39"))
-	summaryHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("99")).Bold(true)
-	statLabelStyle := renderer.NewStyle().Foreground(lipgloss.Color("244"))
-	statValueStyle := renderer.NewStyle().Foreground(lipgloss.Color("33")).Bold(true)
-	okStyle := renderer.NewStyle().Foreground(lipgloss.Color("42"))
-	errorStyle := renderer.NewStyle().Foreground(lipgloss.Color("196"))
-	rateStyle := renderer.NewStyle().Foreground(lipgloss.Color("220"))
+	// Define the styles using True Color (24-bit hex codes)
+	groupHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FF4DDC")).Bold(true)   // magenta pink
+	sizeStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00CFFF"))                     // cyan blue
+	wastedStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FF7F50"))                   // coral orange
+	fileStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00BFFF"))                     // deep sky blue
+	summaryHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("#B266FF")).Bold(true) // purple
+	statLabelStyle := renderer.NewStyle().Foreground(lipgloss.Color("#A0A0A0"))                // gray
+	statValueStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00FF99")).Bold(true)     // spring green
+	okStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00FF66"))                       // green
+	errorStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FF3333"))                    // red
+	rateStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FFD700"))                     // gold
 
 	for _, group := range report.Groups {
 		// Print group header
