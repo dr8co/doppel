@@ -51,14 +51,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 			for filePath := range workChan {
 				hash, err := scanner.HashFile(filePath)
 				if err != nil {
-					if verbose {
-						var filepathErr *os.PathError
-						if errors.As(err, &filepathErr) {
-							logger.ErrorAttrs(ctx, "error hashing file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
-						} else {
-							logger.ErrorAttrs(ctx, "error hashing file", slog.String("path", filePath), slog.String("err", err.Error()))
-						}
-					}
+					logError(ctx, err, "hash", filePath)
 					stats.IncrementErrorCount()
 					continue
 				}
@@ -66,14 +59,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 				// Get file size for the result
 				info, err := os.Stat(filePath)
 				if err != nil {
-					if verbose {
-						var filepathErr *os.PathError
-						if errors.As(err, &filepathErr) {
-							logger.ErrorAttrs(ctx, "error stating file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
-						} else {
-							logger.ErrorAttrs(ctx, "error stating file", slog.String("path", filePath), slog.String("err", err.Error()))
-						}
-					}
+					logError(ctx, err, "stat", filePath)
 					stats.IncrementErrorCount()
 					continue
 				}
@@ -142,4 +128,19 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		TotalWastedSpace: totalWasted,
 		Groups:           groups,
 	}, nil
+}
+
+// logError logs errors encountered during file processing
+func logError(ctx context.Context, err error, action, filePath string) {
+	if errors.Is(err, os.ErrNotExist) {
+		logger.ErrorAttrs(ctx, "file removed after the scan but before hashing", slog.String("path", filePath), slog.String("err", err.Error()))
+		return
+	}
+	var filepathErr *os.PathError
+
+	if errors.As(err, &filepathErr) {
+		logger.ErrorAttrs(ctx, "failed to "+action+" a file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
+	} else {
+		logger.ErrorAttrs(ctx, "failed to "+action+" a file", slog.String("path", filePath), slog.String("err", err.Error()))
+	}
 }

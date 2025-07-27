@@ -193,8 +193,9 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *config.F
 	}
 
 	if out != os.Stdout {
-		fmt.Println("\n✅ Results written to", outputFile)
+		fmt.Printf("\n✅ Results written to \"%s\"", outputFile)
 	}
+	fmt.Println()
 
 	return nil
 }
