@@ -16,37 +16,64 @@
 
 ---
 
-**doppel** is a fast, concurrent CLI tool written in Go that scans directories for duplicate files —
-or as we like to call them, _doppelgängers_! 🕵️‍♂️🗂️
+**doppel** is a blazing-fast, concurrent CLI tool written in Go for scanning directories and finding duplicate files—_doppelgängers_! 🕵️‍♂️🗂️
 
-Instead of wasting storage on redundant data, `doppel` helps you:
+Save disk space and keep your filesystem clean by quickly identifying and managing duplicate files.
+Doppel is designed for speed, flexibility, and reliability.
 
-- ⚡️ Hash files quickly using Blake3
-- 🚫 Filter out noise with path exclusions
-- 🏃‍♂️ Hunt duplicates with a concurrency-driven engine
-- 📋 Get readable summaries of all matching files
+---
 
-## 🔮 Terminal Preview
+## ⚡️ Quick Start
 
-## ✨ Features
-
-- ⚡️ **Fast scanning** using parallel hashing (configurable workers)
-- 🔍 **Flexible filtering** by file size, glob patterns, and regular expressions
-- 📊 **Detailed statistics** and verbose output options
-- 🛠️ **Dry-run mode** to show active filters without scanning
-- 📄 **Clear, readable output** for duplicate groups
-
-## 📦 Installation
-
-Please ensure you have Go 1.24+ installed.
-
-Install directly:
+Install (requires Go 1.24+):
 
 ```sh
 go install github.com/dr8co/doppel@latest
 ```
 
-Or clone and build manually:
+Scan your home directory for duplicates:
+
+```sh
+doppel find ~
+```
+
+Or use a preset for common scenarios:
+
+```sh
+doppel preset media ~/Pictures
+```
+
+## 🔮 Terminal Preview
+
+## ✨ Features
+
+- ⚡️ **Fast scanning** with parallel hashing (Blake3, configurable workers)
+- 🔍 **Flexible filtering** by file size, glob patterns, and regular expressions
+- 🔇 **Noise reduction** with path and file exclusions
+- 📊 **Detailed statistics** and verbose output
+- 🛠️ **Dry-run mode** to preview filters
+- 📄 **Structured output** for easy integration with other tools. Supported formats:
+  - JSON
+  - YAML
+  - Text (default)
+- 🧩 **Extensible presets** for common use cases (media, dev, docs, clean)
+- 🧪 **Tested** with unit tests and integration tests
+- 💻 **Cross-platform**: Works on Linux, macOS, and Windows
+- 🛠️ **Automatic completion** for bash, zsh, fish, and PowerShell
+- 📜 **Structured logging** for better automation, debugging, and monitoring. Formats:
+  - JSON
+  - Text
+  - Pretty (default)
+
+## 📦 Installation
+
+**With Go:**
+
+```sh
+go install github.com/dr8co/doppel@latest
+```
+
+**From source:**
 
 ```sh
 git clone https://github.com/dr8co/doppel.git
@@ -54,28 +81,51 @@ cd doppel
 go build -o doppel main.go
 ```
 
-Alternatively, pre-built binaries are available for download on the
-[🚀 releases page](https://github.com/dr8co/doppel/releases).
+**Pre-built binaries:**
+
+See the [🚀 releases page](https://github.com/dr8co/doppel/releases).
 
 ## 🚀 Usage
 
+### 🛠️ Command-Line Interface
+
+Doppel provides a simple CLI interface. The main command is `doppel`, with subcommands for different operations.
+
+```sh
+doppel [global options] [command [command options]]
+```
+
+Run `doppel --help` to see global options and available commands.
+
 > [!NOTE]
-> If you run `doppel` without specifying a command, it defaults to the `find` command.
+> Running `doppel` with no command defaults to `find`.
+
+#### Automatic Completion
+
+Doppel supports automatic completion for various shells. To generate completion scripts, run:
+
+```sh
+doppel completion <shell>
+```
+
+Where `<shell>` is one of: `bash`, `zsh`, `fish`, or `pwsh`.
+
+This will print the completion script to stdout. You can redirect it to a file or source it directly in your shell.
 
 ### 🔎 Find Command
 
-Run `doppel find` (or simply `doppel`) to scan for duplicate files in the current directory:
+Scan for duplicate files in the current directory:
 
 ```sh
-./doppel find
+doppel find
 # or simply
-./doppel
+doppel
 ```
 
-Or specify one or more directories:
+Scan specific directories:
 
 ```sh
-./doppel find /path/to/dir1 /path/to/dir2
+doppel find /path/to/dir1 /path/to/dir2
 ```
 
 #### ⚙️ Find Command Options
@@ -89,56 +139,62 @@ Or specify one or more directories:
 - `--exclude-dir-regex <regexes>`: Comma-separated regex patterns for directories to exclude
 - `--exclude-file-regex <regexes>`: Comma-separated regex patterns for files to exclude
 - `--show-filters`: Show active filters and exit
-- `--stats`: Show detailed statistics at the end
+- `--output-format <format>`: Output format for duplicate groups (default: pretty, options: `pretty`, `json`, `yaml`)
+- `--output-file <file>`: Write output to a file instead of stdout
 
-##### 🧪 `find` Example
+For more details, run:
+
+```sh
+doppel find --help
+# or
+doppel find help
+```
+
+**Example:**
 
 Find duplicates in `~/Downloads` and `~/Documents`, excluding `.git` directories and files smaller than 1MB:
 
 ```sh
-./doppel find ~/Downloads ~/Documents --exclude-dirs=.git --min-size=1048576 --stats
+doppel find ~/Downloads ~/Documents --exclude-dirs=.git --min-size=1048576 --verbose
 ```
 
 ### 🎛️ Preset Command
 
-The `preset` command quickly searches for duplicate files using predefined filter settings for common scenarios.
-Each preset applies a set of filters tailored for a specific use case:
+Use presets for common duplicate-hunting scenarios:
 
 - `dev`: Skip development directories and files (e.g., build, temp, version control)
 - `media`: Focus on media files (images/videos), skip small files
 - `docs`: Focus on document files
 - `clean`: Skip temporary and cache files
 
-#### 🔧 Preset Command Usage
+**Usage:**
 
 ```sh
-./doppel preset <preset> [options]
+doppel preset <preset> [options]
 ```
 
 Where `<preset>` is one of: `dev`, `media`, `docs`, or `clean`.
 
-#### ⚙️ Preset Command Options
+Preset options are the same as for `find`.
 
-Same as `find` command options.
-
-##### 🧪 `preset` Example
+**Example:**
 
 Find duplicate media files in your `~/Pictures` folder:
 
 ```sh
-./doppel preset media ~/Pictures --stats
+doppel preset media ~/Pictures
 ```
 
 ## 🧬 How It Works
 
-1. **File Discovery**: Recursively scans specified directories, applying filters.
+1. **File Discovery**: Recursively scans specified directories (and their subdirectories), applying filters.
 2. **Grouping**: Groups files by size to quickly eliminate non-duplicates.
 3. **Hashing**: Computes Blake3 hashes for files with matching sizes.
 4. **Reporting**: Displays groups of duplicate files and optional statistics.
 
 ## 🏗️ Development
 
-- 📁 Code is organized in `cmd/`, `internal/`, and `pkg/` directories.
+- 📁 Code is organized in `cmd/`, `internal/`, and `assets/` directories.
 - 🧩 Uses [urfave/cli/v3](https://github.com/urfave/cli) for CLI parsing.
 - 🔑 Uses [blake3](https://github.com/lukechampine/blake3) for fast hashing.
 - 🧪 Run tests with:
@@ -157,4 +213,4 @@ Contributions, issues, and feature requests are welcome! Please open an issue or
 
 ---
 
-**doppel** — Find your duplicate files, fast and reliably. 🧿✨
+**doppel** — Find your duplicate files, fast and reliably. ✨
