@@ -45,7 +45,7 @@ type prettyStyles struct {
 	debug     lipgloss.Style
 	info      lipgloss.Style
 	warn      lipgloss.Style
-	error     lipgloss.Style
+	err       lipgloss.Style
 	source    lipgloss.Style
 	message   lipgloss.Style
 	attrKey   lipgloss.Style
@@ -62,16 +62,16 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 	renderer := lipgloss.NewRenderer(w)
 
 	styles := &prettyStyles{
-		timestamp: renderer.NewStyle().Foreground(lipgloss.Color("#888888")),
-		debug:     renderer.NewStyle().Foreground(lipgloss.Color("#ff00ff")).Bold(true),
-		info:      renderer.NewStyle().Foreground(lipgloss.Color("#00ff00")).Bold(true),
-		warn:      renderer.NewStyle().Foreground(lipgloss.Color("#ffff00")).Bold(true),
-		error:     renderer.NewStyle().Foreground(lipgloss.Color("#ff0000")).Bold(true),
-		source:    renderer.NewStyle().Foreground(lipgloss.Color("#00ffff")),
+		timestamp: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#777777ff", Dark: "#888888ff"}),
+		debug:     renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#d401d4ff", Dark: "#ff2dffff"}).Bold(true),
+		info:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#02ca02ff", Dark: "#02e057ff"}).Bold(true),
+		warn:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#f9a825ff", Dark: "#fae100ff"}).Bold(true),
+		err:       renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff0000ff", Dark: "#ff4a4aff"}).Bold(true),
+		source:    renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00afafff", Dark: "#00e4e4ff"}),
 		message:   renderer.NewStyle().Bold(true),
-		attrKey:   renderer.NewStyle().Foreground(lipgloss.Color("#00ffff")),
-		attrValue: renderer.NewStyle().Foreground(lipgloss.Color("#888888")),
-		bracket:   renderer.NewStyle().Foreground(lipgloss.Color("#666666")),
+		attrKey:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0f00e4ff", Dark: "#8578faff"}),
+		attrValue: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#757575ff", Dark: "#888888ff"}),
+		bracket:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#666666ff", Dark: "#858585ff"}),
 	}
 
 	return &PrettyHandler{
@@ -211,9 +211,9 @@ func (h *PrettyHandler) getLevelStyle(level slog.Level) lipgloss.Style {
 	case slog.LevelWarn:
 		return h.styles.warn
 	case slog.LevelError:
-		return h.styles.error
+		return h.styles.err
 	default:
-		return h.renderer.NewStyle().Foreground(lipgloss.Color("240"))
+		return h.renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#af0089ff", Dark: "#ff3ed5ff"})
 	}
 }
 
