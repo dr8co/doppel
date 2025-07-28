@@ -21,17 +21,17 @@ func NewPrettyFormatter() *PrettyFormatter {
 func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
 	renderer := lipgloss.NewRenderer(w)
 
-	// Define the styles using True Color (24-bit hex codes)
-	groupHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FF4DDC")).Bold(true)   // magenta pink
-	sizeStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00CFFF"))                     // cyan blue
-	wastedStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FF7F50"))                   // coral orange
-	fileStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00BFFF"))                     // deep sky blue
-	summaryHeaderStyle := renderer.NewStyle().Foreground(lipgloss.Color("#B266FF")).Bold(true) // purple
-	statLabelStyle := renderer.NewStyle().Foreground(lipgloss.Color("#A0A0A0"))                // gray
-	statValueStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00FF99")).Bold(true)     // spring green
-	okStyle := renderer.NewStyle().Foreground(lipgloss.Color("#00FF66"))                       // green
-	errorStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FF3333"))                    // red
-	rateStyle := renderer.NewStyle().Foreground(lipgloss.Color("#FFD700"))                     // gold
+	// Define the styles using True Color (24-bit hex codes) followed by 0xff for compatibility with the color picker
+	groupHeaderStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#96157cff", Dark: "#ff32ffff"}).Bold(true)
+	sizeStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0093b4ff", Dark: "#1bb7ffff"})
+	wastedStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#e24b14ff", Dark: "#ff582eff"})
+	fileStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0f00e4", Dark: "#8578faff"})
+	summaryHeaderStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#a64dffff", Dark: "#61a8faff"}).Bold(true)
+	statLabelStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#525151ff", Dark: "#a0a0a0ff"})
+	statValueStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#05b971ff", Dark: "#01e89fff"}).Bold(true)
+	okStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#02743eff", Dark: "#02e057ff"})
+	errorStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#d62323ff", Dark: "#ff3333ff"})
+	rateStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#af7802ff", Dark: "#fdd700ff"})
 
 	for _, group := range report.Groups {
 		// Print group header
@@ -72,7 +72,7 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 			return err
 		}
 	} else {
-		if _, err := fmt.Fprintf(w, "   %s\n", okStyle.Render("✅ No duplicate files found")); err != nil {
+		if _, err := fmt.Fprintf(w, "   %s\n", okStyle.Render("✅ No duplicate files found.")); err != nil {
 			return err
 		}
 	}
