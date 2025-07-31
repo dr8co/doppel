@@ -207,7 +207,7 @@ func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Clo
 	}
 	var closer io.Closer = nil
 
-	switch output {
+	switch strings.ToLower(output) {
 	case "stdout", "":
 		config.Writer = os.Stdout
 	case "stderr":

@@ -43,7 +43,7 @@ func PresetCommand() *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:  "output-format",
-				Usage: "Output format: pretty, json",
+				Usage: "Output format: pretty, json, yaml",
 				Value: "pretty",
 			},
 			&cli.StringFlag{

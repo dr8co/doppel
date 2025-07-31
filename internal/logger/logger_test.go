@@ -329,7 +329,7 @@ func TestGlobalLoggerConcurrency(t *testing.T) {
 	const numGoroutines = 100
 	var wg sync.WaitGroup
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -821,7 +821,7 @@ func TestAtomicDefaultLogger(t *testing.T) {
 	var swapCount int64
 
 	// Start goroutines that will swap between loggers and log messages
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()

@@ -79,7 +79,7 @@ initial size-based filtering.`,
 			},
 			&cli.StringFlag{
 				Name:  "output-format",
-				Usage: "Output format: pretty, json",
+				Usage: "Output format: pretty, json, yaml",
 				Value: "pretty",
 			},
 			&cli.StringFlag{

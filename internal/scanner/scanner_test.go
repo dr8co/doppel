@@ -3,6 +3,7 @@ package scanner
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -315,14 +316,7 @@ func TestRemoveSubdirectories_NoSubdirectories(t *testing.T) {
 		t.Errorf("Expected 3 directories, got %d: %v", len(result), result)
 	}
 	for _, dir := range expected {
-		found := false
-		for _, r := range result {
-			if r == dir {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(result, dir) {
 			t.Errorf("Expected directory %s in result", dir)
 		}
 	}
@@ -336,14 +330,7 @@ func TestRemoveSubdirectories_RemovesSubdirs(t *testing.T) {
 		t.Errorf("Expected 2 directories, got %d: %v", len(result), result)
 	}
 	for _, dir := range expected {
-		found := false
-		for _, r := range result {
-			if r == dir {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(result, dir) {
 			t.Errorf("Expected directory %s in result", dir)
 		}
 	}
@@ -368,14 +355,7 @@ func TestRemoveSubdirectories_MixedOrder(t *testing.T) {
 	}
 
 	for _, dir := range expected {
-		found := false
-		for _, r := range result {
-			if r == dir {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(result, dir) {
 			t.Errorf("Expected directory %s in result", dir)
 		}
 	}
@@ -431,14 +411,7 @@ func TestRemoveSubdirectories_MultipleSubdirectories(t *testing.T) {
 		t.Errorf("Expected %d, got %d: %v", len(expected), len(result), result)
 	}
 	for _, dir := range expected {
-		found := false
-		for _, r := range result {
-			if r == dir {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(result, dir) {
 			t.Errorf("Expected directory %s in result", dir)
 		}
 	}
