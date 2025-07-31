@@ -18,7 +18,7 @@ type Config struct {
 	// Format specifies the log format (e.g., "text", "json", "pretty", etc.)
 	Format string
 
-	// Writer is the output destination for the logs (e.g., os.Stdout, os.Stderr, or a file)
+	// Writer is the output destination for the logs (e.g., [os.Stdout], [os.Stderr], or a file)
 	Writer io.Writer
 
 	// Options holds additional options for the slog.Handler
@@ -36,7 +36,7 @@ func init() {
 	ResetDefault()
 }
 
-// New creates a new Logger instance with the provided configuration.
+// New creates a new [Logger] instance with the provided configuration.
 func New(config *Config) (*Logger, error) {
 	if config == nil {
 		config = &Config{Writer: os.Stdout}
@@ -56,7 +56,7 @@ func New(config *Config) (*Logger, error) {
 
 }
 
-// Logger returns the underlying slog.Logger instance.
+// Logger returns the underlying [slog.Logger] instance.
 func (l *Logger) Logger() *slog.Logger {
 	return l.logger
 }
@@ -131,17 +131,17 @@ func (l *Logger) ErrorContext(ctx context.Context, msg string, args ...any) {
 	l.logger.ErrorContext(ctx, msg, args...)
 }
 
-// Handler returns the underlying slog.Handler used by the logger.
+// Handler returns the underlying [slog.Handler] used by the logger.
 func (l *Logger) Handler() slog.Handler {
 	return l.logger.Handler()
 }
 
-// With returns a Logger that includes the given attributes in each output operation.
+// With returns a [Logger] that includes the given attributes in each output operation.
 func (l *Logger) With(args ...any) *Logger {
 	return &Logger{l.logger.With(args...)}
 }
 
-// WithGroup returns a Logger that starts a group
+// WithGroup returns a [Logger] that starts a group if name is non-empty.
 func (l *Logger) WithGroup(name string) *Logger {
 	return &Logger{l.logger.WithGroup(name)}
 }
@@ -160,7 +160,7 @@ func SetDefault(logger *Logger) error {
 	return nil
 }
 
-// ResetDefault resets the default logger to the standard slog.Default logger.
+// ResetDefault resets the default logger to the standard [slog.Default] logger.
 func ResetDefault() {
 	defaultLogger.Store(&Logger{slog.Default()})
 }
@@ -175,7 +175,7 @@ func NewDefault(config *Config) error {
 	return nil
 }
 
-// createHandler creates a slog.Handler based on the format string.
+// createHandler creates a [slog.Handler] based on the format string.
 func createHandler(config *Config) slog.Handler {
 	switch strings.ToLower(config.Format) {
 	case "text", "":
@@ -192,7 +192,7 @@ func createHandler(config *Config) slog.Handler {
 	}
 }
 
-// NewConfig creates a new Config instance based on the provided parameters.
+// NewConfig creates a new [Config] instance based on the provided parameters.
 // If the output is a file, it is opened and a closer is returned.
 // The closer can be used to close the file when done.
 func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Closer, error) {
