@@ -179,11 +179,9 @@ func NewDefault(config *Config) error {
 func createHandler(config *Config) slog.Handler {
 	switch strings.ToLower(config.Format) {
 	case "text", "":
-		// TODO: Fix frame detection.
-		return slog.NewTextHandler(config.Writer, config.Options)
+		return NewTextHandler(config.Writer, config.Options)
 	case "json":
-		// TODO: Fix frame detection here, too.
-		return slog.NewJSONHandler(config.Writer, config.Options)
+		return NewJsonHandler(config.Writer, config.Options)
 	case "null", "discard":
 		return slog.DiscardHandler
 	case "pretty", "color", "terminal", "human":
