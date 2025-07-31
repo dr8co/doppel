@@ -15,7 +15,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// PrettyHandler implements slog.Handler for human-friendly terminal output
+// PrettyHandler implements [slog.Handler] for human-friendly terminal output.
 type PrettyHandler struct {
 	// Options for the handler
 	opts slog.HandlerOptions
@@ -39,7 +39,7 @@ type PrettyHandler struct {
 	builderPool *sync.Pool
 }
 
-// prettyStyles holds color functions for different elements
+// prettyStyles holds color functions for different elements.
 type prettyStyles struct {
 	timestamp lipgloss.Style
 	debug     lipgloss.Style
@@ -53,7 +53,7 @@ type prettyStyles struct {
 	bracket   lipgloss.Style
 }
 
-// NewPrettyHandler creates a new pretty handler
+// NewPrettyHandler creates a new pretty handler.
 func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 	if opts == nil {
 		opts = &slog.HandlerOptions{}
@@ -90,7 +90,7 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 	}
 }
 
-// clone creates a copy of the handler with the same options and renderer
+// clone creates a copy of the handler with the same options and renderer.
 func (h *PrettyHandler) clone() *PrettyHandler {
 	return &PrettyHandler{
 		opts:        h.opts,
@@ -103,7 +103,8 @@ func (h *PrettyHandler) clone() *PrettyHandler {
 	}
 }
 
-// Enabled reports whether the handler handles records at the given level
+// Enabled reports whether the handler handles records at the given level.
+// The handler ignores records whose level is lower.
 func (h *PrettyHandler) Enabled(_ context.Context, level slog.Level) bool {
 	minLevel := slog.LevelInfo
 	if h.opts.Level != nil {
@@ -112,7 +113,7 @@ func (h *PrettyHandler) Enabled(_ context.Context, level slog.Level) bool {
 	return level >= minLevel
 }
 
-// Handle formats and outputs a log record
+// Handle formats and outputs a log record.
 func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	buf := h.builderPool.Get().(*strings.Builder)
 	defer func() {
@@ -125,11 +126,11 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	_, err := h.renderer.Output().Write([]byte(buf.String()))
+	_, err := h.renderer.Output().WriteString(buf.String())
 	return err
 }
 
-// formatRecord formats a log record into the provided buffer
+// formatRecord formats a log record into the provided buffer.
 func (h *PrettyHandler) formatRecord(buf *strings.Builder, r slog.Record) {
 	// Timestamp
 	buf.WriteString(h.styles.timestamp.Render(r.Time.Format("15:04:05.000")))
@@ -183,14 +184,14 @@ func (h *PrettyHandler) formatRecord(buf *strings.Builder, r slog.Record) {
 	buf.WriteString("\n")
 }
 
-// WithAttrs returns a new handler with the given attributes
+// WithAttrs returns a new [PrettyHandler] whose attributes consists of h's attributes followed by attrs.
 func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	h2 := h.clone()
 	h2.attrs = append(h2.attrs, attrs...)
 	return h2
 }
 
-// WithGroup returns a new handler with the given group
+// WithGroup returns a new [PrettyHandler] with the given group appended to h's groups.
 func (h *PrettyHandler) WithGroup(name string) slog.Handler {
 	if name == "" {
 		return h
@@ -201,7 +202,7 @@ func (h *PrettyHandler) WithGroup(name string) slog.Handler {
 	return h2
 }
 
-// getLevelColor returns the appropriate color for a log level
+// getLevelStyle returns the appropriate style for a log level.
 func (h *PrettyHandler) getLevelStyle(level slog.Level) lipgloss.Style {
 	switch level {
 	case slog.LevelDebug:
@@ -217,7 +218,7 @@ func (h *PrettyHandler) getLevelStyle(level slog.Level) lipgloss.Style {
 	}
 }
 
-// formatLevelString returns a formatted level string with proper padding
+// formatLevelString returns a formatted level string with proper padding.
 func (h *PrettyHandler) formatLevelString(level slog.Level) string {
 	switch level {
 	case slog.LevelDebug:
@@ -238,7 +239,7 @@ func (h *PrettyHandler) formatLevelString(level slog.Level) string {
 	}
 }
 
-// formatAttr formats a single attribute with colors
+// formatAttr formats a single attribute with colors.
 func (h *PrettyHandler) formatAttr(buf *strings.Builder, attr slog.Attr) {
 	buf.WriteString(h.styles.attrKey.Render(attr.Key))
 	buf.WriteString(h.styles.attrValue.Render("="))
@@ -264,7 +265,7 @@ func (h *PrettyHandler) formatAttr(buf *strings.Builder, attr slog.Attr) {
 	}
 }
 
-// getFrame extracts frame information from PC with proper skip calculation
+// getFrame extracts frame information from PC with proper skip calculation.
 func getFrame(pc uintptr) runtime.Frame {
 	// Get the full stack trace
 	frames := runtime.CallersFrames([]uintptr{pc})
@@ -297,13 +298,13 @@ func getFrame(pc uintptr) runtime.Frame {
 	return frame
 }
 
-// isLoggerFrame checks if the frame belongs to our logger package
+// isLoggerFrame checks if the frame belongs to our logger package.
 func isLoggerFrame(frame runtime.Frame) bool {
 	return strings.Contains(frame.Function, "github.com/dr8co/doppel/internal/logger.") ||
 		strings.Contains(frame.File, "/internal/logger/logger")
 }
 
-// isSlogFrame checks if the frame belongs to the slog package
+// isSlogFrame checks if the frame belongs to the slog package.
 func isSlogFrame(frame runtime.Frame) bool {
 	return strings.Contains(frame.Function, "log/slog.") ||
 		strings.Contains(frame.File, "log/slog")
