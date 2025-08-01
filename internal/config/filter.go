@@ -12,7 +12,7 @@ import (
 	"github.com/dr8co/doppel/internal/output"
 )
 
-// FilterConfig defines criteria for excluding files and directories
+// FilterConfig defines criteria for excluding files and directories.
 type FilterConfig struct {
 	// ExcludeDirs contains directory names to exclude
 	ExcludeDirs []string `json:"exclude_dirs" yaml:"exclude_dirs"`
@@ -33,7 +33,7 @@ type FilterConfig struct {
 	MaxSize int64 `json:"max_size" yaml:"max_size"`
 }
 
-// BuildFilterConfig creates a FilterConfig from command line arguments
+// BuildFilterConfig creates a FilterConfig from command line arguments.
 func BuildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64) (*FilterConfig, error) {
 	// Handle negative values
 	if minSize < 0 {
@@ -96,7 +96,7 @@ func BuildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRe
 	return config, nil
 }
 
-// parseCommaSeparated splits a comma-separated string and trims whitespace
+// parseCommaSeparated splits a comma-separated string and trims whitespace.
 func parseCommaSeparated(s string) []string {
 	if s == "" {
 		return nil
@@ -113,7 +113,7 @@ func parseCommaSeparated(s string) []string {
 	return result
 }
 
-// ShouldExcludeDir checks if a directory should be excluded based on filters
+// ShouldExcludeDir checks if a directory should be excluded based on filters.
 func (fc *FilterConfig) ShouldExcludeDir(dirPath string) bool {
 	dirName := filepath.Base(dirPath)
 
@@ -138,7 +138,7 @@ func (fc *FilterConfig) ShouldExcludeDir(dirPath string) bool {
 	return false
 }
 
-// ShouldExcludeFile checks if a file should be excluded based on filters
+// ShouldExcludeFile checks if a file should be excluded based on filters.
 func (fc *FilterConfig) ShouldExcludeFile(filePath string, size int64) bool {
 	fileName := filepath.Base(filePath)
 
@@ -176,7 +176,7 @@ func (fc *FilterConfig) ShouldExcludeFile(filePath string, size int64) bool {
 	return false
 }
 
-// DisplayFilterConfig shows the current filter configuration
+// DisplayFilterConfig shows the current filter configuration.
 func DisplayFilterConfig(config *FilterConfig) {
 	fmt.Println("🔧 Active filters:")
 	if len(config.ExcludeDirs) > 0 {

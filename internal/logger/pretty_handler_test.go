@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// TestConcurrentHandle tests concurrent calls to Handle method
+// TestConcurrentHandle tests concurrent calls to Handle method.
 func TestConcurrentHandle(t *testing.T) {
 	var buf bytes.Buffer
 	handler := NewPrettyHandler(&buf, &slog.HandlerOptions{
@@ -64,7 +64,7 @@ func TestConcurrentHandle(t *testing.T) {
 	}
 }
 
-// TestConcurrentWithAttrs tests concurrent calls to WithAttrs
+// TestConcurrentWithAttrs tests concurrent calls to WithAttrs.
 func TestConcurrentWithAttrs(t *testing.T) {
 	var buf bytes.Buffer
 	baseHandler := NewPrettyHandler(&buf, nil)
@@ -107,7 +107,7 @@ func TestConcurrentWithAttrs(t *testing.T) {
 	wg.Wait()
 }
 
-// TestConcurrentWithGroup tests concurrent calls to WithGroup
+// TestConcurrentWithGroup tests concurrent calls to WithGroup.
 func TestConcurrentWithGroup(t *testing.T) {
 	var buf bytes.Buffer
 	baseHandler := NewPrettyHandler(&buf, nil)
@@ -146,7 +146,7 @@ func TestConcurrentWithGroup(t *testing.T) {
 	wg.Wait()
 }
 
-// TestSharedBufferConcurrency tests the shared strings.Builder issue
+// TestSharedBufferConcurrency tests the shared [strings.Builder] issue.
 func TestSharedBufferConcurrency(t *testing.T) {
 	var buf bytes.Buffer
 	handler := NewPrettyHandler(&buf, nil)
@@ -193,7 +193,7 @@ func TestSharedBufferConcurrency(t *testing.T) {
 	}
 }
 
-// TestRaceDetectorStress is a stress test designed to trigger race conditions
+// TestRaceDetectorStress is a stress test designed to trigger race conditions.
 func TestRaceDetectorStress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping stress test in short mode")
@@ -275,7 +275,7 @@ func TestRaceDetectorStress(t *testing.T) {
 	wg.Wait()
 }
 
-// TestColorOutputConcurrency tests concurrent access to color package globals
+// TestColorOutputConcurrency tests concurrent access to color package globals.
 func TestColorOutputConcurrency(t *testing.T) {
 	// Create multiple handlers that might modify the color package state
 	const numHandlers = 10
@@ -301,7 +301,7 @@ func TestColorOutputConcurrency(t *testing.T) {
 	wg.Wait()
 }
 
-// Benchmark to measure the performance impact of concurrency
+// Benchmark to measure the performance impact of concurrency.
 func BenchmarkConcurrentPrettyLogging(b *testing.B) {
 	var buf bytes.Buffer
 	handler := NewPrettyHandler(&buf, nil)
@@ -328,7 +328,7 @@ func createTestLogger() *slog.Logger {
 	return slog.New(handler)
 }
 
-// TestIntegrationWithSlog tests integration with the slog package
+// TestIntegrationWithSlog tests integration with the slog package.
 func TestIntegrationWithSlog(t *testing.T) {
 	logger := createTestLogger()
 

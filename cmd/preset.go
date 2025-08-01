@@ -10,7 +10,7 @@ import (
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
-// PresetCommand returns the preset command configuration
+// PresetCommand returns the preset command configuration.
 func PresetCommand() *cli.Command {
 	return &cli.Command{
 		Name:    "preset",
@@ -93,7 +93,7 @@ func PresetCommand() *cli.Command {
 	}
 }
 
-// findDuplicatesWithPreset finds duplicates using a specific preset configuration
+// findDuplicatesWithPreset finds duplicates using a specific preset configuration.
 func findDuplicatesWithPreset(_ context.Context, c *cli.Command, preset string) error {
 	directories, err := scanner.GetDirectoriesFromArgs(c)
 	if err != nil {

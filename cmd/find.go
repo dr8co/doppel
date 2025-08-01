@@ -18,7 +18,7 @@ import (
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
-// FindCommand returns the find command configuration
+// FindCommand returns the find command configuration.
 func FindCommand() *cli.Command {
 	return &cli.Command{
 		Name:    "find",

@@ -6,6 +6,9 @@ import (
 	"testing"
 )
 
+// TestBuildFilterConfig tests the BuildFilterConfig function with various configurations for filter building.
+// It verifies the function's behavior with different input patterns, size constraints, and edge cases.
+// Additionally, it ensures expected errors are returned for invalid inputs.
 func TestBuildFilterConfig(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -195,6 +198,7 @@ func TestBuildFilterConfig(t *testing.T) {
 	}
 }
 
+// TestShouldExcludeDir validates the behavior of ShouldExcludeDir by testing various exclusion configurations and scenarios.
 func TestShouldExcludeDir(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -247,6 +251,7 @@ func TestShouldExcludeDir(t *testing.T) {
 	}
 }
 
+// TestShouldExcludeFile verifies the behavior of ShouldExcludeFile based on various file attributes and filter criteria.
 func TestShouldExcludeFile(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -372,6 +377,8 @@ func TestShouldExcludeFile(t *testing.T) {
 	}
 }
 
+// TestParseCommaSeparated tests the parseCommaSeparated function for various input cases,
+// verifying correct splitting and trimming.
 func TestParseCommaSeparated(t *testing.T) {
 	tests := []struct {
 		name     string

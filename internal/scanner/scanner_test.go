@@ -11,6 +11,8 @@ import (
 	"github.com/dr8co/doppel/internal/model"
 )
 
+// TestGroupFilesBySize tests the [GroupFilesBySize] function to ensure
+// the correct grouping of files by size with filters applied.
 func TestGroupFilesBySize(t *testing.T) {
 	// Create a temporary directory structure for testing
 	tempDir, err := os.MkdirTemp("", "scanner_test")
@@ -129,6 +131,9 @@ func TestGroupFilesBySize(t *testing.T) {
 		t.Errorf("Expected 0 size groups when all files skipped by size")
 	}
 }
+
+// TestProcessDirectories_EmptyInput verifies that processDirectories returns
+// the absolute path of the current directory when given an empty input.
 func TestProcessDirectories_EmptyInput(t *testing.T) {
 	// Should return the current directory as an absolute path
 	dirs, err := processDirectories([]string{})
@@ -144,6 +149,7 @@ func TestProcessDirectories_EmptyInput(t *testing.T) {
 	}
 }
 
+// TestProcessDirectories_NonExistentDir verifies that processDirectories returns an appropriate error for non-existent paths.
 func TestProcessDirectories_NonExistentDir(t *testing.T) {
 	nonExistent := filepath.Join(os.TempDir(), "definitely-does-not-exist-12345")
 	_, err := processDirectories([]string{nonExistent})
@@ -152,6 +158,7 @@ func TestProcessDirectories_NonExistentDir(t *testing.T) {
 	}
 }
 
+// TestProcessDirectories_NotADirectory tests processDirectories to ensure it returns an error when a file is passed instead of a directory.
 func TestProcessDirectories_NotADirectory(t *testing.T) {
 	tmpFile, err := os.CreateTemp("", "notadir")
 	if err != nil {
@@ -167,6 +174,7 @@ func TestProcessDirectories_NotADirectory(t *testing.T) {
 	}
 }
 
+// TestProcessDirectories_Deduplication validates that processDirectories correctly deduplicates and resolves directory paths.
 func TestProcessDirectories_Deduplication(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "dedupe")
 	if err != nil {
@@ -187,6 +195,7 @@ func TestProcessDirectories_Deduplication(t *testing.T) {
 	}
 }
 
+// TestProcessDirectories_SubdirectoryElimination verifies subdirectory elimination logic in processDirectories functionality.
 func TestProcessDirectories_SubdirectoryElimination(t *testing.T) {
 	parent, err := os.MkdirTemp("", "parent")
 	if err != nil {
@@ -231,6 +240,7 @@ func TestProcessDirectories_SubdirectoryElimination(t *testing.T) {
 	}
 }
 
+// TestProcessDirectories_MultipleSubdirectoryLevels verifies processDirectories handles nested subdirectories correctly.
 func TestProcessDirectories_MultipleSubdirectoryLevels(t *testing.T) {
 	root, err := os.MkdirTemp("", "root")
 	if err != nil {
@@ -256,6 +266,7 @@ func TestProcessDirectories_MultipleSubdirectoryLevels(t *testing.T) {
 	}
 }
 
+// TestProcessDirectories_SiblingDirs verifies that the processDirectories function handles sibling directories correctly.
 func TestProcessDirectories_SiblingDirs(t *testing.T) {
 	root, err := os.MkdirTemp("", "root")
 	if err != nil {
@@ -295,6 +306,8 @@ func TestProcessDirectories_SiblingDirs(t *testing.T) {
 		}
 	}
 }
+
+// TestRemoveSubdirectories_EmptyAndSingle tests removeSubdirectories with empty input and a single directory.
 func TestRemoveSubdirectories_EmptyAndSingle(t *testing.T) {
 	// Empty input
 	result := removeSubdirectories([]string{})
@@ -308,6 +321,8 @@ func TestRemoveSubdirectories_EmptyAndSingle(t *testing.T) {
 	}
 }
 
+// TestRemoveSubdirectories_NoSubdirectories tests that removeSubdirectories
+// returns the same input when there are no subdirectories.
 func TestRemoveSubdirectories_NoSubdirectories(t *testing.T) {
 	dirs := []string{"/a", "/b", "/c"}
 	result := removeSubdirectories(dirs)
@@ -322,6 +337,7 @@ func TestRemoveSubdirectories_NoSubdirectories(t *testing.T) {
 	}
 }
 
+// TestRemoveSubdirectories_RemovesSubdirs validates that removeSubdirectories correctly removes subdirectory paths.
 func TestRemoveSubdirectories_RemovesSubdirs(t *testing.T) {
 	dirs := []string{"/foo", "/foo/bar", "/foo/bar/baz", "/baz"}
 	result := removeSubdirectories(dirs)
@@ -336,6 +352,8 @@ func TestRemoveSubdirectories_RemovesSubdirs(t *testing.T) {
 	}
 }
 
+// TestRemoveSubdirectories_SiblingSubdirs verifies that sibling subdirectories are correctly removed,
+// leaving only the parent.
 func TestRemoveSubdirectories_SiblingSubdirs(t *testing.T) {
 	dirs := []string{"/foo", "/foo/bar", "/foo/baz", "/foo/bar/qux"}
 	result := removeSubdirectories(dirs)
@@ -345,6 +363,7 @@ func TestRemoveSubdirectories_SiblingSubdirs(t *testing.T) {
 	}
 }
 
+// TestRemoveSubdirectories_MixedOrder verifies that removeSubdirectories correctly handles paths in mixed order.
 func TestRemoveSubdirectories_MixedOrder(t *testing.T) {
 	dirs := []string{"/foo/bar", "/foo", "/baz", "/foo/bar/baz"}
 	result := removeSubdirectories(dirs)
@@ -361,6 +380,7 @@ func TestRemoveSubdirectories_MixedOrder(t *testing.T) {
 	}
 }
 
+// TestRemoveSubdirectories_DuplicatePaths verifies that duplicate and identical paths are handled properly by the function.
 func TestRemoveSubdirectories_DuplicatePaths(t *testing.T) {
 	dirs := []string{"/foo", "/foo", "/foo/bar", "/foo/bar"}
 	result := removeSubdirectories(dirs)
@@ -370,6 +390,8 @@ func TestRemoveSubdirectories_DuplicatePaths(t *testing.T) {
 	}
 }
 
+// TestRemoveSubdirectories_ParentIsSubdirOfChild verifies that the function correctly preserves
+// a parent directory when its child directory is listed first.
 func TestRemoveSubdirectories_ParentIsSubdirOfChild(t *testing.T) {
 	// Should not remove parent if child comes first
 	dirs := []string{"/foo/bar", "/foo"}
@@ -380,6 +402,7 @@ func TestRemoveSubdirectories_ParentIsSubdirOfChild(t *testing.T) {
 	}
 }
 
+// TestRemoveSubdirectories_MultipleSubdirectories tests the removal of subdirectories from a list with multiple input paths.
 func TestRemoveSubdirectories_MultipleSubdirectories(t *testing.T) {
 	dirs := []string{
 		"/foo",
@@ -418,6 +441,8 @@ func TestRemoveSubdirectories_MultipleSubdirectories(t *testing.T) {
 
 }
 
+// TestIsSubdirectory_BasicCases verifies basic scenarios for the isSubdirectory function,
+// ensuring correct subdirectory checks.
 func TestIsSubdirectory_BasicCases(t *testing.T) {
 	// child is direct subdirectory of parent
 	if !isSubdirectory("/foo/bar", "/foo") {
@@ -445,6 +470,7 @@ func TestIsSubdirectory_BasicCases(t *testing.T) {
 	}
 }
 
+// TestIsSubdirectory_WithTrailingSlashes verifies isSubdirectory correctly handles paths with trailing slashes.
 func TestIsSubdirectory_WithTrailingSlashes(t *testing.T) {
 	// parent with trailing slash
 	if !isSubdirectory("/foo/bar", "/foo/") {
@@ -462,6 +488,8 @@ func TestIsSubdirectory_WithTrailingSlashes(t *testing.T) {
 	}
 }
 
+// TestIsSubdirectory_RelativePaths validates the isSubdirectory function using relative paths,
+// covering subdirectory, non-subdirectory, and equality cases.
 func TestIsSubdirectory_RelativePaths(t *testing.T) {
 	// relative child and parent
 	if !isSubdirectory("foo/bar", "foo") {
@@ -479,6 +507,8 @@ func TestIsSubdirectory_RelativePaths(t *testing.T) {
 	}
 }
 
+// TestIsSubdirectory_DotAndDotDot tests handling of special paths "."
+// and ".." and ensures accurate subdirectory checks.
 func TestIsSubdirectory_DotAndDotDot(t *testing.T) {
 	// "." and ".." should be handled correctly
 	if isSubdirectory(".", ".") {
@@ -495,6 +525,9 @@ func TestIsSubdirectory_DotAndDotDot(t *testing.T) {
 	}
 }
 
+// TestIsSubdirectory_WindowsPaths verifies the isSubdirectory function correctness with Windows-style paths.
+// Ensures behavior on valid subdirectory relations, non-subdirectory relations, and self-relation edge cases.
+// Skips execution on non-Windows operating systems.
 func TestIsSubdirectory_WindowsPaths(t *testing.T) {
 	// Only run on Windows
 	if os.PathSeparator != '\\' {
@@ -515,6 +548,7 @@ func TestIsSubdirectory_WindowsPaths(t *testing.T) {
 	}
 }
 
+// TestIsSubdirectory_UnicodeAndSpecialChars verifies isSubdirectory correctly handles paths with Unicode and special characters.
 func TestIsSubdirectory_UnicodeAndSpecialChars(t *testing.T) {
 	// Unicode and special characters
 	if !isSubdirectory("/föö/bär", "/föö") {
@@ -526,6 +560,7 @@ func TestIsSubdirectory_UnicodeAndSpecialChars(t *testing.T) {
 	}
 }
 
+// TestIsSubdirectory_EmptyStrings verifies isSubdirectory behavior with empty string inputs and ensures proper edge case handling.
 func TestIsSubdirectory_EmptyStrings(t *testing.T) {
 	if isSubdirectory("", "") {
 		t.Errorf("Did not expect empty string to be subdirectory of itself")
@@ -555,6 +590,7 @@ func TestIsSubdirectory_EmptyStrings(t *testing.T) {
 	}
 }
 
+// TestIsSubdirectory_CommonPrefix verifies behavior of isSubdirectory with paths having common prefixes or edge cases.
 func TestIsSubdirectory_CommonPrefix(t *testing.T) {
 	if isSubdirectory("foobar", "foobars") {
 		t.Errorf("Did not expect /foobar to be subdirectory of /foobars")

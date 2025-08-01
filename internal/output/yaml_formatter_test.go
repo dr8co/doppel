@@ -10,6 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TestYAMLFormatter_Format validates the functionality of the YAML formatter by testing its formatting and unmarshalling.
 func TestYAMLFormatter_Format(t *testing.T) {
 
 	report := &model.DuplicateReport{

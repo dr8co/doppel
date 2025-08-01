@@ -9,6 +9,9 @@ import (
 	"github.com/dr8co/doppel/internal/output"
 )
 
+// TestFindDuplicatesByHash tests the functionality of finding duplicate files by hashing their contents.
+// It verifies correct grouping of duplicates, statistics gathering,
+// and handling of edge cases like no duplicates or empty input.
 func TestFindDuplicatesByHash(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir, err := os.MkdirTemp("", "finder_test")
@@ -171,6 +174,7 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	}
 }
 
+// TestFormatBytes tests the FormatBytes function to ensure it correctly converts byte counts into human-readable formats.
 func TestFormatBytes(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -229,7 +233,7 @@ func TestFormatBytes(t *testing.T) {
 	}
 }
 
-// Helper function to check if a slice contains all expected elements
+// A helper function to check if a slice contains all expected elements.
 func containsAll(slice, expected []string) bool {
 	if len(slice) != len(expected) {
 		return false

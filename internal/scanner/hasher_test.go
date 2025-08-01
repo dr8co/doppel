@@ -9,6 +9,7 @@ import (
 	"lukechampine.com/blake3"
 )
 
+// TestHashFile tests the [HashFile] function for various scenarios, including typical file content and edge cases.
 func TestHashFile(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir, err := os.MkdirTemp("", "hasher_test")
@@ -91,6 +92,7 @@ func TestHashFile(t *testing.T) {
 	})
 }
 
+// TestFileInfo tests the behavior and values of the [FileInfo] struct, ensuring correctness of its fields.
 func TestFileInfo(t *testing.T) {
 	// Test the FileInfo struct
 	fileInfo := FileInfo{
@@ -112,10 +114,13 @@ func TestFileInfo(t *testing.T) {
 	}
 }
 
+// bytesToHex converts a string of bytes into its hexadecimal string representation.
 func bytesToHex(b string) string {
 	return fmt.Sprintf("%x", b)
 }
 
+// TestQuickHashFile tests the [QuickHashFile] function for various file sizes and scenarios,
+// including edge cases like non-existent files.
 func TestQuickHashFile(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir, err := os.MkdirTemp("", "quick_hasher_test")
@@ -206,6 +211,8 @@ func TestQuickHashFile(t *testing.T) {
 	})
 }
 
+// TestQuickHashConsistency validates the consistency and behavior of [QuickHashFile]
+// and [HashFile] for identical and variant files.
 func TestQuickHashConsistency(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir, err := os.MkdirTemp("", "quick_hash_consistency_test")

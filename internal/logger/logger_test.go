@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// TestNew tests creating a new logger with valid/invalid configurations
+// TestNew tests creating a new logger with valid/invalid configurations.
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -93,7 +93,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-// TestNewConfig tests logger configuration creation
+// TestNewConfig tests logger configuration creation.
 func TestNewConfig(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -208,7 +208,7 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-// TestLogLevels tests all log levels work correctly
+// TestLogLevels tests all log levels work correctly.
 func TestLogLevels(t *testing.T) {
 	var buf bytes.Buffer
 	config := &Config{
@@ -923,7 +923,7 @@ func TestFileOutput(t *testing.T) {
 	}
 }
 
-// TestConcurrentLogging tests concurrent logging safety
+// TestConcurrentLogging tests concurrent logging safety.
 func TestConcurrentLogging(t *testing.T) {
 	buf := new(bytes.Buffer)
 	cfg := &Config{Writer: buf, Options: &slog.HandlerOptions{Level: slog.LevelDebug}}
@@ -948,7 +948,7 @@ func TestConcurrentLogging(t *testing.T) {
 	}
 }
 
-// TestLogFormat tests different log formats
+// TestLogFormat tests different log formats.
 func TestLogFormat(t *testing.T) {
 	tests := []struct {
 		format   string
@@ -1003,7 +1003,7 @@ func TestLogFormat(t *testing.T) {
 	}
 }
 
-// TestLogLevelFiltering tests log level filtering
+// TestLogLevelFiltering tests log level filtering.
 func TestLogLevelFiltering(t *testing.T) {
 	buf := new(bytes.Buffer)
 	cfg := &Config{Writer: buf, Options: &slog.HandlerOptions{Level: slog.LevelWarn}}
@@ -1092,7 +1092,7 @@ func BenchmarkConcurrentGlobalLogging(b *testing.B) {
 	})
 }
 
-// BenchmarkAtomicLoggerAccess benchmarks access to the global logger
+// BenchmarkAtomicLoggerAccess benchmarks access to the global logger.
 func BenchmarkAtomicLoggerAccess(b *testing.B) {
 	originalLogger := defaultLogger.Load()
 	defer defaultLogger.Store(originalLogger)

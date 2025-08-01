@@ -1,6 +1,6 @@
 package config
 
-// GetPresetConfig returns a predefined FilterConfig based on the preset name
+// GetPresetConfig returns a predefined [FilterConfig] based on the preset name
 func GetPresetConfig(preset string) *FilterConfig {
 	switch preset {
 	case "dev":

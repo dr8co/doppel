@@ -14,7 +14,7 @@ import (
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
-// FindDuplicatesByHash processes files with same sizes and returns a DuplicateReport directly
+// FindDuplicatesByHash processes files with same sizes and returns a DuplicateReport directly.
 func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error) {
 	var candidateFiles []string
 	for _, files := range sizeGroups {
@@ -213,7 +213,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	}, nil
 }
 
-// logError logs errors encountered during file processing
+// logError logs errors encountered during file processing.
 func logError(ctx context.Context, err error, action, filePath string) {
 	if errors.Is(err, os.ErrNotExist) {
 		logger.ErrorAttrs(ctx, "file removed after the scan but before hashing", slog.String("path", filePath), slog.String("err", err.Error()))

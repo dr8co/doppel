@@ -9,15 +9,15 @@ import (
 	"github.com/dr8co/doppel/internal/model"
 )
 
-// PrettyFormatter formats duplicate reports in a human-readable way
+// PrettyFormatter formats duplicate reports in a human-readable way.
 type PrettyFormatter struct{}
 
-// NewPrettyFormatter creates a new PrettyFormatter instance
+// NewPrettyFormatter creates a new [PrettyFormatter] instance.
 func NewPrettyFormatter() *PrettyFormatter {
 	return &PrettyFormatter{}
 }
 
-// Format formats the duplicate report in a human-readable way and writes it to the provided writer
+// Format formats the duplicate report in a human-readable way and writes it to the provided writer.
 func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
 	renderer := lipgloss.NewRenderer(w)
 
@@ -111,7 +111,7 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 	return nil
 }
 
-// Name returns the name of the formatter
+// Name returns the name of the formatter.
 func (f *PrettyFormatter) Name() string {
 	return "pretty"
 }

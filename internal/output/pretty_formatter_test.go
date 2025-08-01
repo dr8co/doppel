@@ -9,6 +9,9 @@ import (
 	"github.com/dr8co/doppel/internal/model"
 )
 
+// TestPrettyFormatter_Format is a unit test for the [PrettyFormatter]'s Format method.
+// It validates the output format of a duplicate report against expected key phrases.
+// The test ensures clarity, accuracy, and consistency in formatted report outputs.
 func TestPrettyFormatter_Format(t *testing.T) {
 	report := &model.DuplicateReport{
 		ScanDate: time.Now().UTC(),

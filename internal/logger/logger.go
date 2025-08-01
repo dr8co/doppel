@@ -193,7 +193,7 @@ func createHandler(config *Config) slog.Handler {
 }
 
 // NewConfig creates a new [Config] instance based on the provided parameters.
-// If the output is a file, it is opened and a closer is returned.
+// If the output is a file, it is opened and an [io.Closer] is returned.
 // The closer can be used to close the file when done.
 func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Closer, error) {
 	if opts == nil {

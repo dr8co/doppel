@@ -10,6 +10,8 @@ import (
 	"github.com/dr8co/doppel/internal/model"
 )
 
+// TestJSONFormatter_Format validates the JSON formatting of a DuplicateReport using the [JSONFormatter].
+// It ensures the output is valid JSON and matches the original report structure and data.
 func TestJSONFormatter_Format(t *testing.T) {
 	report := &model.DuplicateReport{
 		ScanDate: time.Now().UTC(),

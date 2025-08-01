@@ -18,7 +18,7 @@ import (
 	"github.com/dr8co/doppel/internal/model"
 )
 
-// GroupFilesBySize scans directories and groups files by their size
+// GroupFilesBySize scans directories and groups files by their size.
 func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, stats *model.Stats, verbose bool) (map[int64][]string, error) {
 	sizeGroups := make(map[int64][]string)
 	ctx := context.TODO()
@@ -91,7 +91,7 @@ func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, s
 	return sizeGroups, nil
 }
 
-// GetDirectoriesFromArgs returns the directories to scan from command arguments
+// GetDirectoriesFromArgs returns the directories to scan from command arguments.
 func GetDirectoriesFromArgs(c *cli.Command) ([]string, error) {
 	return processDirectories(c.Args().Slice())
 }
@@ -165,7 +165,7 @@ func removeSubdirectories(dirs []string) []string {
 }
 
 // isSubdirectory checks if child is a subdirectory of parent
-// This function assumes both paths are absolute
+// This function assumes both paths are absolute.
 func isSubdirectory(child, parent string) bool {
 	// Empty paths are not valid
 	if child == "" || parent == "" {
