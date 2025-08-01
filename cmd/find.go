@@ -11,7 +11,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/dr8co/doppel/internal/config"
+	"github.com/dr8co/doppel/internal/filter"
 	"github.com/dr8co/doppel/internal/finder"
 	"github.com/dr8co/doppel/internal/model"
 	"github.com/dr8co/doppel/internal/output"
@@ -100,7 +100,7 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 	}
 
 	// Build filter configuration
-	filterConfig, err := config.BuildFilterConfig(
+	filterConfig, err := filter.BuildConfig(
 		c.String("exclude-dirs"),
 		c.String("exclude-files"),
 		c.String("exclude-dir-regex"),
@@ -117,16 +117,16 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 }
 
 // findDuplicates performs the main logic of finding duplicate files.
-func findDuplicates(c *cli.Command, directories []string, filterConfig *config.FilterConfig) error {
+func findDuplicates(c *cli.Command, directories []string, filterConfig *filter.Config) error {
 	if c.Bool("show-filters") {
-		config.DisplayFilterConfig(filterConfig)
+		filter.DisplayActiveFilters(filterConfig)
 		return nil
 	}
 
 	verbose := c.Bool("verbose")
 	if verbose {
 		fmt.Printf("🔍 Scanning directories: %v\n", directories)
-		config.DisplayFilterConfig(filterConfig)
+		filter.DisplayActiveFilters(filterConfig)
 	}
 
 	s := &model.Stats{StartTime: time.Now()}

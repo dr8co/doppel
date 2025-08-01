@@ -1,4 +1,4 @@
-package config
+package filter
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"github.com/dr8co/doppel/internal/output"
 )
 
-// FilterConfig defines criteria for excluding files and directories.
-type FilterConfig struct {
+// Config defines criteria for excluding files and directories.
+type Config struct {
 	// ExcludeDirs contains directory names to exclude
 	ExcludeDirs []string `json:"exclude_dirs" yaml:"exclude_dirs"`
 
@@ -33,8 +33,8 @@ type FilterConfig struct {
 	MaxSize int64 `json:"max_size" yaml:"max_size"`
 }
 
-// BuildFilterConfig creates a FilterConfig from command line arguments.
-func BuildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64) (*FilterConfig, error) {
+// BuildConfig creates a [Config] from command line arguments.
+func BuildConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64) (*Config, error) {
 	// Handle negative values
 	if minSize < 0 {
 		logger.DebugAttrs(context.TODO(), "minSize is negative, setting to 0", slog.Int64("minSize", minSize))
@@ -50,7 +50,7 @@ func BuildFilterConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRe
 		return nil, fmt.Errorf("minimum size (%d) cannot be greater than maximum size (%d)", minSize, maxSize)
 	}
 
-	config := &FilterConfig{
+	config := &Config{
 		MinSize: minSize,
 		MaxSize: maxSize,
 	}
@@ -114,7 +114,7 @@ func parseCommaSeparated(s string) []string {
 }
 
 // ShouldExcludeDir checks if a directory should be excluded based on filters.
-func (fc *FilterConfig) ShouldExcludeDir(dirPath string) bool {
+func (fc *Config) ShouldExcludeDir(dirPath string) bool {
 	dirName := filepath.Base(dirPath)
 
 	// Check exact matches
@@ -139,7 +139,7 @@ func (fc *FilterConfig) ShouldExcludeDir(dirPath string) bool {
 }
 
 // ShouldExcludeFile checks if a file should be excluded based on filters.
-func (fc *FilterConfig) ShouldExcludeFile(filePath string, size int64) bool {
+func (fc *Config) ShouldExcludeFile(filePath string, size int64) bool {
 	fileName := filepath.Base(filePath)
 
 	// Check size limits
@@ -176,8 +176,8 @@ func (fc *FilterConfig) ShouldExcludeFile(filePath string, size int64) bool {
 	return false
 }
 
-// DisplayFilterConfig shows the current filter configuration.
-func DisplayFilterConfig(config *FilterConfig) {
+// DisplayActiveFilters prints the currently active file and directory filters from the provided configuration.
+func DisplayActiveFilters(config *Config) {
 	fmt.Println("🔧 Active filters:")
 	if len(config.ExcludeDirs) > 0 {
 		fmt.Printf("  📁 Exclude directories: %s\n", strings.Join(config.ExcludeDirs, ", "))

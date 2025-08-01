@@ -1,4 +1,4 @@
-package config
+package filter
 
 import (
 	"regexp"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestBuildFilterConfig tests the BuildFilterConfig function with various configurations for filter building.
+// TestBuildFilterConfig tests the [BuildConfig] function with various configurations for filter building.
 // It verifies the function's behavior with different input patterns, size constraints, and edge cases.
 // Additionally, it ensures expected errors are returned for invalid inputs.
 func TestBuildFilterConfig(t *testing.T) {
@@ -21,7 +21,7 @@ func TestBuildFilterConfig(t *testing.T) {
 		wantErr          bool
 	}{
 		{
-			name:             "empty config",
+			name:             "empty filter",
 			excludeDirs:      "",
 			excludeFiles:     "",
 			excludeDirRegex:  "",
@@ -157,10 +157,10 @@ func TestBuildFilterConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config, err := BuildFilterConfig(tt.excludeDirs, tt.excludeFiles, tt.excludeDirRegex, tt.excludeFileRegex, tt.minSize, tt.maxSize)
+			config, err := BuildConfig(tt.excludeDirs, tt.excludeFiles, tt.excludeDirRegex, tt.excludeFileRegex, tt.minSize, tt.maxSize)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("BuildFilterConfig() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("BuildConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
@@ -168,7 +168,7 @@ func TestBuildFilterConfig(t *testing.T) {
 				return
 			}
 
-			// Verify the config was built correctly
+			// Verify the filter was built correctly
 			validateSize(config.MinSize, tt.minSize, "MinSize")
 			validateSize(config.MaxSize, tt.maxSize, "MaxSize")
 
@@ -202,13 +202,13 @@ func TestBuildFilterConfig(t *testing.T) {
 func TestShouldExcludeDir(t *testing.T) {
 	tests := []struct {
 		name       string
-		config     *FilterConfig
+		config     *Config
 		dirPath    string
 		shouldSkip bool
 	}{
 		{
 			name: "exact match",
-			config: &FilterConfig{
+			config: &Config{
 				ExcludeDirs: []string{"node_modules", ".git"},
 			},
 			dirPath:    "/path/to/node_modules",
@@ -216,7 +216,7 @@ func TestShouldExcludeDir(t *testing.T) {
 		},
 		{
 			name: "pattern match",
-			config: &FilterConfig{
+			config: &Config{
 				ExcludeDirs: []string{"*.git"},
 			},
 			dirPath:    "/path/to/project.git",
@@ -224,7 +224,7 @@ func TestShouldExcludeDir(t *testing.T) {
 		},
 		{
 			name: "regex match",
-			config: &FilterConfig{
+			config: &Config{
 				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
 			},
 			dirPath:    "/path/to/.hidden",
@@ -232,7 +232,7 @@ func TestShouldExcludeDir(t *testing.T) {
 		},
 		{
 			name: "no match",
-			config: &FilterConfig{
+			config: &Config{
 				ExcludeDirs:     []string{"node_modules", ".git"},
 				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
 			},
@@ -255,14 +255,14 @@ func TestShouldExcludeDir(t *testing.T) {
 func TestShouldExcludeFile(t *testing.T) {
 	tests := []struct {
 		name       string
-		config     *FilterConfig
+		config     *Config
 		filePath   string
 		fileSize   int64
 		shouldSkip bool
 	}{
 		{
 			name: "too small",
-			config: &FilterConfig{
+			config: &Config{
 				MinSize: 1000,
 			},
 			filePath:   "/path/to/small.txt",
@@ -271,7 +271,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "too large",
-			config: &FilterConfig{
+			config: &Config{
 				MaxSize: 1000,
 			},
 			filePath:   "/path/to/large.txt",
@@ -280,7 +280,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "exact match",
-			config: &FilterConfig{
+			config: &Config{
 				ExcludeFiles: []string{"temp.txt", "log.txt"},
 			},
 			filePath:   "/path/to/temp.txt",
@@ -289,7 +289,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "pattern match",
-			config: &FilterConfig{
+			config: &Config{
 				ExcludeFiles: []string{"*.tmp", "*.log"},
 			},
 			filePath:   "/path/to/file.tmp",
@@ -298,7 +298,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "regex match",
-			config: &FilterConfig{
+			config: &Config{
 				ExcludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
 			},
 			filePath:   "/path/to/file.bak",
@@ -307,7 +307,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "no match",
-			config: &FilterConfig{
+			config: &Config{
 				MinSize:          100,
 				MaxSize:          10000,
 				ExcludeFiles:     []string{"*.tmp", "*.log"},
@@ -319,7 +319,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "negative min size treated as 0",
-			config: &FilterConfig{
+			config: &Config{
 				MinSize: -100,
 			},
 			filePath:   "file.txt",
@@ -328,7 +328,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "negative max size treated as no maximum",
-			config: &FilterConfig{
+			config: &Config{
 				MaxSize: -100,
 			},
 			filePath:   "file.txt",
@@ -337,7 +337,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "min equals max - exact match",
-			config: &FilterConfig{
+			config: &Config{
 				MinSize: 1000,
 				MaxSize: 1000,
 			},
@@ -347,7 +347,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "min equals max - not exact match",
-			config: &FilterConfig{
+			config: &Config{
 				MinSize: 1000,
 				MaxSize: 1000,
 			},
@@ -357,7 +357,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		},
 		{
 			name: "min exceeds max - all files excluded",
-			config: &FilterConfig{
+			config: &Config{
 				MinSize: 2000,
 				MaxSize: 1000,
 			},

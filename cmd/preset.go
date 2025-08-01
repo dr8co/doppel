@@ -6,7 +6,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/dr8co/doppel/internal/config"
+	"github.com/dr8co/doppel/internal/filter"
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
@@ -99,7 +99,7 @@ func findDuplicatesWithPreset(_ context.Context, c *cli.Command, preset string) 
 	if err != nil {
 		return err
 	}
-	filterConfig := config.GetPresetConfig(preset)
+	filterConfig := filter.GetPresetConfig(preset)
 
 	return findDuplicates(c, directories, filterConfig)
 }

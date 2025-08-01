@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid config with stdout",
+			name: "valid filter with stdout",
 			config: &Config{
 				Format:  "json",
 				Writer:  os.Stdout,
@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "nil config uses defaults",
+			name:    "nil filter uses defaults",
 			config:  nil,
 			wantErr: false,
 		},
@@ -55,7 +55,7 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "empty config with writer",
+			name: "empty filter with writer",
 			config: &Config{
 				Writer: os.Stderr,
 			},
@@ -426,7 +426,7 @@ func TestLoggerImmutability(t *testing.T) {
 	// Get the original underlying logger
 	originalSlogger := logger.Logger()
 
-	// Create another logger with a different config
+	// Create another logger with a different filter
 	var buf2 bytes.Buffer
 	config2 := &Config{
 		Format:  "text",
@@ -880,7 +880,7 @@ func TestFileOutput(t *testing.T) {
 
 	config, closer, err := NewConfig(&slog.HandlerOptions{Level: slog.LevelInfo}, "json", logFile)
 	if err != nil {
-		t.Fatalf("failed to create config: %v", err)
+		t.Fatalf("failed to create filter: %v", err)
 	}
 	defer func() {
 		if closer != nil {

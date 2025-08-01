@@ -13,13 +13,13 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/dr8co/doppel/internal/config"
+	"github.com/dr8co/doppel/internal/filter"
 	"github.com/dr8co/doppel/internal/logger"
 	"github.com/dr8co/doppel/internal/model"
 )
 
 // GroupFilesBySize scans directories and groups files by their size.
-func GroupFilesBySize(directories []string, filterConfig *config.FilterConfig, stats *model.Stats, verbose bool) (map[int64][]string, error) {
+func GroupFilesBySize(directories []string, filterConfig *filter.Config, stats *model.Stats, verbose bool) (map[int64][]string, error) {
 	sizeGroups := make(map[int64][]string)
 	ctx := context.TODO()
 
