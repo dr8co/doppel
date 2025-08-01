@@ -25,18 +25,17 @@ func main() {
 	defer cancel()
 
 	var closer io.Closer
-	defer func(closer io.Closer) {
+	closeLogFile := func() {
 		if closer != nil {
 			_ = closer.Close()
 		}
-	}(closer)
+	}
+	defer closeLogFile()
 
 	// exit function to handle a graceful shutdown
 	exit := func(status int) {
 		cancel()
-		if closer != nil {
-			_ = closer.Close()
-		}
+		closeLogFile()
 		os.Exit(status)
 	}
 
@@ -45,7 +44,7 @@ func main() {
 
 	go func() {
 		sig := <-c
-		logger.InfoAttrs(ctx, "received signal, shutting down", slog.String("signal", sig.String()))
+		logger.InfoAttrs(ctx, "Received signal, shutting down", slog.String("signal", sig.String()))
 		exit(1)
 	}()
 
@@ -54,7 +53,7 @@ func main() {
 		Usage:   "Find duplicate files across directories",
 		Version: version,
 		Authors: []any{
-			"Ian Duncan",
+			"Ian Duncan <dr8co@duck.com>",
 		},
 		Copyright: "(c) 2025 Ian Duncan",
 		Description: `A fast, concurrent duplicate file finder with advanced filtering capabilities.
@@ -91,25 +90,26 @@ processing and extensive filtering options to skip unwanted files and directorie
 			logFormat := command.String("log-format")
 			logOutput := command.String("log-output")
 
-			var level slog.Level
+			level := slog.LevelInfo
+			addSource := false
 
 			switch strings.ToLower(logLevel) {
 			case "info", "":
 				level = slog.LevelInfo
 			case "debug":
 				level = slog.LevelDebug
+				addSource = true
 			case "warn", "warning":
 				level = slog.LevelWarn
 			case "error":
 				level = slog.LevelError
 			default:
 				_, _ = fmt.Fprintf(os.Stderr, "Unknown log level '%s'. Using info level.\n", logLevel)
-				level = slog.LevelInfo
 			}
 
 			var err error
 			var cfg logger.Config
-			opts := &slog.HandlerOptions{Level: level}
+			opts := &slog.HandlerOptions{Level: level, AddSource: addSource}
 
 			cfg, closer, err = logger.NewConfig(opts, logFormat, logOutput)
 			if err != nil {
