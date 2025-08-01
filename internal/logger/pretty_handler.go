@@ -301,7 +301,7 @@ func getFrame(pc uintptr) runtime.Frame {
 // isLoggerFrame checks if the frame belongs to our logger package.
 func isLoggerFrame(frame runtime.Frame) bool {
 	return strings.Contains(frame.Function, "github.com/dr8co/doppel/internal/logger.") ||
-		strings.Contains(frame.File, "/internal/logger/logger")
+		strings.Contains(frame.File, "/internal/logger/")
 }
 
 // isSlogFrame checks if the frame belongs to the slog package.
