@@ -14,22 +14,22 @@ import (
 
 // Config defines criteria for excluding files and directories.
 type Config struct {
-	// ExcludeDirs contains directory names to exclude
+	// ExcludeDirs contains directory names to exclude.
 	ExcludeDirs []string `json:"exclude_dirs" yaml:"exclude_dirs"`
 
-	// ExcludeFiles contains file names to exclude
+	// ExcludeFiles contains file names to exclude.
 	ExcludeFiles []string `json:"exclude_files" yaml:"exclude_files"`
 
-	// ExcludeDirRegex contains regex patterns for directories to exclude
+	// ExcludeDirRegex contains regex patterns for directories to exclude.
 	ExcludeDirRegex []*regexp.Regexp `json:"exclude_dir_regex" yaml:"exclude_dir_regex"`
 
-	// ExcludeFileRegex contains regex patterns for files to exclude
+	// ExcludeFileRegex contains regex patterns for files to exclude.
 	ExcludeFileRegex []*regexp.Regexp `json:"exclude_file_regex" yaml:"exclude_file_regex"`
 
-	// MinSize is the minimum file size to include (0 means no minimum)
+	// MinSize is the minimum file size to include (0 means no minimum).
 	MinSize int64 `json:"min_size" yaml:"min_size"`
 
-	// MaxSize is the maximum file size to include (0 means no maximum)
+	// MaxSize is the maximum file size to include (0 means no maximum).
 	MaxSize int64 `json:"max_size" yaml:"max_size"`
 }
 

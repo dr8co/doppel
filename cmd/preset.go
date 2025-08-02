@@ -51,6 +51,11 @@ func PresetCommand() *cli.Command {
 				Usage: "Write output to file (default: stdout)",
 				Value: "",
 			},
+			&cli.BoolFlag{
+				Name:  "exclude-empty",
+				Usage: "Exclude empty files (0 bytes) from duplicate detection",
+				Value: false,
+			},
 		},
 		Commands: []*cli.Command{
 			{

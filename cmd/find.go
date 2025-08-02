@@ -87,6 +87,11 @@ initial size-based filtering.`,
 				Usage: "Write output to file (default: stdout)",
 				Value: "",
 			},
+			&cli.BoolFlag{
+				Name:  "exclude-empty",
+				Usage: "Exclude empty files (0 bytes) from duplicate detection",
+				Value: false,
+			},
 		},
 		Action: findDuplicatesCmd,
 	}
@@ -121,6 +126,13 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *filter.C
 	if c.Bool("show-filters") {
 		filter.DisplayActiveFilters(filterConfig)
 		return nil
+	}
+
+	// Adjust filter configuration for empty files
+	if c.Bool("exclude-empty") {
+		if filterConfig.MinSize == 0 {
+			filterConfig.MinSize = 1
+		}
 	}
 
 	verbose := c.Bool("verbose")
