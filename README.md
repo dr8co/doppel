@@ -150,13 +150,23 @@ doppel find --help
 doppel find help
 ```
 
-**Example:**
+**Examples:**
 
 Find duplicates in `~/Downloads` and `~/Documents`, excluding `.git` directories and files smaller than 1MB:
 
 ```sh
 doppel find ~/Downloads ~/Documents --exclude-dirs=.git --min-size=1048576 --verbose
 ```
+
+Find duplicates in `/var/logs`, excluding all `.log` files and directories starting with `temp`,
+and ignoring empty files:
+
+```sh
+doppel find /var/logs --min-size=1 --exclude-files="*.log" --exclude-dirs="temp*" # Be sure to quote patterns!
+```
+
+> [!NOTE]
+> When using glob patterns and regexes, be sure to quote (and escape, if necessary) them to prevent shell expansion.
 
 ### 🎛️ Preset Command
 

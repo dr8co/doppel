@@ -14,7 +14,7 @@ import (
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
-// FindDuplicatesByHash processes files with same sizes and returns a DuplicateReport directly.
+// FindDuplicatesByHash processes files with same sizes and returns a [model.DuplicateReport] directly.
 func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error) {
 	candidateFiles := make([]string, 0, len(sizeGroups))
 	for _, files := range sizeGroups {
@@ -92,7 +92,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, TotalWastedSpace: totalWasted, Groups: groups}, nil
 }
 
-// quickHash performs quick hashing, groups by quickHash, and increments processed files/statistics.
+// quickHash performs quick hashing for a list of files using multiple workers and groups files by their quick hashes.
 func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, stats *model.Stats) map[string][]string {
 	quickWorkChan := make(chan string, len(candidateFiles))
 	quickResultChan := make(chan scanner.FileInfo, len(candidateFiles))
@@ -104,7 +104,7 @@ func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, sta
 		go func() {
 			defer quickWg.Done()
 			for filePath := range quickWorkChan {
-				quickHash, err := scanner.QuickHashFile(filePath)
+				hash, err := scanner.QuickHashFile(filePath)
 				if err != nil {
 					logError(ctx, err, "quick hash", filePath)
 					stats.IncrementErrorCount()
@@ -119,7 +119,7 @@ func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, sta
 					continue
 				}
 
-				quickResultChan <- scanner.FileInfo{Path: filePath, Size: info.Size(), Hash: quickHash}
+				quickResultChan <- scanner.FileInfo{Path: filePath, Size: info.Size(), Hash: hash}
 			}
 		}()
 	}
