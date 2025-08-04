@@ -16,7 +16,7 @@ import (
 
 // FindDuplicatesByHash processes files with same sizes and returns a DuplicateReport directly.
 func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error) {
-	var candidateFiles []string
+	candidateFiles := make([]string, 0, len(sizeGroups))
 	for _, files := range sizeGroups {
 		if len(files) > 1 {
 			candidateFiles = append(candidateFiles, files...)
@@ -24,36 +24,82 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	}
 
 	if len(candidateFiles) < 2 {
-		return &model.DuplicateReport{
-			ScanDate:         time.Now(),
-			Stats:            stats,
-			TotalWastedSpace: 0,
-			Groups:           nil,
-		}, nil
+		return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, Groups: nil}, nil
 	}
 
 	if verbose {
 		fmt.Printf("\n🔐 Multi-stage hashing %d candidate files with %d workers\n\n", len(candidateFiles), numWorkers)
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	// Stage 1: Quick hashing
 	if verbose {
 		fmt.Printf("Stage 1: Quick hashing...\n")
 	}
 
-	quickHashGroups := make(map[string][]string)
+	quickHashGroups := quickHash(ctx, candidateFiles, numWorkers, stats)
+
+	// Stage 2: Full hashing only for files with matching quick hashes
+	fullHashCandidates := make([]string, 0, len(quickHashGroups))
+	for _, files := range quickHashGroups {
+		if len(files) > 1 {
+			fullHashCandidates = append(fullHashCandidates, files...)
+		}
+	}
+
+	// If no candidates for full hashing, return early
+	if len(fullHashCandidates) < 2 {
+		return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, Groups: nil}, nil
+	}
+
+	if verbose {
+		fmt.Printf("Stage 2: Full hashing %d files with potential duplicates...\n", len(fullHashCandidates))
+	}
+
+	hashGroups := fullHash(ctx, fullHashCandidates, numWorkers, stats)
+
+	groups := make([]model.DuplicateGroup, 0, len(hashGroups))
+	totalWasted := uint64(0)
+	groupID := 0
+
+	for _, files := range hashGroups {
+		if len(files) > 1 {
+			groupID++
+			filePaths := make([]string, len(files))
+
+			for i, fi := range files {
+				filePaths[i] = fi.Path
+			}
+
+			size := files[0].Size
+			wasted := uint64(size) * uint64(len(files)-1)
+			totalWasted += wasted
+
+			groups = append(groups, model.DuplicateGroup{
+				Id:          groupID,
+				Count:       len(files),
+				Size:        size,
+				WastedSpace: wasted,
+				Files:       filePaths,
+			})
+
+			stats.IncrementDuplicateGroups()
+			stats.AddDuplicateFiles(uint64(len(files)))
+		}
+	}
+
+	return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, TotalWastedSpace: totalWasted, Groups: groups}, nil
+}
+
+// quickHash performs quick hashing, groups by quickHash, and increments processed files/statistics.
+func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, stats *model.Stats) map[string][]string {
 	quickWorkChan := make(chan string, len(candidateFiles))
-	quickResultChan := make(chan struct {
-		path      string
-		quickHash string
-		size      int64
-	}, len(candidateFiles))
+	quickResultChan := make(chan scanner.FileInfo, len(candidateFiles))
 
 	// Start workers for quick hashing
 	var quickWg sync.WaitGroup
-	for range numWorkers {
+	for i := 0; i < numWorkers; i++ {
 		quickWg.Add(1)
 		go func() {
 			defer quickWg.Done()
@@ -73,11 +119,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					continue
 				}
 
-				quickResultChan <- struct {
-					path      string
-					quickHash string
-					size      int64
-				}{filePath, quickHash, info.Size()}
+				quickResultChan <- scanner.FileInfo{Path: filePath, Size: info.Size(), Hash: quickHash}
 			}
 		}()
 	}
@@ -95,33 +137,17 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	}()
 
 	// Collect quick hash results and group by quick hash
+	quickHashGroups := make(map[string][]string, len(candidateFiles))
 	for result := range quickResultChan {
-		quickHashGroups[result.quickHash] = append(quickHashGroups[result.quickHash], result.path)
-		stats.ProcessedFiles++
+		quickHashGroups[result.Hash] = append(quickHashGroups[result.Hash], result.Path)
+		stats.IncrementProcessedFiles()
 	}
 
-	// Stage 2: Full hashing only for files with matching quick hashes
-	var fullHashCandidates []string
-	for _, files := range quickHashGroups {
-		if len(files) > 1 {
-			fullHashCandidates = append(fullHashCandidates, files...)
-		}
-	}
+	return quickHashGroups
+}
 
-	if verbose {
-		fmt.Printf("Stage 2: Full hashing %d files with potential duplicates...\n", len(fullHashCandidates))
-	}
-
-	// If no candidates for full hashing, return early
-	if len(fullHashCandidates) == 0 {
-		return &model.DuplicateReport{
-			ScanDate:         time.Now(),
-			Stats:            stats,
-			TotalWastedSpace: 0,
-			Groups:           nil,
-		}, nil
-	}
-
+// fullHash performs full hashing for candidates, groups by hash.
+func fullHash(ctx context.Context, fullHashCandidates []string, numWorkers int, stats *model.Stats) map[string][]scanner.FileInfo {
 	// Create channels for full hashing
 	fullWorkChan := make(chan string, len(fullHashCandidates))
 	fullResultChan := make(chan scanner.FileInfo, len(fullHashCandidates))
@@ -148,11 +174,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 					continue
 				}
 
-				fullResultChan <- scanner.FileInfo{
-					Path: filePath,
-					Size: info.Size(),
-					Hash: hash,
-				}
+				fullResultChan <- scanner.FileInfo{Path: filePath, Size: info.Size(), Hash: hash}
 			}
 		}()
 	}
@@ -175,42 +197,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		hashGroups[result.Hash] = append(hashGroups[result.Hash], result)
 	}
 
-	var groups []model.DuplicateGroup
-	totalWasted := uint64(0)
-	groupId := 0
-
-	for _, files := range hashGroups {
-		if len(files) > 1 {
-			groupId++
-			filePaths := make([]string, len(files))
-
-			for i, fi := range files {
-				filePaths[i] = fi.Path
-			}
-
-			size := files[0].Size
-			wasted := uint64(size) * uint64(len(files)-1)
-			totalWasted += wasted
-
-			groups = append(groups, model.DuplicateGroup{
-				Id:          groupId,
-				Count:       len(files),
-				Size:        size,
-				WastedSpace: wasted,
-				Files:       filePaths,
-			})
-
-			stats.DuplicateGroups++
-			stats.DuplicateFiles += uint64(len(files))
-		}
-	}
-
-	return &model.DuplicateReport{
-		ScanDate:         time.Now(),
-		Stats:            stats,
-		TotalWastedSpace: totalWasted,
-		Groups:           groups,
-	}, nil
+	return hashGroups
 }
 
 // logError logs errors encountered during file processing.
