@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -26,6 +27,8 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	if len(candidateFiles) < 2 {
 		return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, Groups: nil}, nil
 	}
+
+	candidateFiles = slices.Clip(candidateFiles)
 
 	if verbose {
 		fmt.Printf("\n🔐 Multi-stage hashing %d candidate files with %d workers\n\n", len(candidateFiles), numWorkers)
@@ -57,6 +60,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		fmt.Printf("Stage 2: Full hashing %d files with potential duplicates...\n", len(fullHashCandidates))
 	}
 
+	fullHashCandidates = slices.Clip(fullHashCandidates)
 	hashGroups := fullHash(ctx, fullHashCandidates, numWorkers, stats)
 
 	groups := make([]model.DuplicateGroup, 0, len(hashGroups))
@@ -89,7 +93,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		}
 	}
 
-	return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, TotalWastedSpace: totalWasted, Groups: groups}, nil
+	return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, TotalWastedSpace: totalWasted, Groups: slices.Clip(groups)}, nil
 }
 
 // quickHash performs quick hashing for a list of files using multiple workers and groups files by their quick hashes.
