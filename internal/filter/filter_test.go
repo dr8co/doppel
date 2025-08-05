@@ -186,13 +186,13 @@ func TestBuildFilterConfig(t *testing.T) {
 
 			// Check regex counts
 			expectedDirRegexCount := len(parseCommaSeparated(tt.excludeDirRegex))
-			if !tt.wantErr && len(config.ExcludeDirRegex) != expectedDirRegexCount {
-				t.Errorf("ExcludeDirRegex length = %v, want %v", len(config.ExcludeDirRegex), expectedDirRegexCount)
+			if !tt.wantErr && len(config.excludeDirRegex) != expectedDirRegexCount {
+				t.Errorf("excludeDirRegex length = %v, want %v", len(config.excludeDirRegex), expectedDirRegexCount)
 			}
 
 			expectedFileRegexCount := len(parseCommaSeparated(tt.excludeFileRegex))
-			if !tt.wantErr && len(config.ExcludeFileRegex) != expectedFileRegexCount {
-				t.Errorf("ExcludeFileRegex length = %v, want %v", len(config.ExcludeFileRegex), expectedFileRegexCount)
+			if !tt.wantErr && len(config.excludeFileRegex) != expectedFileRegexCount {
+				t.Errorf("excludeFileRegex length = %v, want %v", len(config.excludeFileRegex), expectedFileRegexCount)
 			}
 		})
 	}
@@ -225,7 +225,7 @@ func TestShouldExcludeDir(t *testing.T) {
 		{
 			name: "regex match",
 			config: &Config{
-				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
+				excludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
 			},
 			dirPath:    "/path/to/.hidden",
 			shouldSkip: true,
@@ -234,7 +234,7 @@ func TestShouldExcludeDir(t *testing.T) {
 			name: "no match",
 			config: &Config{
 				ExcludeDirs:     []string{"node_modules", ".git"},
-				ExcludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
+				excludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
 			},
 			dirPath:    "/path/to/src",
 			shouldSkip: false,
@@ -299,7 +299,7 @@ func TestShouldExcludeFile(t *testing.T) {
 		{
 			name: "regex match",
 			config: &Config{
-				ExcludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
+				excludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
 			},
 			filePath:   "/path/to/file.bak",
 			fileSize:   1000,
@@ -311,7 +311,7 @@ func TestShouldExcludeFile(t *testing.T) {
 				MinSize:          100,
 				MaxSize:          10000,
 				ExcludeFiles:     []string{"*.tmp", "*.log"},
-				ExcludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
+				excludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
 			},
 			filePath:   "/path/to/document.txt",
 			fileSize:   1000,
