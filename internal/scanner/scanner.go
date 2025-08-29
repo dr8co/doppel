@@ -29,9 +29,12 @@ func GroupFilesBySize(directories []string, filterConfig *filter.Config, stats *
 				if verbose {
 					var filepathErr *os.PathError
 					if errors.As(err, &filepathErr) {
-						logger.ErrorAttrs(ctx, "error accessing file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
+						logger.ErrorAttrs(ctx, "error accessing file",
+							slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op),
+							slog.String("err", filepathErr.Err.Error()))
 					} else {
-						logger.ErrorAttrs(ctx, "error accessing file", slog.String("path", path), slog.String("err", err.Error()))
+						logger.ErrorAttrs(ctx, "error accessing file", slog.String("path", path),
+							slog.String("err", err.Error()))
 					}
 				}
 				stats.ErrorCount++
@@ -53,9 +56,12 @@ func GroupFilesBySize(directories []string, filterConfig *filter.Config, stats *
 					if verbose {
 						var filepathErr *os.PathError
 						if errors.As(err, &filepathErr) {
-							logger.ErrorAttrs(ctx, "error getting file info", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
+							logger.ErrorAttrs(ctx, "error getting file info",
+								slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op),
+								slog.String("err", filepathErr.Err.Error()))
 						} else {
-							logger.ErrorAttrs(ctx, "error getting file info", slog.String("path", path), slog.String("err", err.Error()))
+							logger.ErrorAttrs(ctx, "error getting file info", slog.String("path", path),
+								slog.String("err", err.Error()))
 						}
 					}
 					stats.ErrorCount++
@@ -67,7 +73,8 @@ func GroupFilesBySize(directories []string, filterConfig *filter.Config, stats *
 				// Check if we should skip this file
 				if filterConfig.ShouldExcludeFile(path, size) {
 					if verbose {
-						logger.InfoAttrs(ctx, "skipping file", slog.String("path", path), slog.Int64("size", size))
+						logger.InfoAttrs(ctx, "skipping file", slog.String("path", path),
+							slog.Int64("size", size))
 					}
 					stats.SkippedFiles++
 					return nil
@@ -78,14 +85,14 @@ func GroupFilesBySize(directories []string, filterConfig *filter.Config, stats *
 			}
 			return nil
 		})
-
 		if err != nil {
 			return nil, fmt.Errorf("error walking directory %s: %w", dir, err)
 		}
 	}
 
 	if verbose && (stats.SkippedDirs > 0 || stats.SkippedFiles > 0) {
-		fmt.Printf("\n⏭️  Skipped %d directories and %d files due to filters\n", stats.SkippedDirs, stats.SkippedFiles)
+		fmt.Printf("\n⏭️  Skipped %d directories and %d files due to filters\n",
+			stats.SkippedDirs, stats.SkippedFiles)
 	}
 
 	return sizeGroups, nil

@@ -108,7 +108,6 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 		c.Int64("min-size"),
 		c.Int64("max-size"),
 	)
-
 	if err != nil {
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
@@ -144,10 +143,10 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *filter.C
 	// Phase 2: Hash files that have potential duplicates
 	workers := c.Int("workers")
 	report, err := finder.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
+	s.Duration = time.Since(s.StartTime)
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)
 	}
-	s.Duration = time.Since(s.StartTime)
 
 	// Phase 3: Output the results
 	reg, err := output.InitFormatters()

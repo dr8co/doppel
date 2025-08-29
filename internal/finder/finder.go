@@ -37,14 +37,21 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	ctx := context.Background()
 
 	// Stage 1: Quick hashing
+	var now time.Time
 	if verbose {
-		fmt.Printf("Stage 1: Quick hashing...\n")
+		fmt.Println("Stage 1: Quick hashing...")
+		now = time.Now()
 	}
 
 	quickHashGroups := quickHash(ctx, candidateFiles, numWorkers, stats)
 
+	if verbose {
+		elapsed := time.Since(now).Round(time.Millisecond).String()
+		fmt.Printf("Quick hashing took %s\n\n", elapsed)
+	}
+
 	// Stage 2: Full hashing only for files with matching quick hashes
-	fullHashCandidates := make([]string, 0, len(quickHashGroups))
+	fullHashCandidates := make([]string, 0, len(candidateFiles))
 	for _, files := range quickHashGroups {
 		if len(files) > 1 {
 			fullHashCandidates = append(fullHashCandidates, files...)
@@ -56,12 +63,19 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 		return &model.DuplicateReport{ScanDate: time.Now(), Stats: stats, Groups: nil}, nil
 	}
 
+	fullHashCandidates = slices.Clip(fullHashCandidates)
+
 	if verbose {
 		fmt.Printf("Stage 2: Full hashing %d files with potential duplicates...\n", len(fullHashCandidates))
+		now = time.Now()
 	}
 
-	fullHashCandidates = slices.Clip(fullHashCandidates)
 	hashGroups := fullHash(ctx, fullHashCandidates, numWorkers, stats)
+
+	if verbose {
+		elapsed := time.Since(now).Round(time.Millisecond).String()
+		fmt.Printf("Full hashing took %s\n", elapsed)
+	}
 
 	groups := make([]model.DuplicateGroup, 0, len(hashGroups))
 	totalWasted := uint64(0)
@@ -97,13 +111,19 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 }
 
 // quickHash performs quick hashing for a list of files using multiple workers and groups files by their quick hashes.
-func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, stats *model.Stats) map[string][]string {
+func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, stats *model.Stats) map[uint64][]string {
+	type fileInfoQuickHash struct {
+		path string
+		size int64
+		hash uint64
+	}
+
 	quickWorkChan := make(chan string, len(candidateFiles))
-	quickResultChan := make(chan scanner.FileInfo, len(candidateFiles))
+	quickResultChan := make(chan fileInfoQuickHash, len(candidateFiles))
 
 	// Start workers for quick hashing
 	var quickWg sync.WaitGroup
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		quickWg.Add(1)
 		go func() {
 			defer quickWg.Done()
@@ -123,7 +143,7 @@ func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, sta
 					continue
 				}
 
-				quickResultChan <- scanner.FileInfo{Path: filePath, Size: info.Size(), Hash: hash}
+				quickResultChan <- fileInfoQuickHash{path: filePath, size: info.Size(), hash: hash}
 			}
 		}()
 	}
@@ -141,9 +161,9 @@ func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, sta
 	}()
 
 	// Collect quick hash results and group by quick hash
-	quickHashGroups := make(map[string][]string, len(candidateFiles))
+	quickHashGroups := make(map[uint64][]string, len(candidateFiles))
 	for result := range quickResultChan {
-		quickHashGroups[result.Hash] = append(quickHashGroups[result.Hash], result.Path)
+		quickHashGroups[result.hash] = append(quickHashGroups[result.hash], result.path)
 		stats.IncrementProcessedFiles()
 	}
 
