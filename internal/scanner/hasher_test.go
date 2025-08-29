@@ -185,18 +185,9 @@ func TestQuickHashFile(t *testing.T) {
 			}
 
 			// Verify the hash is not empty
-			if gotHash == "" {
-				t.Errorf("QuickHashFile() returned empty hash")
-			}
-
-			// For small files, quick hash should equal full hash
-			if len(tt.content) <= quickHashSize {
-				fullHash, err := HashFile(filePath)
-				if err != nil {
-					t.Fatalf("Failed to compute full hash for comparison: %v", err)
-				}
-				if gotHash != fullHash {
-					t.Errorf("QuickHashFile() = %v, want %v (should equal full hash for small files)", gotHash, fullHash)
+			if tt.content != "" {
+				if gotHash == 0 {
+					t.Errorf("QuickHashFile() returned empty hash")
 				}
 			}
 		})
@@ -262,7 +253,7 @@ func TestQuickHashConsistency(t *testing.T) {
 	}
 
 	// Create a file with different content (same size, different middle)
-	// For a 24KB file: the first 8 KB (0-8191) and last 8KB (16384-24575) are hashed
+	// For a 24KB file: the first 8 KB (0-8191) and the last 8KB (16384-24575) are hashed
 	// So we can safely change content in the middle section (8192-16383)
 	differentContent := make([]byte, quickHashSize*3)
 	copy(differentContent, content)
