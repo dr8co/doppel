@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/zeebo/xxh3"
 	"lukechampine.com/blake3"
 )
 
@@ -53,12 +54,12 @@ func HashFile(filePath string) (string, error) {
 	return string(hasher.Sum(nil)), nil
 }
 
-// QuickHashFile computes a Blake3 hash of the first and the last portions of a file
+// QuickHashFile computes a XXH3 hash of the first and the last portions of a file
 // This is used as a quick preliminary check before computing the full hash.
-func QuickHashFile(filePath string) (string, error) {
+func QuickHashFile(filePath string) (uint64, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	defer func(file *os.File) {
@@ -68,62 +69,47 @@ func QuickHashFile(filePath string) (string, error) {
 	// Get file size
 	info, err := file.Stat()
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	fileSize := info.Size()
+	if fileSize <= 0 {
+		return 0, nil
+	}
 
-	hasher := blake3.New(32, nil)
+	buf := make([]byte, quickHashSize)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		return 0, err
+	}
 
-	// For small files, hash the entire content
-	if fileSize <= quickHashSize {
-		buf := make([]byte, quickHashSize)
-		for {
-			n, err := file.Read(buf)
-			if n > 0 {
-				if _, err2 := hasher.Write(buf[:n]); err2 != nil {
-					return "", err2
-				}
-			}
-
-			if err == io.EOF {
-				break
-			}
-
-			if err != nil {
-				return "", err
-			}
+	if fileSize < quickHashSize*2 {
+		// For small files, hash the entire content
+		if n > 0 {
+			return xxh3.Hash(buf[:n]), nil
 		}
 	} else {
 		// Hash first quickHashSize bytes
-		buf := make([]byte, quickHashSize)
-		n, err := file.Read(buf)
-		if err != nil && err != io.EOF {
-			return "", err
-		}
+		hasher := xxh3.New()
 		if n > 0 {
-			if _, err2 := hasher.Write(buf[:n]); err2 != nil {
-				return "", err2
-			}
+			_, _ = hasher.Write(buf[:n])
 		}
 
 		// Hash last quickHashSize bytes
-		if fileSize > quickHashSize*2 {
-			_, err = file.Seek(-quickHashSize, io.SeekEnd)
-			if err != nil {
-				return "", err
-			}
-
-			n, err = file.Read(buf)
-			if err != nil && err != io.EOF {
-				return "", err
-			}
-			if n > 0 {
-				if _, err2 := hasher.Write(buf[:n]); err2 != nil {
-					return "", err2
-				}
-			}
+		_, err = file.Seek(-quickHashSize, io.SeekEnd)
+		if err != nil {
+			return 0, err
 		}
+
+		n, err = file.Read(buf)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+		if n > 0 {
+			_, _ = hasher.Write(buf[:n])
+		}
+
+		return hasher.Sum64(), nil
 	}
 
-	return string(hasher.Sum(nil)), nil
+	return 0, nil // unreachable!
 }
