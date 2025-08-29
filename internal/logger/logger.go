@@ -53,7 +53,6 @@ func New(config *Config) (*Logger, error) {
 	handler := createHandler(config)
 
 	return &Logger{logger: slog.New(handler)}, nil
-
 }
 
 // Logger returns the underlying [slog.Logger] instance.
