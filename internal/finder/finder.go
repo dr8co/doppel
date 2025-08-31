@@ -141,10 +141,16 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 	}
 
 	// Send work for quick hashing
-	for _, file := range candidateFiles {
-		quickWorkChan <- fileInfoQuickHash{path: file.Path, size: file.Size}
-	}
-	close(quickWorkChan)
+	go func() {
+		defer close(quickWorkChan)
+		for _, file := range candidateFiles {
+			select {
+			case quickWorkChan <- fileInfoQuickHash{path: file.Path, size: file.Size}:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// Wait for quick hashing workers to finish
 	go func() {
@@ -188,10 +194,16 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 	}
 
 	// Send work for full hashing
-	for _, file := range fullHashCandidates {
-		fullWorkChan <- file
-	}
-	close(fullWorkChan)
+	go func() {
+		defer close(fullWorkChan)
+		for _, file := range fullHashCandidates {
+			select {
+			case fullWorkChan <- file:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// Wait for full hashing workers to finish
 	go func() {
