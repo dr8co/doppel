@@ -21,17 +21,48 @@ func NewPrettyFormatter() *PrettyFormatter {
 func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
 	renderer := lipgloss.NewRenderer(w)
 
-	// Define the styles using True Color (24-bit hex codes) followed by 0xff for compatibility with the color picker
-	groupHeaderStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#96157cff", Dark: "#ff32ffff"}).Bold(true)
-	sizeStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0093b4ff", Dark: "#1bb7ffff"})
-	wastedStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#e24b14ff", Dark: "#ff582eff"})
-	fileStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0f00e4", Dark: "#8578faff"})
-	summaryHeaderStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#a64dffff", Dark: "#61a8faff"}).Bold(true)
-	statLabelStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#525151ff", Dark: "#a0a0a0ff"})
-	statValueStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#05b971ff", Dark: "#01e89fff"}).Bold(true)
-	okStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#02743eff", Dark: "#02e057ff"})
-	errorStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#d62323ff", Dark: "#ff3333ff"})
-	rateStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#af7802ff", Dark: "#fdd700ff"})
+	// groupHeaderStyle: Header for file groups. Mauve is distinct and pleasant.
+	groupHeaderStyle := renderer.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#8839ef", Dark: "#cba6f7"}).
+		Bold(true)
+
+	// sizeStyle: File size. Teal provides good readability without being too loud.
+	sizeStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#179299", Dark: "#94e2d5"})
+
+	// wastedStyle: Wasted space. Peach has a slight "warning" feel, perfect for this metric.
+	wastedStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#fe640b", Dark: "#fab387"})
+
+	// fileStyle: The path of a duplicate file. Blue is a classic choice for file paths or links.
+	fileStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#1e66f5", Dark: "#89b4fa"})
+
+	// summaryHeaderStyle: Header for the final statistics summary. Green feels positive and conclusive.
+	summaryHeaderStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#40a02b", Dark: "#a6e3a1"}).
+		Bold(true)
+
+	// statLabelStyle: The label for a statistic. A subdued color for contrast with the value.
+	statLabelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#6c6f85", Dark: "#a6adc8"})
+
+	// statValueStyle: The actual statistic value. The primary text color in bold makes it pop.
+	statValueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#4c4f69", Dark: "#cdd6f4"}).
+		Bold(true)
+
+	// okStyle: For success messages. A clear and standard green.
+	okStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#40a02b", Dark: "#a6e3a1"})
+
+	// errorStyle: For error messages. A clear and standard red.
+	errorStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#d20f39", Dark: "#f38ba8"})
+
+	// rateStyle: For displaying rates. Yellow is great for dynamic or important numbers.
+	rateStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#df8e1d", Dark: "#f9e2af"})
 
 	for _, group := range report.Groups {
 		// Print group header
