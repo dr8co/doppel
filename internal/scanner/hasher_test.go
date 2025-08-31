@@ -253,8 +253,8 @@ func TestQuickHashConsistency(t *testing.T) {
 	}
 
 	// Create a file with different content (same size, different middle)
-	// For a 24KB file: the first 8 KB (0-8191) and the last 8KB (16384-24575) are hashed
-	// So we can safely change content in the middle section (8192-16383)
+	// For a 24KB file: the first 8 KB (0-8191) and the last 8KB (16384-24,575) are hashed
+	// So we can safely change content in the middle section (8192-16,383)
 	differentContent := make([]byte, quickHashSize*3)
 	copy(differentContent, content)
 	// Change content in the middle section that won't be hashed by quick hash

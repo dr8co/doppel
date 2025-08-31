@@ -7,6 +7,7 @@ import (
 
 	"github.com/dr8co/doppel/internal/model"
 	"github.com/dr8co/doppel/internal/output"
+	"github.com/dr8co/doppel/internal/scanner"
 )
 
 // TestFindDuplicatesByHash tests the functionality of finding duplicate files by hashing their contents.
@@ -62,10 +63,10 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	}
 
 	// Create size groups
-	sizeGroups := map[int64][]string{
-		int64(len(content1)):         {file1, file2, file3},
-		int64(len(content2)):         {file4, file5},
-		int64(len("Unique content")): {file6},
+	sizeGroups := map[int64][]scanner.FileInfo{
+		int64(len(content1)):         {scanner.FileInfo{Path: file1}, scanner.FileInfo{Path: file2}, scanner.FileInfo{Path: file3}},
+		int64(len(content2)):         {scanner.FileInfo{Path: file4}, scanner.FileInfo{Path: file5}},
+		int64(len("Unique content")): {scanner.FileInfo{Path: file6}},
 	}
 
 	// Create stats object
@@ -126,9 +127,9 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	}
 
 	// Test with no duplicates
-	sizeGroups = map[int64][]string{
-		int64(len(content1)): {file1},
-		int64(len(content2)): {file4},
+	sizeGroups = map[int64][]scanner.FileInfo{
+		int64(len(content1)): {scanner.FileInfo{Path: file1}},
+		int64(len(content2)): {scanner.FileInfo{Path: file4}},
 	}
 
 	report, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
@@ -140,8 +141,8 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	}
 
 	// Test with all files duplicate
-	sizeGroups = map[int64][]string{
-		int64(len(content1)): {file1, file2, file3},
+	sizeGroups = map[int64][]scanner.FileInfo{
+		int64(len(content1)): {scanner.FileInfo{Path: file1}, scanner.FileInfo{Path: file2}, scanner.FileInfo{Path: file3}},
 	}
 
 	report, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
@@ -153,8 +154,8 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	}
 
 	// Test with only one file in input
-	sizeGroups = map[int64][]string{
-		int64(len(content1)): {file1},
+	sizeGroups = map[int64][]scanner.FileInfo{
+		int64(len(content1)): {scanner.FileInfo{Path: file1}},
 	}
 	report, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
 	if err != nil {
@@ -165,7 +166,7 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	}
 
 	// Test with empty input
-	report, err = FindDuplicatesByHash(map[int64][]string{}, 2, s, false)
+	report, err = FindDuplicatesByHash(map[int64][]scanner.FileInfo{}, 2, s, false)
 	if err != nil {
 		t.Fatalf("FindDuplicatesByHash() error = %v", err)
 	}

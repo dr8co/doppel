@@ -102,8 +102,8 @@ func TestGroupFilesBySize(t *testing.T) {
 	// Verify that skipped files are not included
 	for _, files := range sizeGroups {
 		for _, file := range files {
-			if filepath.Base(file) == "skipfile.txt" || filepath.Base(file) == "skip.log" {
-				t.Errorf("Skipped file %s was included in results", file)
+			if filepath.Base(file.Path) == "skipfile.txt" || filepath.Base(file.Path) == "skip.log" {
+				t.Errorf("Skipped file %s was included in results", file.Path)
 			}
 		}
 	}
@@ -380,7 +380,7 @@ func TestRemoveSubdirectories_MixedOrder(t *testing.T) {
 	}
 }
 
-// TestRemoveSubdirectories_DuplicatePaths verifies that duplicate and identical paths are handled properly by the function.
+// TestRemoveSubdirectories_DuplicatePaths verifies that the function handles duplicate and identical paths properly.
 func TestRemoveSubdirectories_DuplicatePaths(t *testing.T) {
 	dirs := []string{"/foo", "/foo", "/foo/bar", "/foo/bar"}
 	result := removeSubdirectories(dirs)
@@ -590,7 +590,7 @@ func TestIsSubdirectory_EmptyStrings(t *testing.T) {
 	}
 }
 
-// TestIsSubdirectory_CommonPrefix verifies behavior of isSubdirectory with paths having common prefixes or edge cases.
+// TestIsSubdirectory_CommonPrefix verifies the behavior of isSubdirectory with paths having common prefixes or edge cases.
 func TestIsSubdirectory_CommonPrefix(t *testing.T) {
 	if isSubdirectory("foobar", "foobars") {
 		t.Errorf("Did not expect /foobar to be subdirectory of /foobars")
