@@ -15,9 +15,16 @@ import (
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
+// fileInfoQuickHash is a helper struct for quick hashing.
+type fileInfoQuickHash struct {
+	path string
+	size int64
+	hash uint64
+}
+
 // FindDuplicatesByHash processes files with same sizes and returns a [model.DuplicateReport] directly.
-func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error) {
-	candidateFiles := make([]string, 0, len(sizeGroups))
+func FindDuplicatesByHash(sizeGroups map[int64][]scanner.FileInfo, numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error) {
+	candidateFiles := make([]scanner.FileInfo, 0, len(sizeGroups))
 	for _, files := range sizeGroups {
 		if len(files) > 1 {
 			candidateFiles = append(candidateFiles, files...)
@@ -51,7 +58,7 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 	}
 
 	// Stage 2: Full hashing only for files with matching quick hashes
-	fullHashCandidates := make([]string, 0, len(candidateFiles))
+	fullHashCandidates := make([]fileInfoQuickHash, 0, len(candidateFiles))
 	for _, files := range quickHashGroups {
 		if len(files) > 1 {
 			fullHashCandidates = append(fullHashCandidates, files...)
@@ -111,14 +118,8 @@ func FindDuplicatesByHash(sizeGroups map[int64][]string, numWorkers int, stats *
 }
 
 // quickHash performs quick hashing for a list of files using multiple workers and groups files by their quick hashes.
-func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, stats *model.Stats) map[uint64][]string {
-	type fileInfoQuickHash struct {
-		path string
-		size int64
-		hash uint64
-	}
-
-	quickWorkChan := make(chan string, len(candidateFiles))
+func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorkers int, stats *model.Stats) map[uint64][]fileInfoQuickHash {
+	quickWorkChan := make(chan fileInfoQuickHash, len(candidateFiles))
 	quickResultChan := make(chan fileInfoQuickHash, len(candidateFiles))
 
 	// Start workers for quick hashing
@@ -127,30 +128,21 @@ func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, sta
 		quickWg.Add(1)
 		go func() {
 			defer quickWg.Done()
-			for filePath := range quickWorkChan {
-				hash, err := scanner.QuickHashFile(filePath)
+			for item := range quickWorkChan {
+				hash, err := scanner.QuickHashFile(item.path)
 				if err != nil {
-					logError(ctx, err, "quick hash", filePath)
+					logError(ctx, err, "quick hash", item.path)
 					stats.IncrementErrorCount()
 					continue
 				}
-
-				// Get file size for the result
-				info, err := os.Stat(filePath)
-				if err != nil {
-					logError(ctx, err, "stat", filePath)
-					stats.IncrementErrorCount()
-					continue
-				}
-
-				quickResultChan <- fileInfoQuickHash{path: filePath, size: info.Size(), hash: hash}
+				quickResultChan <- fileInfoQuickHash{path: item.path, size: item.size, hash: hash}
 			}
 		}()
 	}
 
 	// Send work for quick hashing
 	for _, file := range candidateFiles {
-		quickWorkChan <- file
+		quickWorkChan <- fileInfoQuickHash{path: file.Path, size: file.Size}
 	}
 	close(quickWorkChan)
 
@@ -161,9 +153,9 @@ func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, sta
 	}()
 
 	// Collect quick hash results and group by quick hash
-	quickHashGroups := make(map[uint64][]string, len(candidateFiles))
+	quickHashGroups := make(map[uint64][]fileInfoQuickHash, len(candidateFiles))
 	for result := range quickResultChan {
-		quickHashGroups[result.hash] = append(quickHashGroups[result.hash], result.path)
+		quickHashGroups[result.hash] = append(quickHashGroups[result.hash], result)
 		stats.IncrementProcessedFiles()
 	}
 
@@ -171,9 +163,9 @@ func quickHash(ctx context.Context, candidateFiles []string, numWorkers int, sta
 }
 
 // fullHash performs full hashing for candidates, groups by hash.
-func fullHash(ctx context.Context, fullHashCandidates []string, numWorkers int, stats *model.Stats) map[string][]scanner.FileInfo {
+func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWorkers int, stats *model.Stats) map[string][]scanner.FileInfo {
 	// Create channels for full hashing
-	fullWorkChan := make(chan string, len(fullHashCandidates))
+	fullWorkChan := make(chan fileInfoQuickHash, len(fullHashCandidates))
 	fullResultChan := make(chan scanner.FileInfo, len(fullHashCandidates))
 
 	// Start workers for full hashing
@@ -182,23 +174,15 @@ func fullHash(ctx context.Context, fullHashCandidates []string, numWorkers int, 
 		fullWg.Add(1)
 		go func() {
 			defer fullWg.Done()
-			for filePath := range fullWorkChan {
-				hash, err := scanner.HashFile(filePath)
+			for item := range fullWorkChan {
+				hash, err := scanner.HashFile(item.path)
 				if err != nil {
-					logError(ctx, err, "full hash", filePath)
+					logError(ctx, err, "full hash", item.path)
 					stats.IncrementErrorCount()
 					continue
 				}
 
-				// Get file size for the result
-				info, err := os.Stat(filePath)
-				if err != nil {
-					logError(ctx, err, "stat", filePath)
-					stats.IncrementErrorCount()
-					continue
-				}
-
-				fullResultChan <- scanner.FileInfo{Path: filePath, Size: info.Size(), Hash: hash}
+				fullResultChan <- scanner.FileInfo{Path: item.path, Size: item.size, Hash: hash}
 			}
 		}()
 	}
