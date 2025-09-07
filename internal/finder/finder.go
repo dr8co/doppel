@@ -1,3 +1,12 @@
+// Package finder implements the core duplicate detection logic for the doppel file finder.
+//
+// This package provides the main algorithm for finding duplicate files using a two-stage
+// hashing approach:
+//  1. Quick hash: Fast partial XXH3 hashing to eliminate most non-duplicates
+//  2. Full hash: Complete Blake3 hashing for final duplicate confirmation
+//
+// The package processes files in parallel using configurable worker goroutines and
+// maintains statistics about the duplicate detection process.
 package finder
 
 import (

@@ -1,3 +1,11 @@
+// Package cmd provides the command-line interface commands for the doppel duplicate file finder.
+//
+// This package implements the CLI commands using the urfave/cli framework, including
+//   - find: The main command for finding duplicate files with extensive filtering options
+//   - preset: Command for using predefined filter configurations for common scenarios
+//
+// Each command supports various flags for controlling worker threads, output formats,
+// filtering criteria, and other operational parameters.
 package cmd
 
 import (

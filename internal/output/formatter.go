@@ -1,3 +1,12 @@
+// Package output provides formatting and output capabilities for duplicate file scan results.
+//
+// This package implements a pluggable formatter system that supports multiple output formats:
+//   - Pretty: Human-readable formatted output with colors and alignment
+//   - JSON: Structured JSON output for programmatic consumption
+//   - YAML: YAML format for configuration-style output
+//
+// The package uses a registry pattern to manage formatters and provides utilities
+// for formatting file sizes and other display elements.
 package output
 
 import (

@@ -1,3 +1,13 @@
+// Package scanner provides file system scanning capabilities for the doppel duplicate file finder.
+//
+// This package handles the initial phase of duplicate detection by:
+//   - Recursively traversing directory structures
+//   - Applying filters to exclude unwanted files and directories
+//   - Grouping files by size to optimize duplicate detection
+//   - Processing command-line directory arguments and removing subdirectories
+//
+// The scanner works in conjunction with the filter package to efficiently
+// collect candidate files for duplicate detection.
 package scanner
 
 import (

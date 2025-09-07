@@ -1,3 +1,12 @@
+// Package model defines the core data structures and types used throughout the doppel duplicate file finder.
+//
+// This package provides:
+//   - DuplicateGroup: Represents a group of duplicate files with metadata
+//   - DuplicateReport: Contains the complete scan results and statistics
+//   - Stats: Thread-safe statistics tracking for the scanning process
+//
+// All structures are designed to be serializable to JSON and YAML for output formatting,
+// and the Stats type provides atomic operations for safe concurrent updates.
 package model
 
 import (

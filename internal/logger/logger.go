@@ -1,3 +1,13 @@
+// Package logger provides structured logging capabilities for the doppel duplicate file finder.
+//
+// This package wraps Go's slog package to provide consistent logging across the application
+// with support for multiple output formats:
+//   - Pretty: Human-readable colored output for development
+//   - JSON: Structured JSON output for automation and monitoring
+//   - Text: Plain text output for simple logging needs
+//
+// The package supports configurable log levels, output destinations, and provides
+// both global logger functions and instance-based logging.
 package logger
 
 import (

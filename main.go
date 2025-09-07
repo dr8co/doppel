@@ -1,3 +1,9 @@
+// Package main provides the entry point for doppel, a fast concurrent CLI tool
+// for finding duplicate files across directories.
+//
+// Doppel scans directories for duplicate files by comparing file sizes first,
+// then computing Blake3 hashes for files of the same size.
+// It supports parallel processing and extensive filtering options to skip unwanted files and directories.
 package main
 
 import (

@@ -1,3 +1,13 @@
+// Package filter provides file and directory filtering capabilities for the doppel duplicate file finder.
+//
+// This package implements filtering logic to exclude files and directories based on:
+//   - Glob patterns for file and directory names
+//   - Regular expressions for file and directory paths
+//   - File size constraints (minimum and maximum sizes)
+//   - Predefined filter presets for common use cases
+//
+// The package supports parsing human-readable file sizes (e.g., "10MB", "1.5GB")
+// and provides utilities to display active filter configurations.
 package filter
 
 import (
