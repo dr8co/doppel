@@ -223,11 +223,11 @@ func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Clo
 			return Config{}, nil, fmt.Errorf("failed to get absolute path for log file: %w", err)
 		}
 
-		if err = os.MkdirAll(filepath.Dir(outFile), 0755); err != nil {
+		if err = os.MkdirAll(filepath.Dir(outFile), 0750); err != nil {
 			return Config{}, nil, fmt.Errorf("error creating log directory: %w", err)
 		}
 
-		file, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		file, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
 			return Config{}, nil, fmt.Errorf("failed to open log file %s: %w", outFile, err)
 		}
