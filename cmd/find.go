@@ -63,15 +63,15 @@ initial size-based filtering.`,
 				Usage: "Comma-separated list of regex patterns for files to exclude",
 				Value: "",
 			},
-			&cli.Int64Flag{
+			&cli.StringFlag{
 				Name:  "min-size",
-				Usage: "Minimum file size in bytes (0 = no limit)",
-				Value: 0,
+				Usage: "Minimum file size (e.g., 10MB, 1.5GB, 500KiB) (0 = no limit)",
+				Value: "",
 			},
-			&cli.Int64Flag{
+			&cli.StringFlag{
 				Name:  "max-size",
-				Usage: "Maximum file size in bytes (0 = no limit)",
-				Value: 0,
+				Usage: "Maximum file size (e.g., 100MB, 2GB, 1TiB) (0 = no limit)",
+				Value: "",
 			},
 			&cli.BoolFlag{
 				Name:  "show-filters",
@@ -99,14 +99,30 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 		return err
 	}
 
+	// Parse size strings to int64 bytes
+	var minSize, maxSize int64
+	if minSizeStr := c.String("min-size"); minSizeStr != "" {
+		minSize, err = filter.ParseFileSize(minSizeStr)
+		if err != nil {
+			return fmt.Errorf("invalid min-size: %w", err)
+		}
+	}
+
+	if maxSizeStr := c.String("max-size"); maxSizeStr != "" {
+		maxSize, err = filter.ParseFileSize(maxSizeStr)
+		if err != nil {
+			return fmt.Errorf("invalid max-size: %w", err)
+		}
+	}
+
 	// Build filter configuration
 	filterConfig, err := filter.BuildConfig(
 		c.String("exclude-dirs"),
 		c.String("exclude-files"),
 		c.String("exclude-dir-regex"),
 		c.String("exclude-file-regex"),
-		c.Int64("min-size"),
-		c.Int64("max-size"),
+		minSize,
+		maxSize,
 	)
 	if err != nil {
 		return fmt.Errorf("error building filter configuration: %w", err)
