@@ -2,10 +2,12 @@ package filter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/dr8co/doppel/internal/logger"
@@ -228,4 +230,120 @@ func DisplayActiveFilters(config *Config) {
 	}
 
 	fmt.Println()
+}
+
+// ParseFileSize parses a file size string with optional suffix and returns size in bytes.
+// Supported formats:
+//   - Plain numbers: "1024", "500" (treated as bytes)
+//   - With suffixes: "10MB", "5.5GB", "1.5KiB", "2TB"
+//   - Case insensitive: "10mb", "5GB", "1kib"
+//   - Spaces allowed: "10 MB", "5.5 GB"
+//
+// Note:
+//   - Negatives are treated as 0.
+//
+// Returns the size in bytes as int64, or error if parsing fails.
+func ParseFileSize(s string) (int64, error) {
+	// Empty string is treated as 0
+	if s == "" {
+		return 0, nil
+	}
+
+	// Trim spaces
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, errors.New("invalid file size format")
+	}
+
+	// Escape the leading '+'
+	if s[0] == '+' {
+		if len(s) > 1 {
+			s = s[1:]
+		}
+	}
+
+	// Negatives are treated as 0
+	if s[0] == '-' {
+		if len(s) > 1 {
+			return 0, nil
+		}
+	}
+
+	// Split number and unit
+	i := 0
+	for ; i < len(s); i++ {
+		if (s[i] < '0' || s[i] > '9') && s[i] != '.' {
+			break
+		}
+	}
+
+	if i == 0 {
+		return 0, errors.New("invalid file size format")
+	}
+
+	// Parse numeric part
+	val, err := strconv.ParseFloat(s[:i], 64)
+	if err != nil {
+		return 0, err
+	}
+
+	unit := strings.TrimSpace(s[i:])
+
+	// Manually convert to uppercase to avoid allocation
+	var unitBytes [3]byte
+	j := 0
+	for range unit {
+		if j >= 3 {
+			break
+		}
+		c := unit[j]
+		if c >= 'A' && c <= 'Z' {
+			unitBytes[j] = c + ('a' - 'A')
+		} else {
+			unitBytes[j] = c
+		}
+		j++
+	}
+
+	unit = string(unitBytes[:j])
+
+	var multiplier int64
+	switch unit {
+	case "b", "":
+		multiplier = 1
+	case "kb":
+		multiplier = 1000
+	case "mb":
+		multiplier = 1000 * 1000
+	case "gb":
+		multiplier = 1000 * 1000 * 1000
+	case "tb":
+		multiplier = 1000 * 1000 * 1000 * 1000
+	case "pb":
+		multiplier = 1000 * 1000 * 1000 * 1000 * 1000
+	case "eb":
+		multiplier = 1000 * 1000 * 1000 * 1000 * 1000 * 1000
+
+	case "kib":
+		multiplier = 1024
+	case "mib":
+		multiplier = 1024 * 1024
+	case "gib":
+		multiplier = 1024 * 1024 * 1024
+	case "tib":
+		multiplier = 1024 * 1024 * 1024 * 1024
+	case "pib":
+		multiplier = 1024 * 1024 * 1024 * 1024 * 1024
+	case "eib":
+		multiplier = 1024 * 1024 * 1024 * 1024 * 1024 * 1024
+	default:
+		return 0, errors.New("invalid unit")
+	}
+
+	// Convert
+	res := val * float64(multiplier)
+	if res > float64(^uint64(0)>>1) {
+		return 0, errors.New("size overflow")
+	}
+	return int64(res), nil
 }

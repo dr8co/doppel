@@ -434,3 +434,110 @@ func TestParseCommaSeparated(t *testing.T) {
 		})
 	}
 }
+
+// TestParseFileSize tests the ParseFileSize function with various input cases,
+// including valid and invalid file size strings.
+func TestParseFileSize(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+		hasError bool
+	}{
+		// Basic cases
+		{"", 0, false},
+		{"0", 0, false},
+		{"1", 1, false},
+		{"1024", 1024, false},
+
+		// Bytes
+		{"100B", 100, false},
+		{"  100b", 100, false},
+		{"100 B", 100, false},
+		{"+100b", 100, false},
+
+		// Kilobytes
+		{"1KB", 1000, false},
+		{"\t1kb", 1000, false},
+		{"1 KB", 1000, false},
+		{"2KB  ", 2000, false},
+		{"1.5KB", 1500, false},
+
+		// Kibibytes
+		{"1KiB", 1024, false},
+		{"1kib", 1024, false},
+		{"2KiB", 2048, false},
+		{"1.5KiB", 1536, false},
+
+		// Megabytes
+		{"1MB", 1000000, false},
+		{"1mb", 1000000, false},
+		{"10MB", 10000000, false},
+		{"1.5MB", 1500000, false},
+
+		// Mebibytes
+		{"1MiB", 1048576, false},
+		{"1mib", 1048576, false},
+		{"10MiB \t", 10485760, false},
+
+		// Gigabytes
+		{"1GB", 1000000000, false},
+		{"1gb", 1000000000, false},
+		{"2.5GB", 2500000000, false},
+
+		// Gibibytes
+		{"  1GiB\t ", 1073741824, false},
+		{"1gib", 1073741824, false},
+
+		// Terabytes
+		{"1TB", 1000000000000, false},
+		{"1tb", 1000000000000, false},
+
+		// Tebibytes
+		{"1TiB", 1099511627776, false},
+		{"1tib", 1099511627776, false},
+
+		// Negative values
+		{"-1", 0, false},
+		{"-10gb", 0, false},
+		{"-mx", 0, false},
+
+		// Overflow cases
+		{"10000000eib", 0, true},
+		{"100000000000 GB", 0, true},
+
+		// Other error cases
+		{" ", 0, true},
+		{"\v", 0, true},
+		{"abc", 0, true},
+		{"1XB", 0, true},
+		{"1.5.5MB", 0, true},
+		{"MB", 0, true},
+		{"1.5.5", 0, true},
+		{"1+2", 0, true},
+		{"+", 0, true},
+		{"-", 0, true},
+		{".", 0, true},
+		{"12..", 0, true},
+		{"....", 0, true},
+		{"0x1", 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result, err := ParseFileSize(tt.input)
+
+			if tt.hasError {
+				if err == nil {
+					t.Errorf("ParseFileSize(%q) expected error, got nil", tt.input)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ParseFileSize(%q) unexpected error: %v", tt.input, err)
+				}
+				if result != tt.expected {
+					t.Errorf("ParseFileSize(%q) = %d, expected %d", tt.input, result, tt.expected)
+				}
+			}
+		})
+	}
+}
