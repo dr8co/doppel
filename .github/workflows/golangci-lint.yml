@@ -17,9 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version: 'stable'
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
