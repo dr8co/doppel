@@ -287,25 +287,7 @@ func ParseFileSize(s string) (int64, error) {
 		return 0, err
 	}
 
-	unit := strings.TrimSpace(s[i:])
-
-	// Manually convert to uppercase to avoid allocation
-	var unitBytes [3]byte
-	j := 0
-	for range unit {
-		if j >= 3 {
-			break
-		}
-		c := unit[j]
-		if c >= 'A' && c <= 'Z' {
-			unitBytes[j] = c + ('a' - 'A')
-		} else {
-			unitBytes[j] = c
-		}
-		j++
-	}
-
-	unit = string(unitBytes[:j])
+	unit := normalizeUnit(strings.TrimSpace(s[i:]))
 
 	var multiplier int64
 	switch unit {
@@ -346,4 +328,29 @@ func ParseFileSize(s string) (int64, error) {
 		return 0, errors.New("size overflow")
 	}
 	return int64(res), nil
+}
+
+// normalizeUnit converts unit to lowercase, handling only the first 3 characters for performance
+func normalizeUnit(unit string) string {
+	if len(unit) == 0 {
+		return unit
+	}
+
+	// Manually convert to lowercase to avoid allocation
+	var unitBytes [3]byte
+	j := 0
+	for range unit {
+		if j >= 3 {
+			break
+		}
+		c := unit[j]
+		if c >= 'A' && c <= 'Z' {
+			unitBytes[j] = c + ('a' - 'A')
+		} else {
+			unitBytes[j] = c
+		}
+		j++
+	}
+
+	return string(unitBytes[:j])
 }
