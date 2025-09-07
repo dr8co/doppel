@@ -294,7 +294,7 @@ func ParseFileSize(s string) (int64, error) {
 	// Parse numeric part
 	val, err := strconv.ParseFloat(s[:i], 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("invalid numeric part: %w", err)
 	}
 
 	unit := normalizeUnit(strings.TrimSpace(s[i:]))
