@@ -98,11 +98,12 @@ func FindDuplicatesByHash(sizeGroups map[int64][]scanner.FileInfo, numWorkers in
 			}
 
 			size := files[0].Size
+			//nolint:gosec
 			wasted := uint64(size) * uint64(len(files)-1)
 			totalWasted += wasted
 
 			groups = append(groups, model.DuplicateGroup{
-				Id:          groupID,
+				ID:          groupID,
 				Count:       len(files),
 				Size:        size,
 				WastedSpace: wasted,

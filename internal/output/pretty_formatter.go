@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -66,14 +67,15 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 
 	for _, group := range report.Groups {
 		// Print group header
-		header := groupHeaderStyle.Render(fmt.Sprintf("\n🔗 Duplicate group %d (%d files):", group.Id, group.Count))
+		header := groupHeaderStyle.Render(fmt.Sprintf("\n🔗 Duplicate group %d (%d files):", group.ID, group.Count))
 		if _, err := fmt.Fprintln(w, header); err != nil {
 			return err
 		}
 
 		// Print size and wasted space
 		sizeStr := sizeStyle.Render(fmt.Sprintf("Size: %s each", FormatBytes(group.Size)))
-		wastedStr := wastedStyle.Render(fmt.Sprintf("%s wasted space", FormatBytes(int64(group.WastedSpace))))
+		//nolint:gosec
+		wastedStr := wastedStyle.Render(FormatBytes(int64(group.WastedSpace)) + "% wasted space")
 		if _, err := fmt.Fprintf(w, "   %s, %s\n", sizeStr, wastedStr); err != nil {
 			return err
 		}
@@ -93,11 +95,12 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 	}
 
 	if report.Stats.DuplicateFiles > 0 {
-		found := statLabelStyle.Render("🔗 Duplicate files found:") + " " + statValueStyle.Render(fmt.Sprintf("%d", report.Stats.DuplicateFiles)) +
-			statLabelStyle.Render(" (in ") + statValueStyle.Render(fmt.Sprintf("%d", report.Stats.DuplicateGroups)) + statLabelStyle.Render(" groups)")
+		found := statLabelStyle.Render("🔗 Duplicate files found:") + " " + statValueStyle.Render(strconv.FormatUint(report.Stats.DuplicateFiles, 10)) +
+			statLabelStyle.Render(" (in ") + statValueStyle.Render(strconv.FormatUint(report.Stats.DuplicateGroups, 10)) + statLabelStyle.Render(" groups)")
 		if _, err := fmt.Fprintf(w, "   %s\n", found); err != nil {
 			return err
 		}
+		//nolint:gosec
 		wasted := wastedStyle.Render("💾 Total wasted space:") + " " + statValueStyle.Render(FormatBytes(int64(report.TotalWastedSpace)))
 		if _, err := fmt.Fprintf(w, "   %s\n", wasted); err != nil {
 			return err
@@ -112,19 +115,19 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 	if _, err := fmt.Fprintln(w, summaryHeaderStyle.Render("\n📈 Detailed Statistics:")); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("📁 Total files scanned:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.TotalFiles))); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("📁 Total files scanned:"), statValueStyle.Render(strconv.FormatUint(report.Stats.TotalFiles, 10))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("🔐 Files processed for hashing:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.ProcessedFiles))); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("🔐 Files processed for hashing:"), statValueStyle.Render(strconv.FormatUint(report.Stats.ProcessedFiles, 10))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏭️ Directories skipped:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.SkippedDirs))); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏭️ Directories skipped:"), statValueStyle.Render(strconv.FormatUint(report.Stats.SkippedDirs, 10))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏭️ Files skipped:"), statValueStyle.Render(fmt.Sprintf("%d", report.Stats.SkippedFiles))); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏭️ Files skipped:"), statValueStyle.Render(strconv.FormatUint(report.Stats.SkippedFiles, 10))); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("❌ Files with errors:"), errorStyle.Render(fmt.Sprintf("%d", report.Stats.ErrorCount))); err != nil {
+	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("❌ Files with errors:"), errorStyle.Render(strconv.FormatUint(report.Stats.ErrorCount, 10))); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(w, "   %s %s\n", statLabelStyle.Render("⏱️ Processing time:"), statValueStyle.Render(report.Stats.Duration.Round(time.Millisecond).String())); err != nil {

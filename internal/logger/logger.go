@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -43,7 +44,7 @@ func New(config *Config) (*Logger, error) {
 	}
 
 	if config.Writer == nil {
-		return nil, fmt.Errorf("writer cannot be nil")
+		return nil, errors.New("writer cannot be nil")
 	}
 
 	if config.Options == nil {
@@ -153,7 +154,7 @@ func Default() *Logger {
 // SetDefault sets the default logger to the provided logger.
 func SetDefault(logger *Logger) error {
 	if logger == nil {
-		return fmt.Errorf("logger cannot be nil")
+		return errors.New("logger cannot be nil")
 	}
 	defaultLogger.Store(logger)
 	return nil
@@ -180,7 +181,7 @@ func createHandler(config *Config) slog.Handler {
 	case "text", "":
 		return NewTextHandler(config.Writer, config.Options)
 	case "json":
-		return NewJsonHandler(config.Writer, config.Options)
+		return NewJSONHandler(config.Writer, config.Options)
 	case "null", "discard":
 		return slog.DiscardHandler
 	case "pretty", "color", "terminal", "human":
@@ -202,7 +203,7 @@ func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Clo
 		Options: opts,
 		Format:  format,
 	}
-	var closer io.Closer = nil
+	var closer io.Closer
 
 	switch strings.ToLower(output) {
 	case "stdout", "":
@@ -214,7 +215,7 @@ func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Clo
 	default:
 		outFile := filepath.Clean(output)
 		if outFile == "." {
-			return Config{}, nil, fmt.Errorf("invalid file path")
+			return Config{}, nil, errors.New("invalid file path")
 		}
 
 		var err error
@@ -223,11 +224,11 @@ func NewConfig(opts *slog.HandlerOptions, format, output string) (Config, io.Clo
 			return Config{}, nil, fmt.Errorf("failed to get absolute path for log file: %w", err)
 		}
 
-		if err = os.MkdirAll(filepath.Dir(outFile), 0750); err != nil {
+		if err = os.MkdirAll(filepath.Dir(outFile), 0o750); err != nil {
 			return Config{}, nil, fmt.Errorf("error creating log directory: %w", err)
 		}
 
-		file, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+		file, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
 			return Config{}, nil, fmt.Errorf("failed to open log file %s: %w", outFile, err)
 		}

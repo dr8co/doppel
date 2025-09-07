@@ -29,14 +29,14 @@ func TestPrettyFormatter_Format(t *testing.T) {
 		TotalWastedSpace: 2048,
 		Groups: []model.DuplicateGroup{
 			{
-				Id:          1,
+				ID:          1,
 				Count:       2,
 				Size:        1024,
 				WastedSpace: 1024,
 				Files:       []string{"/tmp/foo1.txt", "/tmp/foo2.txt"},
 			},
 			{
-				Id:          2,
+				ID:          2,
 				Count:       2,
 				Size:        1024,
 				WastedSpace: 1024,

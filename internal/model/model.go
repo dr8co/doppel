@@ -8,7 +8,7 @@ import (
 // DuplicateGroup represents a group of duplicate files with their metadata.
 type DuplicateGroup struct {
 	// ID is a unique identifier for the group.
-	Id int `json:"id" yaml:"id"`
+	ID int `json:"ID" yaml:"ID"`
 
 	// Count is the number of files in this group.
 	Count int `json:"count" yaml:"count"`

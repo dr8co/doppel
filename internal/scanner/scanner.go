@@ -133,9 +133,8 @@ func processDirectories(directories []string) ([]string, error) {
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return nil, fmt.Errorf("path does not exist: %s", absDir)
-			} else {
-				return nil, fmt.Errorf("error accessing directory %s: %w", absDir, err)
 			}
+			return nil, fmt.Errorf("error accessing directory %s: %w", absDir, err)
 		} else if !info.IsDir() {
 			return nil, fmt.Errorf("not a directory: %s", absDir)
 		}

@@ -186,7 +186,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *filter.C
 			return fmt.Errorf("error getting absolute path for output file: %w", err)
 		}
 
-		if err := os.MkdirAll(filepath.Dir(outputFile), 0750); err != nil {
+		if err := os.MkdirAll(filepath.Dir(outputFile), 0o750); err != nil {
 			return fmt.Errorf("error creating output directory: %w", err)
 		}
 

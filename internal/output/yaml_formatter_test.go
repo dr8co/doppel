@@ -29,14 +29,14 @@ func TestYAMLFormatter_Format(t *testing.T) {
 		TotalWastedSpace: 1024,
 		Groups: []model.DuplicateGroup{
 			{
-				Id:          1,
+				ID:          1,
 				Count:       2,
 				Size:        512,
 				WastedSpace: 256,
 				Files:       []string{"file1.txt", "file2.txt"},
 			},
 			{
-				Id:          2,
+				ID:          2,
 				Count:       2,
 				Size:        512,
 				WastedSpace: 256,

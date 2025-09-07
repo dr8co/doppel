@@ -284,8 +284,8 @@ func TestCreateHandler(t *testing.T) {
 		{"text", "*logger.TextHandler"},
 		{"TEXT", "*logger.TextHandler"},
 		{"", "*logger.TextHandler"}, // default
-		{"json", "*logger.JsonHandler"},
-		{"JSON", "*logger.JsonHandler"},
+		{"json", "*logger.JSONHandler"},
+		{"JSON", "*logger.JSONHandler"},
 		{"null", "slog.discardHandler"},
 		{"discard", "slog.discardHandler"},
 		{"pretty", "*logger.PrettyHandler"},

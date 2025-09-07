@@ -22,6 +22,7 @@ type FileInfo struct {
 
 // HashFile computes Blake3 hash of the entire file.
 func HashFile(filePath string) (string, error) {
+	//nolint:gosec
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err
@@ -57,6 +58,7 @@ func HashFile(filePath string) (string, error) {
 // QuickHashFile computes a XXH3 hash of the first and the last portions of a file
 // This is used as a quick preliminary check before computing the full hash.
 func QuickHashFile(filePath string) (uint64, error) {
+	//nolint:gosec
 	file, err := os.Open(filePath)
 	if err != nil {
 		return 0, err

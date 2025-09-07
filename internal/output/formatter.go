@@ -1,6 +1,7 @@
 package output
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -28,10 +29,10 @@ func NewFormatterRegistry() *FormatterRegistry {
 // Register adds a new formatter to the registry.
 func (r *FormatterRegistry) Register(name string, formatter Formatter) error {
 	if name == "" {
-		return fmt.Errorf("formatter name cannot be empty")
+		return errors.New("formatter name cannot be empty")
 	}
 	if formatter == nil {
-		return fmt.Errorf("formatter cannot be nil")
+		return errors.New("formatter cannot be nil")
 	}
 	r.formatters[name] = formatter
 	return nil
