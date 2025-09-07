@@ -10,10 +10,7 @@ linters:
   enable:
     - asasalint
     - dogsled
-    - dupl
     - durationcheck
-    - exhaustive
-    - funcorder
     - goconst
     - gocritic
     - gocyclo
@@ -22,7 +19,6 @@ linters:
     - intrange
     - misspell
     - nakedret
-    - nestif
     - nilerr
     - nolintlint
     - paralleltest
@@ -33,7 +29,6 @@ linters:
     - unparam
     - wastedassign
     - whitespace
-    - wrapcheck
     - unconvert
 
 formatters:
@@ -42,17 +37,5 @@ formatters:
     - goimports
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-
-linters-settings:
-  gofmt:
-    simplify: true
-  goimports:
-    local-prefixes: github.com/dr8co/doppel
-  revive:
-    ignore-generated-header: true
-    severity: warning
-  gocyclo:
-    min-complexity: 15
