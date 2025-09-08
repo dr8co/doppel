@@ -17,8 +17,11 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/urfave/cli-altsrc/v3/toml"
+	"github.com/urfave/cli-altsrc/v3/yaml"
 	"github.com/urfave/cli/v3"
 
+	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/filter"
 	"github.com/dr8co/doppel/internal/finder"
 	"github.com/dr8co/doppel/internal/model"
@@ -45,55 +48,66 @@ initial size-based filtering.`,
 				Aliases: []string{"w"},
 				Value:   runtime.NumCPU(),
 				Usage:   "Number of worker goroutines for parallel hashing",
+				Sources: cli.NewValueSourceChain(toml.TOML("workers", config.Toml), yaml.YAML("workers", config.Yaml)),
 			},
 			&cli.BoolFlag{
 				Name:    "verbose",
 				Aliases: []string{"v"},
 				Usage:   "Enable verbose output with detailed progress information",
+				Sources: cli.NewValueSourceChain(toml.TOML("verbose", config.Toml), yaml.YAML("verbose", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "exclude-dirs",
-				Usage: "Comma-separated list of directory patterns to exclude (glob patterns)",
-				Value: "",
+				Name:    "exclude-dirs",
+				Usage:   "Comma-separated list of directory patterns to exclude (glob patterns)",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("exclude-dirs", config.Toml), yaml.YAML("exclude-dirs", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "exclude-files",
-				Usage: "Comma-separated list of file patterns to exclude (glob patterns)",
-				Value: "",
+				Name:    "exclude-files",
+				Usage:   "Comma-separated list of file patterns to exclude (glob patterns)",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("exclude-files", config.Toml), yaml.YAML("exclude-files", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "exclude-dir-regex",
-				Usage: "Comma-separated list of regex patterns for directories to exclude",
-				Value: "",
+				Name:    "exclude-dir-regex",
+				Usage:   "Comma-separated list of regex patterns for directories to exclude",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("exclude-dir-regex", config.Toml), yaml.YAML("exclude-dir-regex", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "exclude-file-regex",
-				Usage: "Comma-separated list of regex patterns for files to exclude",
-				Value: "",
+				Name:    "exclude-file-regex",
+				Usage:   "Comma-separated list of regex patterns for files to exclude",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("exclude-file-regex", config.Toml), yaml.YAML("exclude-file-regex", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "min-size",
-				Usage: "Minimum file size (e.g., 10MB, 1.5GB, 500KiB) (0 = no limit)",
-				Value: "",
+				Name:    "min-size",
+				Usage:   "Minimum file size (e.g., 10MB, 1.5GB, 500KiB) (0 = no limit)",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("min-size", config.Toml), yaml.YAML("min-size", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "max-size",
-				Usage: "Maximum file size (e.g., 100MB, 2GB, 1TiB) (0 = no limit)",
-				Value: "",
+				Name:    "max-size",
+				Usage:   "Maximum file size (e.g., 100MB, 2GB, 1TiB) (0 = no limit)",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("max-size", config.Toml), yaml.YAML("max-size", config.Yaml)),
 			},
 			&cli.BoolFlag{
-				Name:  "show-filters",
-				Usage: "Show active filters and exit without scanning",
+				Name:    "show-filters",
+				Usage:   "Show active filters and exit without scanning",
+				Sources: cli.NewValueSourceChain(toml.TOML("show-filters", config.Toml), yaml.YAML("show-filters", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "output-format",
-				Usage: "Output format: pretty, json, yaml",
-				Value: "pretty",
+				Name:    "output-format",
+				Usage:   "Output format: pretty, json, yaml",
+				Value:   "pretty",
+				Sources: cli.NewValueSourceChain(toml.TOML("output-format", config.Toml), yaml.YAML("output-format", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "output-file",
-				Usage: "Write output to file (default: stdout)",
-				Value: "",
+				Name:    "output-file",
+				Usage:   "Write output to file (default: stdout)",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("output-file", config.Toml), yaml.YAML("output-file", config.Yaml)),
 			},
 		},
 		Action: findDuplicatesCmd,

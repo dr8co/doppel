@@ -16,9 +16,12 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/urfave/cli-altsrc/v3/toml"
+	"github.com/urfave/cli-altsrc/v3/yaml"
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/cmd"
+	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/logger"
 )
 
@@ -69,19 +72,22 @@ then computing Blake3 hashes for files of the same size. It supports parallel
 processing and extensive filtering options to skip unwanted files and directories.`,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "log-level",
-				Usage: "Set the log level (debug, info, warn, error)",
-				Value: "info",
+				Name:    "log-level",
+				Usage:   "Set the log level (debug, info, warn, error)",
+				Value:   "info",
+				Sources: cli.NewValueSourceChain(toml.TOML("log-level", config.Toml), yaml.YAML("log-level", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "log-format",
-				Usage: "Set the log format (text, json, pretty, discard)",
-				Value: "pretty",
+				Name:    "log-format",
+				Usage:   "Set the log format (text, json, pretty, discard)",
+				Value:   "pretty",
+				Sources: cli.NewValueSourceChain(toml.TOML("log-format", config.Toml), yaml.YAML("log-format", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "log-output",
-				Usage: "Set the log output (stdout, stderr, null, or file path)",
-				Value: "stdout",
+				Name:    "log-output",
+				Usage:   "Set the log output (stdout, stderr, null, or file path)",
+				Value:   "stdout",
+				Sources: cli.NewValueSourceChain(toml.TOML("log-output", config.Toml), yaml.YAML("log-output", config.Yaml)),
 			},
 		},
 		Commands: []*cli.Command{

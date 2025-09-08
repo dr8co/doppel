@@ -4,8 +4,11 @@ import (
 	"context"
 	"runtime"
 
+	"github.com/urfave/cli-altsrc/v3/toml"
+	"github.com/urfave/cli-altsrc/v3/yaml"
 	"github.com/urfave/cli/v3"
 
+	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/filter"
 	"github.com/dr8co/doppel/internal/scanner"
 )
@@ -31,25 +34,30 @@ func PresetCommand() *cli.Command {
 				Aliases: []string{"w"},
 				Value:   runtime.NumCPU(),
 				Usage:   "Number of worker goroutines for parallel hashing",
+				Sources: cli.NewValueSourceChain(toml.TOML("workers", config.Toml), yaml.YAML("workers", config.Yaml)),
 			},
 			&cli.BoolFlag{
 				Name:    "verbose",
 				Aliases: []string{"v"},
 				Usage:   "Enable verbose output with detailed progress information",
+				Sources: cli.NewValueSourceChain(toml.TOML("verbose", config.Toml), yaml.YAML("verbose", config.Yaml)),
 			},
 			&cli.BoolFlag{
-				Name:  "show-filters",
-				Usage: "Show active filters and exit without scanning",
+				Name:    "show-filters",
+				Usage:   "Show active filters and exit without scanning",
+				Sources: cli.NewValueSourceChain(toml.TOML("show-filters", config.Toml), yaml.YAML("show-filters", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "output-format",
-				Usage: "Output format: pretty, json, yaml",
-				Value: "pretty",
+				Name:    "output-format",
+				Usage:   "Output format: pretty, json, yaml",
+				Value:   "pretty",
+				Sources: cli.NewValueSourceChain(toml.TOML("output-format", config.Toml), yaml.YAML("output-format", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:  "output-file",
-				Usage: "Write output to file (default: stdout)",
-				Value: "",
+				Name:    "output-file",
+				Usage:   "Write output to file (default: stdout)",
+				Value:   "",
+				Sources: cli.NewValueSourceChain(toml.TOML("output-file", config.Toml), yaml.YAML("output-file", config.Yaml)),
 			},
 		},
 		Commands: []*cli.Command{
