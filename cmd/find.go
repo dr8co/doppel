@@ -101,7 +101,7 @@ initial size-based filtering.`,
 }
 
 // findDuplicatesCmd is the action function for the find command.
-func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
+func findDuplicatesCmd(ctx context.Context, c *cli.Command) error {
 	directories, err := scanner.GetDirectoriesFromArgs(c)
 	if err != nil {
 		return err
@@ -136,11 +136,11 @@ func findDuplicatesCmd(_ context.Context, c *cli.Command) error {
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
-	return findDuplicates(c, directories, filterConfig)
+	return findDuplicates(ctx, c, directories, filterConfig)
 }
 
 // findDuplicates performs the main logic of finding duplicate files.
-func findDuplicates(c *cli.Command, directories []string, filterConfig *filter.Config) error {
+func findDuplicates(ctx context.Context, c *cli.Command, directories []string, filterConfig *filter.Config) error {
 	if c.Bool("show-filters") {
 		filter.DisplayActiveFilters(filterConfig)
 		return nil
@@ -166,7 +166,7 @@ func findDuplicates(c *cli.Command, directories []string, filterConfig *filter.C
 
 	// Phase 2: Hash files that have potential duplicates
 	workers := c.Int("workers")
-	report, err := finder.FindDuplicatesByHash(sizeGroups, workers, s, verbose)
+	report, err := finder.FindDuplicatesByHash(ctx, sizeGroups, workers, s, verbose)
 	s.Duration = time.Since(s.StartTime)
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)

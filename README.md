@@ -25,7 +25,7 @@ Doppel is designed for speed, flexibility, and reliability.
 
 ## ⚡️ Quick Start
 
-Install (requires Go 1.24+):
+Install (requires Go 1.25+):
 
 ```sh
 go install github.com/dr8co/doppel@latest

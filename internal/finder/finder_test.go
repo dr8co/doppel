@@ -1,6 +1,7 @@
 package finder
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -71,9 +72,10 @@ func TestFindDuplicatesByHash(t *testing.T) {
 
 	// Create stats object
 	s := &model.Stats{}
+	ctx := context.Background()
 
 	// Call the function being tested
-	report, err := FindDuplicatesByHash(sizeGroups, 2, s, false)
+	report, err := FindDuplicatesByHash(ctx, sizeGroups, 2, s, false)
 	if err != nil {
 		t.Fatalf("FindDuplicatesByHash() error = %v", err)
 	}
@@ -132,7 +134,7 @@ func TestFindDuplicatesByHash(t *testing.T) {
 		int64(len(content2)): {scanner.FileInfo{Path: file4}},
 	}
 
-	report, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
+	report, err = FindDuplicatesByHash(ctx, sizeGroups, 2, s, false)
 	if err != nil {
 		t.Fatalf("FindDuplicatesByHash() error = %v", err)
 	}
@@ -145,7 +147,7 @@ func TestFindDuplicatesByHash(t *testing.T) {
 		int64(len(content1)): {scanner.FileInfo{Path: file1}, scanner.FileInfo{Path: file2}, scanner.FileInfo{Path: file3}},
 	}
 
-	report, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
+	report, err = FindDuplicatesByHash(ctx, sizeGroups, 2, s, false)
 	if err != nil {
 		t.Fatalf("FindDuplicatesByHash() error = %v", err)
 	}
@@ -157,7 +159,7 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	sizeGroups = map[int64][]scanner.FileInfo{
 		int64(len(content1)): {scanner.FileInfo{Path: file1}},
 	}
-	report, err = FindDuplicatesByHash(sizeGroups, 2, s, false)
+	report, err = FindDuplicatesByHash(ctx, sizeGroups, 2, s, false)
 	if err != nil {
 		t.Fatalf("FindDuplicatesByHash() error = %v", err)
 	}
@@ -166,7 +168,7 @@ func TestFindDuplicatesByHash(t *testing.T) {
 	}
 
 	// Test with empty input
-	report, err = FindDuplicatesByHash(map[int64][]scanner.FileInfo{}, 2, s, false)
+	report, err = FindDuplicatesByHash(ctx, map[int64][]scanner.FileInfo{}, 2, s, false)
 	if err != nil {
 		t.Fatalf("FindDuplicatesByHash() error = %v", err)
 	}

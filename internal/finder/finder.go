@@ -32,7 +32,9 @@ type fileInfoQuickHash struct {
 }
 
 // FindDuplicatesByHash processes files with same sizes and returns a [model.DuplicateReport] directly.
-func FindDuplicatesByHash(sizeGroups map[int64][]scanner.FileInfo, numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error) {
+func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.FileInfo,
+	numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error,
+) {
 	candidateFiles := make([]scanner.FileInfo, 0, len(sizeGroups))
 	for _, files := range sizeGroups {
 		if len(files) > 1 {
@@ -49,8 +51,6 @@ func FindDuplicatesByHash(sizeGroups map[int64][]scanner.FileInfo, numWorkers in
 	if verbose {
 		fmt.Printf("\n🔐 Multi-stage hashing %d candidate files with %d workers\n\n", len(candidateFiles), numWorkers)
 	}
-
-	ctx := context.Background()
 
 	// Stage 1: Quick hashing
 	var now time.Time

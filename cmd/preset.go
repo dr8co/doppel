@@ -94,12 +94,12 @@ func PresetCommand() *cli.Command {
 }
 
 // findDuplicatesWithPreset finds duplicates using a specific preset configuration.
-func findDuplicatesWithPreset(_ context.Context, c *cli.Command, preset string) error {
+func findDuplicatesWithPreset(ctx context.Context, c *cli.Command, preset string) error {
 	directories, err := scanner.GetDirectoriesFromArgs(c)
 	if err != nil {
 		return err
 	}
 	filterConfig := filter.GetPresetConfig(preset)
 
-	return findDuplicates(c, directories, filterConfig)
+	return findDuplicates(ctx, c, directories, filterConfig)
 }
