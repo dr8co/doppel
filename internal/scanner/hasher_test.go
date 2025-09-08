@@ -171,7 +171,7 @@ func TestQuickHashFile(t *testing.T) {
 			}
 
 			// Call the function being tested
-			gotHash, err := QuickHashFile(filePath)
+			gotHash, err := QuickHashFile(filePath, int64(len(tt.content)))
 
 			// Check for errors
 			if (err != nil) != tt.wantErr {
@@ -195,7 +195,7 @@ func TestQuickHashFile(t *testing.T) {
 
 	// Test with a non-existent file
 	t.Run("non-existent file", func(t *testing.T) {
-		_, err := QuickHashFile(filepath.Join(tempDir, "non-existent-file"))
+		_, err := QuickHashFile(filepath.Join(tempDir, "non-existent-file"), 1)
 		if err == nil {
 			t.Errorf("QuickHashFile() expected error for non-existent file, got nil")
 		}
@@ -237,12 +237,12 @@ func TestQuickHashConsistency(t *testing.T) {
 	}
 
 	// Compute quick hashes
-	hash1, err := QuickHashFile(file1)
+	hash1, err := QuickHashFile(file1, int64(len(content)))
 	if err != nil {
 		t.Fatalf("Failed to compute quick hash for file1: %v", err)
 	}
 
-	hash2, err := QuickHashFile(file2)
+	hash2, err := QuickHashFile(file2, int64(len(content)))
 	if err != nil {
 		t.Fatalf("Failed to compute quick hash for file2: %v", err)
 	}
@@ -266,7 +266,7 @@ func TestQuickHashConsistency(t *testing.T) {
 		t.Fatalf("Failed to create file3: %v", err)
 	}
 
-	hash3, err := QuickHashFile(file3)
+	hash3, err := QuickHashFile(file3, int64(len(differentContent)))
 	if err != nil {
 		t.Fatalf("Failed to compute quick hash for file3: %v", err)
 	}

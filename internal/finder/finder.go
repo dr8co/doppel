@@ -129,7 +129,7 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 
 // quickHash performs quick hashing for a list of files using multiple workers and groups files by their quick hashes.
 func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorkers int, stats *model.Stats) map[uint64][]fileInfoQuickHash {
-	quickWorkChan := make(chan fileInfoQuickHash, len(candidateFiles))
+	quickWorkChan := make(chan scanner.FileInfo, len(candidateFiles))
 	quickResultChan := make(chan fileInfoQuickHash, len(candidateFiles))
 
 	// Start workers for quick hashing
@@ -137,13 +137,13 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 	for range numWorkers {
 		quickWg.Go(func() {
 			for item := range quickWorkChan {
-				hash, err := scanner.QuickHashFile(item.path)
+				hash, err := scanner.QuickHashFile(item.Path, item.Size)
 				if err != nil {
-					logError(ctx, err, "quick hash", item.path)
+					logError(ctx, err, "quick hash", item.Path)
 					stats.IncrementErrorCount()
 					continue
 				}
-				quickResultChan <- fileInfoQuickHash{path: item.path, size: item.size, hash: hash}
+				quickResultChan <- fileInfoQuickHash{path: item.Path, size: item.Size, hash: hash}
 			}
 		})
 	}
@@ -153,7 +153,7 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 		defer close(quickWorkChan)
 		for _, file := range candidateFiles {
 			select {
-			case quickWorkChan <- fileInfoQuickHash{path: file.Path, size: file.Size}:
+			case quickWorkChan <- file:
 			case <-ctx.Done():
 				return
 			}

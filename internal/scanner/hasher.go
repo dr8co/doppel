@@ -57,7 +57,11 @@ func HashFile(filePath string) (string, error) {
 
 // QuickHashFile computes a XXH3 hash of the first and the last portions of a file
 // This is used as a quick preliminary check before computing the full hash.
-func QuickHashFile(filePath string) (uint64, error) {
+func QuickHashFile(filePath string, size int64) (uint64, error) {
+	if size <= 0 {
+		return 0, nil
+	}
+
 	//nolint:gosec
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -68,23 +72,13 @@ func QuickHashFile(filePath string) (uint64, error) {
 		_ = file.Close()
 	}(file)
 
-	// Get file size
-	info, err := file.Stat()
-	if err != nil {
-		return 0, err
-	}
-	fileSize := info.Size()
-	if fileSize <= 0 {
-		return 0, nil
-	}
-
 	buf := make([]byte, quickHashSize)
 	n, err := file.Read(buf)
 	if err != nil && err != io.EOF {
 		return 0, err
 	}
 
-	if fileSize < quickHashSize*2 {
+	if size < quickHashSize*2 {
 		// For small files, hash the entire content
 		if n > 0 {
 			return xxh3.Hash(buf[:n]), nil
