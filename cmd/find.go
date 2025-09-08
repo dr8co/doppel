@@ -17,8 +17,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/urfave/cli-altsrc/v3/toml"
-	"github.com/urfave/cli-altsrc/v3/yaml"
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/internal/config"
@@ -30,7 +28,7 @@ import (
 )
 
 // FindCommand returns the find command configuration.
-func FindCommand() *cli.Command {
+func FindCommand(cfg *config.FindConfig) *cli.Command {
 	return &cli.Command{
 		Name:    "find",
 		Aliases: []string{"search", "f"},
@@ -48,74 +46,100 @@ initial size-based filtering.`,
 				Aliases: []string{"w"},
 				Value:   runtime.NumCPU(),
 				Usage:   "Number of worker goroutines for parallel hashing",
-				Sources: cli.NewValueSourceChain(toml.TOML("workers", config.Toml), yaml.YAML("workers", config.Yaml)),
 			},
 			&cli.BoolFlag{
 				Name:    "verbose",
 				Aliases: []string{"v"},
 				Usage:   "Enable verbose output with detailed progress information",
-				Sources: cli.NewValueSourceChain(toml.TOML("verbose", config.Toml), yaml.YAML("verbose", config.Yaml)),
 			},
 			&cli.StringFlag{
-				Name:    "exclude-dirs",
-				Usage:   "Comma-separated list of directory patterns to exclude (glob patterns)",
-				Value:   "",
-				Sources: cli.NewValueSourceChain(toml.TOML("exclude-dirs", config.Toml), yaml.YAML("exclude-dirs", config.Yaml)),
+				Name:  "exclude-dirs",
+				Usage: "Comma-separated list of directory patterns to exclude (glob patterns)",
+				Value: "",
 			},
 			&cli.StringFlag{
-				Name:    "exclude-files",
-				Usage:   "Comma-separated list of file patterns to exclude (glob patterns)",
-				Value:   "",
-				Sources: cli.NewValueSourceChain(toml.TOML("exclude-files", config.Toml), yaml.YAML("exclude-files", config.Yaml)),
+				Name:  "exclude-files",
+				Usage: "Comma-separated list of file patterns to exclude (glob patterns)",
+				Value: "",
 			},
 			&cli.StringFlag{
-				Name:    "exclude-dir-regex",
-				Usage:   "Comma-separated list of regex patterns for directories to exclude",
-				Value:   "",
-				Sources: cli.NewValueSourceChain(toml.TOML("exclude-dir-regex", config.Toml), yaml.YAML("exclude-dir-regex", config.Yaml)),
+				Name:  "exclude-dir-regex",
+				Usage: "Comma-separated list of regex patterns for directories to exclude",
+				Value: "",
 			},
 			&cli.StringFlag{
-				Name:    "exclude-file-regex",
-				Usage:   "Comma-separated list of regex patterns for files to exclude",
-				Value:   "",
-				Sources: cli.NewValueSourceChain(toml.TOML("exclude-file-regex", config.Toml), yaml.YAML("exclude-file-regex", config.Yaml)),
+				Name:  "exclude-file-regex",
+				Usage: "Comma-separated list of regex patterns for files to exclude",
+				Value: "",
 			},
 			&cli.StringFlag{
-				Name:    "min-size",
-				Usage:   "Minimum file size (e.g., 10MB, 1.5GB, 500KiB) (0 = no limit)",
-				Value:   "",
-				Sources: cli.NewValueSourceChain(toml.TOML("min-size", config.Toml), yaml.YAML("min-size", config.Yaml)),
+				Name:  "min-size",
+				Usage: "Minimum file size (e.g., 10MB, 1.5GB, 500KiB) (0 = no limit)",
+				Value: "",
 			},
 			&cli.StringFlag{
-				Name:    "max-size",
-				Usage:   "Maximum file size (e.g., 100MB, 2GB, 1TiB) (0 = no limit)",
-				Value:   "",
-				Sources: cli.NewValueSourceChain(toml.TOML("max-size", config.Toml), yaml.YAML("max-size", config.Yaml)),
+				Name:  "max-size",
+				Usage: "Maximum file size (e.g., 100MB, 2GB, 1TiB) (0 = no limit)",
+				Value: "",
 			},
 			&cli.BoolFlag{
-				Name:    "show-filters",
-				Usage:   "Show active filters and exit without scanning",
-				Sources: cli.NewValueSourceChain(toml.TOML("show-filters", config.Toml), yaml.YAML("show-filters", config.Yaml)),
+				Name:  "show-filters",
+				Usage: "Show active filters and exit without scanning",
 			},
 			&cli.StringFlag{
-				Name:    "output-format",
-				Usage:   "Output format: pretty, json, yaml",
-				Value:   "pretty",
-				Sources: cli.NewValueSourceChain(toml.TOML("output-format", config.Toml), yaml.YAML("output-format", config.Yaml)),
+				Name:  "output-format",
+				Usage: "Output format: pretty, json, yaml",
+				Value: "pretty",
 			},
 			&cli.StringFlag{
-				Name:    "output-file",
-				Usage:   "Write output to file (default: stdout)",
-				Value:   "",
-				Sources: cli.NewValueSourceChain(toml.TOML("output-file", config.Toml), yaml.YAML("output-file", config.Yaml)),
+				Name:  "output-file",
+				Usage: "Write output to file (default: stdout)",
+				Value: "",
 			},
 		},
-		Action: findDuplicatesCmd,
+		Action: func(ctx context.Context, c *cli.Command) error {
+			return findDuplicatesCmd(ctx, c, cfg)
+		},
 	}
 }
 
 // findDuplicatesCmd is the action function for the find command.
-func findDuplicatesCmd(ctx context.Context, c *cli.Command) error {
+func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConfig) error {
+	// Override with CLI flags
+	if c.IsSet("workers") {
+		cfg.Workers = c.Int("workers")
+	}
+	if c.IsSet("verbose") {
+		cfg.Verbose = c.Bool("verbose")
+	}
+	if c.IsSet("exclude-dirs") {
+		cfg.ExcludeDirs = c.String("exclude-dirs")
+	}
+	if c.IsSet("exclude-files") {
+		cfg.ExcludeFiles = c.String("exclude-files")
+	}
+	if c.IsSet("exclude-dir-regex") {
+		cfg.ExcludeDirRegex = c.String("exclude-dir-regex")
+	}
+	if c.IsSet("exclude-file-regex") {
+		cfg.ExcludeFileRegex = c.String("exclude-file-regex")
+	}
+	if c.IsSet("min-size") {
+		cfg.MinSize = c.String("min-size")
+	}
+	if c.IsSet("max-size") {
+		cfg.MaxSize = c.String("max-size")
+	}
+	if c.IsSet("show-filters") {
+		cfg.ShowFilters = c.Bool("show-filters")
+	}
+	if c.IsSet("output-file") {
+		cfg.OutputFile = c.String("output-file")
+	}
+	if c.IsSet("output-format") {
+		cfg.OutputFormat = c.String("output-format")
+	}
+
 	directories, err := scanner.GetDirectoriesFromArgs(c)
 	if err != nil {
 		return err
@@ -123,15 +147,15 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command) error {
 
 	// Parse size strings to int64 bytes
 	var minSize, maxSize int64
-	if minSizeStr := c.String("min-size"); minSizeStr != "" {
-		minSize, err = filter.ParseFileSize(minSizeStr)
+	if cfg.MinSize != "" {
+		minSize, err = filter.ParseFileSize(cfg.MinSize)
 		if err != nil {
 			return fmt.Errorf("invalid min-size: %w", err)
 		}
 	}
 
-	if maxSizeStr := c.String("max-size"); maxSizeStr != "" {
-		maxSize, err = filter.ParseFileSize(maxSizeStr)
+	if cfg.MaxSize != "" {
+		maxSize, err = filter.ParseFileSize(cfg.MaxSize)
 		if err != nil {
 			return fmt.Errorf("invalid max-size: %w", err)
 		}
@@ -139,10 +163,10 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command) error {
 
 	// Build filter configuration
 	filterConfig, err := filter.BuildConfig(
-		c.String("exclude-dirs"),
-		c.String("exclude-files"),
-		c.String("exclude-dir-regex"),
-		c.String("exclude-file-regex"),
+		cfg.ExcludeDirs,
+		cfg.ExcludeFiles,
+		cfg.ExcludeDirRegex,
+		cfg.ExcludeFileRegex,
 		minSize,
 		maxSize,
 	)
@@ -150,18 +174,17 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
-	return findDuplicates(ctx, c, directories, filterConfig)
+	return findDuplicates(ctx, cfg, directories, filterConfig)
 }
 
 // findDuplicates performs the main logic of finding duplicate files.
-func findDuplicates(ctx context.Context, c *cli.Command, directories []string, filterConfig *filter.Config) error {
-	if c.Bool("show-filters") {
+func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []string, filterConfig *filter.Config) error {
+	if cfg.ShowFilters {
 		filter.DisplayActiveFilters(filterConfig)
 		return nil
 	}
 
-	verbose := c.Bool("verbose")
-	if verbose {
+	if cfg.Verbose {
 		fmt.Printf("🔍 Scanning directories: %v\n", directories)
 		filter.DisplayActiveFilters(filterConfig)
 	}
@@ -169,18 +192,17 @@ func findDuplicates(ctx context.Context, c *cli.Command, directories []string, f
 	s := &model.Stats{StartTime: time.Now()}
 
 	// Phase 1: Group files by size
-	sizeGroups, err := scanner.GroupFilesBySize(directories, filterConfig, s, verbose)
+	sizeGroups, err := scanner.GroupFilesBySize(directories, filterConfig, s, cfg.Verbose)
 	if err != nil {
 		return fmt.Errorf("error scanning files: %w", err)
 	}
 
-	if verbose {
+	if cfg.Verbose {
 		fmt.Printf("📊 Found %d files, %d size groups\n", s.TotalFiles, len(sizeGroups))
 	}
 
 	// Phase 2: Hash files that have potential duplicates
-	workers := c.Int("workers")
-	report, err := finder.FindDuplicatesByHash(ctx, sizeGroups, workers, s, verbose)
+	report, err := finder.FindDuplicatesByHash(ctx, sizeGroups, cfg.Workers, s, cfg.Verbose)
 	s.Duration = time.Since(s.StartTime)
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)
@@ -192,9 +214,7 @@ func findDuplicates(ctx context.Context, c *cli.Command, directories []string, f
 		return fmt.Errorf("error initializing formatters: %w", err)
 	}
 
-	format := c.String("output-format")
-
-	outputFile := c.String("output-file")
+	outputFile := cfg.OutputFile
 	var out io.Writer = os.Stdout
 
 	if outputFile != "" {
@@ -224,7 +244,7 @@ func findDuplicates(ctx context.Context, c *cli.Command, directories []string, f
 		out = file
 	}
 
-	err = reg.Format(format, report, out)
+	err = reg.Format(cfg.OutputFormat, report, out)
 	if err != nil {
 		return fmt.Errorf("error formatting report: %w", err)
 	}

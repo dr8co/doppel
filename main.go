@@ -16,8 +16,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/urfave/cli-altsrc/v3/toml"
-	"github.com/urfave/cli-altsrc/v3/yaml"
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/cmd"
@@ -57,6 +55,8 @@ func main() {
 		exit(1)
 	}()
 
+	appConfig := config.Default()
+
 	app := &cli.Command{
 		Name:    "doppel",
 		Usage:   "Find duplicate files across directories",
@@ -72,40 +72,62 @@ then computing Blake3 hashes for files of the same size. It supports parallel
 processing and extensive filtering options to skip unwanted files and directories.`,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "log-level",
-				Usage:   "Set the log level (debug, info, warn, error)",
-				Value:   "info",
-				Sources: cli.NewValueSourceChain(toml.TOML("log-level", config.Toml), yaml.YAML("log-level", config.Yaml)),
+				Name:  "log-level",
+				Usage: "Set the log level (debug, info, warn, error)",
+				Value: "info",
 			},
 			&cli.StringFlag{
-				Name:    "log-format",
-				Usage:   "Set the log format (text, json, pretty, discard)",
-				Value:   "pretty",
-				Sources: cli.NewValueSourceChain(toml.TOML("log-format", config.Toml), yaml.YAML("log-format", config.Yaml)),
+				Name:  "log-format",
+				Usage: "Set the log format (text, json, pretty, discard)",
+				Value: "pretty",
 			},
 			&cli.StringFlag{
-				Name:    "log-output",
-				Usage:   "Set the log output (stdout, stderr, null, or file path)",
-				Value:   "stdout",
-				Sources: cli.NewValueSourceChain(toml.TOML("log-output", config.Toml), yaml.YAML("log-output", config.Yaml)),
+				Name:  "log-output",
+				Usage: "Set the log output (stdout, stderr, null, or file path)",
+				Value: "stdout",
+			},
+			&cli.StringFlag{
+				Name:  "config",
+				Usage: "Path to the TOML configuration file",
 			},
 		},
 		Commands: []*cli.Command{
-			cmd.FindCommand(),
-			cmd.PresetCommand(),
+			cmd.FindCommand(appConfig.Find),
+			cmd.PresetCommand(appConfig.Preset),
 		},
 		DefaultCommand:        "find",
 		Suggest:               true,
 		EnableShellCompletion: true,
 		Before: func(ctx context.Context, command *cli.Command) (context.Context, error) {
-			logLevel := command.String("log-level")
-			logFormat := command.String("log-format")
-			logOutput := command.String("log-output")
+			var configPath string
+			if command.IsSet("config") {
+				configPath = command.String("config")
+				config.SetConfigFile(configPath)
+			}
+
+			var err error
+			appConfig, err = config.LoadConfig()
+			if err != nil {
+				if configPath != "" {
+					return ctx, err
+				}
+				logger.DebugCtx(ctx, "failed to load the config", "error", err)
+			}
+
+			if command.IsSet("log-level") {
+				appConfig.LogLevel = command.String("log-level")
+			}
+			if command.IsSet("log-format") {
+				appConfig.LogFormat = command.String("log-format")
+			}
+			if command.IsSet("log-output") {
+				appConfig.LogOutput = command.String("log-output")
+			}
 
 			level := slog.LevelInfo
 			addSource := false
 
-			switch strings.ToLower(logLevel) {
+			switch strings.ToLower(appConfig.LogLevel) {
 			case "info", "":
 				level = slog.LevelInfo
 			case "debug":
@@ -116,14 +138,13 @@ processing and extensive filtering options to skip unwanted files and directorie
 			case "error":
 				level = slog.LevelError
 			default:
-				_, _ = fmt.Fprintf(os.Stderr, "Unknown log level '%s'. Using info level.\n", logLevel)
+				_, _ = fmt.Fprintf(os.Stderr, "Unknown log level '%s'. Using info level.\n", appConfig.LogLevel)
 			}
 
-			var err error
 			var cfg logger.Config
 			opts := &slog.HandlerOptions{Level: level, AddSource: addSource}
 
-			cfg, closer, err = logger.NewConfig(opts, logFormat, logOutput)
+			cfg, closer, err = logger.NewConfig(opts, appConfig.LogFormat, appConfig.LogOutput)
 			if err != nil {
 				return ctx, err
 			}
