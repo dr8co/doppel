@@ -135,9 +135,7 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 	// Start workers for quick hashing
 	var quickWg sync.WaitGroup
 	for range numWorkers {
-		quickWg.Add(1)
-		go func() {
-			defer quickWg.Done()
+		quickWg.Go(func() {
 			for item := range quickWorkChan {
 				hash, err := scanner.QuickHashFile(item.path)
 				if err != nil {
@@ -147,7 +145,7 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 				}
 				quickResultChan <- fileInfoQuickHash{path: item.path, size: item.size, hash: hash}
 			}
-		}()
+		})
 	}
 
 	// Send work for quick hashing
@@ -187,9 +185,7 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 	// Start workers for full hashing
 	var fullWg sync.WaitGroup
 	for range numWorkers {
-		fullWg.Add(1)
-		go func() {
-			defer fullWg.Done()
+		fullWg.Go(func() {
 			for item := range fullWorkChan {
 				hash, err := scanner.HashFile(item.path)
 				if err != nil {
@@ -200,7 +196,7 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 
 				fullResultChan <- scanner.FileInfo{Path: item.path, Size: item.size, Hash: hash}
 			}
-		}()
+		})
 	}
 
 	// Send work for full hashing
