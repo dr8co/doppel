@@ -44,7 +44,7 @@ func (v *defaultValidator) validateLogConfig(config *LogConfig) error {
 	}
 
 	if config.Format != "" {
-		validFormats := []string{"json", "pretty"}
+		validFormats := []string{"text", "json", "pretty", "discard"}
 		if !contains(validFormats, config.Format) {
 			return fmt.Errorf("invalid log format: %s, must be one of %v", config.Format, validFormats)
 		}
@@ -66,11 +66,11 @@ func (v *defaultValidator) validatePresetConfig(config *PresetConfig) error {
 // validate is a common validation function for both preset and find config.
 func validate(workers int, outputFormat string) error {
 	if workers < minWorkers {
-		return fmt.Errorf("workers must be positive, got: %d", workers)
+		return fmt.Errorf("too few workers: %d (min %d)", workers, minWorkers)
 	}
 
 	if workers > max(maxWorkers, runtime.NumCPU()) {
-		return fmt.Errorf("workers too high: %d (max %d)", workers, max(maxWorkers, runtime.NumCPU()))
+		return fmt.Errorf("too many workers: %d (max %d)", workers, max(maxWorkers, runtime.NumCPU()))
 	}
 
 	if outputFormat != "" {

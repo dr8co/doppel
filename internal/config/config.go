@@ -90,12 +90,15 @@ type Loader struct {
 	mu        sync.RWMutex
 }
 
+// Default timeout for provider operations.
+const defaultTimeout = 10 * time.Second
+
 // NewLoader creates a new configuration loader.
 func NewLoader(opts ...LoaderOption) *Loader {
 	options := LoaderOptions{
 		Validator: &defaultValidator{},
 		Merger:    &defaultMerger{},
-		Timeout:   10 * time.Second,
+		Timeout:   defaultTimeout,
 	}
 
 	for _, opt := range opts {
@@ -215,8 +218,8 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Global loader instance
 var (
+	// Global loader instance.
 	globalLoader *Loader
 	globalOnce   sync.Once
 )
@@ -238,7 +241,7 @@ func Initialize(configDir string) error {
 		globalLoader.AddProvider(NewEnvProvider("DOPPEL_", 40))
 
 		// Load initial configuration
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 		defer cancel()
 		_, err = globalLoader.Load(ctx)
 	})
@@ -251,7 +254,7 @@ func Load() (*Config, error) {
 		return nil, errors.New("configuration not initialized, call Initialize() first")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	return globalLoader.Load(ctx)
 }
