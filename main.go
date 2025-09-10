@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/urfave/cli/v3"
 
@@ -55,7 +56,11 @@ func main() {
 		exit(1)
 	}()
 
-	appConfig := config.Default()
+	appConfig, err := config.Load()
+	if err != nil {
+		logger.Error("failed to load the config", "error", err)
+		exit(1)
+	}
 
 	app := &cli.Command{
 		Name:    "doppel",
@@ -92,66 +97,30 @@ processing and extensive filtering options to skip unwanted files and directorie
 			},
 		},
 		Commands: []*cli.Command{
-			cmd.FindCommand(appConfig.Find),
-			cmd.PresetCommand(appConfig.Preset),
+			cmd.FindCommand(&appConfig.Find),
+			cmd.PresetCommand(&appConfig.Preset),
 		},
 		DefaultCommand:        "find",
 		Suggest:               true,
 		EnableShellCompletion: true,
 		Before: func(ctx context.Context, command *cli.Command) (context.Context, error) {
-			var configPath string
 			if command.IsSet("config") {
-				configPath = command.String("config")
-				config.SetConfigFile(configPath)
-			}
-
-			var err error
-			appConfig, err = config.LoadConfig()
-			if err != nil {
-				if configPath != "" {
+				configPath := command.String("config")
+				loader := config.NewLoader(
+					config.WithTimeout(2 * time.Second),
+				)
+				loader.AddProvider(config.NewEnvProvider("DOPPEL_", 100))
+				loader.AddProvider(config.NewFileProvider(configPath, 10))
+				customConfig, err := loader.Load(ctx)
+				if err != nil {
 					return ctx, err
 				}
-				logger.DebugCtx(ctx, "failed to load the config", "error", err)
+				*appConfig = *customConfig
 			}
 
-			if command.IsSet("log-level") {
-				appConfig.LogLevel = command.String("log-level")
-			}
-			if command.IsSet("log-format") {
-				appConfig.LogFormat = command.String("log-format")
-			}
-			if command.IsSet("log-output") {
-				appConfig.LogOutput = command.String("log-output")
-			}
-
-			level := slog.LevelInfo
-			addSource := false
-
-			switch strings.ToLower(appConfig.LogLevel) {
-			case "info", "":
-				level = slog.LevelInfo
-			case "debug":
-				level = slog.LevelDebug
-				addSource = true
-			case "warn", "warning":
-				level = slog.LevelWarn
-			case "error":
-				level = slog.LevelError
-			default:
-				_, _ = fmt.Fprintf(os.Stderr, "Unknown log level '%s'. Using info level.\n", appConfig.LogLevel)
-			}
-
-			var cfg logger.Config
-			opts := &slog.HandlerOptions{Level: level, AddSource: addSource}
-
-			cfg, closer, err = logger.NewConfig(opts, appConfig.LogFormat, appConfig.LogOutput)
-			if err != nil {
-				return ctx, err
-			}
-
-			err = logger.NewDefault(&cfg)
-
-			return ctx, err
+			logCloser, newCtx, err := initialize(ctx, command, appConfig)
+			closer = logCloser
+			return newCtx, err
 		},
 	}
 
@@ -160,4 +129,47 @@ processing and extensive filtering options to skip unwanted files and directorie
 		logger.Error("error running the application", "error", err)
 		exit(1)
 	}
+}
+
+// initialize sets up the logging system based on CLI flags and configuration.
+func initialize(ctx context.Context, command *cli.Command, cfg *config.Config) (io.Closer, context.Context, error) {
+	// Override with CLI flags
+	if command.IsSet("log-level") {
+		cfg.Log.Level = command.String("log-level")
+	}
+	if command.IsSet("log-format") {
+		cfg.Log.Format = command.String("log-format")
+	}
+	if command.IsSet("log-output") {
+		cfg.Log.Output = command.String("log-output")
+	}
+
+	// Set up logging
+	level := slog.LevelInfo
+	addSource := false
+
+	switch strings.ToLower(cfg.Log.Level) {
+	case "info", "":
+		level = slog.LevelInfo
+	case "debug":
+		level = slog.LevelDebug
+		addSource = true
+	case "warn", "warning":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		_, _ = fmt.Fprintf(os.Stderr, "Unknown log level '%s'. Using info level.\n", cfg.Log.Level)
+	}
+
+	// Initialize the logger
+	opts := &slog.HandlerOptions{Level: level, AddSource: addSource}
+	logCfg, closer, err := logger.NewConfig(opts, cfg.Log.Format, cfg.Log.Output)
+	if err != nil {
+		return nil, ctx, err
+	}
+
+	err = logger.NewDefault(&logCfg)
+
+	return closer, ctx, err
 }
