@@ -3,11 +3,17 @@ package config
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 )
 
 // defaultValidator provides comprehensive validation.
 type defaultValidator struct{}
+
+const (
+	maxWorkers = 64
+	minWorkers = 1
+)
 
 // Validate validates the configuration.
 func (v *defaultValidator) Validate(config *Config) error {
@@ -49,41 +55,30 @@ func (v *defaultValidator) validateLogConfig(config *LogConfig) error {
 
 // validateFindConfig validates the find configuration.
 func (v *defaultValidator) validateFindConfig(config *FindConfig) error {
-	if config.Workers <= 0 {
-		return fmt.Errorf("workers must be positive, got: %d", config.Workers)
-	}
-
-	if config.Workers > 64 {
-		return fmt.Errorf("workers too high: %d (max 64)", config.Workers)
-	}
-
-	if config.OutputFormat != "" {
-		validFormats := []string{"json", "pretty", "yaml"}
-		if !contains(validFormats, config.OutputFormat) {
-			return fmt.Errorf("invalid output format: %s, must be one of %v", config.OutputFormat, validFormats)
-		}
-	}
-
-	return nil
+	return validate(config.Workers, config.OutputFormat)
 }
 
 // validatePresetConfig validates the preset configuration.
 func (v *defaultValidator) validatePresetConfig(config *PresetConfig) error {
-	if config.Workers <= 0 {
-		return fmt.Errorf("workers must be positive, got: %d", config.Workers)
+	return validate(config.Workers, config.OutputFormat)
+}
+
+// validate is a common validation function for both preset and find config.
+func validate(workers int, outputFormat string) error {
+	if workers < minWorkers {
+		return fmt.Errorf("workers must be positive, got: %d", workers)
 	}
 
-	if config.Workers > 64 {
-		return fmt.Errorf("workers too high: %d (max 64)", config.Workers)
+	if workers > max(maxWorkers, runtime.NumCPU()) {
+		return fmt.Errorf("workers too high: %d (max %d)", workers, max(maxWorkers, runtime.NumCPU()))
 	}
 
-	if config.OutputFormat != "" {
+	if outputFormat != "" {
 		validFormats := []string{"json", "pretty", "yaml"}
-		if !contains(validFormats, config.OutputFormat) {
-			return fmt.Errorf("invalid output format: %s, must be one of %v", config.OutputFormat, validFormats)
+		if !contains(validFormats, outputFormat) {
+			return fmt.Errorf("invalid output format: %s, must be one of %v", outputFormat, validFormats)
 		}
 	}
-
 	return nil
 }
 
