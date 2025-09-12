@@ -129,6 +129,10 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 
 // quickHash performs quick hashing for a list of files using multiple workers and groups files by their quick hashes.
 func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorkers int, stats *model.Stats) map[uint64][]fileInfoQuickHash {
+	if numWorkers > len(candidateFiles) {
+		numWorkers = len(candidateFiles)
+	}
+
 	quickWorkChan := make(chan scanner.FileInfo, len(candidateFiles))
 	quickResultChan := make(chan fileInfoQuickHash, len(candidateFiles))
 
@@ -143,7 +147,11 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 					stats.IncrementErrorCount()
 					continue
 				}
-				quickResultChan <- fileInfoQuickHash{path: item.Path, size: item.Size, hash: hash}
+				select {
+				case quickResultChan <- fileInfoQuickHash{path: item.Path, size: item.Size, hash: hash}:
+				case <-ctx.Done():
+					return
+				}
 			}
 		})
 	}
@@ -178,6 +186,10 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 
 // fullHash performs full hashing for candidates, groups by hash.
 func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWorkers int, stats *model.Stats) map[string][]scanner.FileInfo {
+	if numWorkers > len(fullHashCandidates) {
+		numWorkers = len(fullHashCandidates)
+	}
+
 	// Create channels for full hashing
 	fullWorkChan := make(chan fileInfoQuickHash, len(fullHashCandidates))
 	fullResultChan := make(chan scanner.FileInfo, len(fullHashCandidates))
@@ -194,7 +206,11 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 					continue
 				}
 
-				fullResultChan <- scanner.FileInfo{Path: item.path, Size: item.size, Hash: hash}
+				select {
+				case fullResultChan <- scanner.FileInfo{Path: item.path, Size: item.size, Hash: hash}:
+				case <-ctx.Done():
+					return
+				}
 			}
 		})
 	}
