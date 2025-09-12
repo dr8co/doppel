@@ -22,6 +22,7 @@ import (
 	"github.com/dr8co/doppel/cmd"
 	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/logger"
+	"github.com/dr8co/doppel/internal/pathutil"
 )
 
 const (
@@ -105,12 +106,16 @@ processing and extensive filtering options to skip unwanted files and directorie
 		EnableShellCompletion: true,
 		Before: func(ctx context.Context, command *cli.Command) (context.Context, error) {
 			if command.IsSet("config") {
-				configPath := command.String("config")
+				configPath, err := pathutil.ValidateRegularFile(command.String("config"))
+				if err != nil {
+					return ctx, fmt.Errorf("failed to parse the config: %w", err)
+				}
+
 				loader := config.NewLoader(
 					config.WithTimeout(2 * time.Second),
 				)
-				loader.AddProvider(config.NewEnvProvider("DOPPEL_", 100))
 				loader.AddProvider(config.NewFileProvider(configPath, 10))
+				loader.AddProvider(config.NewEnvProvider("DOPPEL_", 100))
 				customConfig, err := loader.Load(ctx)
 				if err != nil {
 					return ctx, err

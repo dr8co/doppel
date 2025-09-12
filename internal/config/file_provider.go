@@ -20,6 +20,8 @@ type FileProvider struct {
 }
 
 // NewFileProvider creates a new file provider.
+// The path is expected to be sanitized.
+// The file format is inferred from the file extension, or assumed to be TOML if not available.
 func NewFileProvider(path string, priority int) *FileProvider {
 	ext := strings.ToLower(filepath.Ext(path))
 	//nolint:goconst
