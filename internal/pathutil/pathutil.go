@@ -39,13 +39,16 @@ func cleanAndResolve(path string) (string, error) {
 func ValidateRegularFile(path string) (string, error) {
 	resolved, err := cleanAndResolve(path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("%w: %s", ErrNotExist, resolved)
+		}
 		return "", err
 	}
 
 	// Check if the file exists
 	info, err := os.Stat(resolved)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return "", fmt.Errorf("%w: %s", ErrNotExist, resolved)
 		}
 		return "", err
@@ -66,12 +69,15 @@ func ValidateRegularFile(path string) (string, error) {
 func ValidateDirectory(path string) (string, error) {
 	resolved, err := cleanAndResolve(path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("%w: %s", ErrNotExist, resolved)
+		}
 		return "", err
 	}
 
 	info, err := os.Stat(resolved)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return "", fmt.Errorf("%w: %s", ErrNotExist, resolved)
 		}
 		return "", err
