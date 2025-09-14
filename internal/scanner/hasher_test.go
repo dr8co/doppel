@@ -6,8 +6,32 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/zeebo/xxh3"
 	"lukechampine.com/blake3"
 )
+
+const chunkSize = 64 * 1024 // 64 KB
+
+// HashFile computes Blake3 hash of the entire file.
+func hashFile(filePath string) (string, error) {
+	hasher := blake3.New(32, nil)
+	buf := make([]byte, chunkSize)
+
+	return HashFile(filePath, buf, hasher)
+
+}
+
+// QuickHashFile computes a XXH3 hash of the first and the last portions of a file.
+func quickHashFile(filePath string, size int64) (uint64, error) {
+	if size <= 0 {
+		return 0, nil
+	}
+	buf := make([]byte, quickHashSize)
+	hasher := xxh3.New()
+
+	return QuickHashFile(filePath, size, buf, hasher)
+
+}
 
 // TestHashFile tests the [HashFile] function for various scenarios, including typical file content and edge cases.
 func TestHashFile(t *testing.T) {
@@ -63,7 +87,7 @@ func TestHashFile(t *testing.T) {
 			expectedHash := fmt.Sprintf("%x", hasher.Sum(nil))
 
 			// Call the function being tested
-			gotHash, err := HashFile(filePath)
+			gotHash, err := hashFile(filePath)
 
 			// Check for errors
 			if (err != nil) != tt.wantErr {
@@ -85,7 +109,7 @@ func TestHashFile(t *testing.T) {
 
 	// Test with a non-existent file
 	t.Run("non-existent file", func(t *testing.T) {
-		_, err := HashFile(filepath.Join(tempDir, "non-existent-file"))
+		_, err := hashFile(filepath.Join(tempDir, "non-existent-file"))
 		if err == nil {
 			t.Errorf("HashFile() expected error for non-existent file, got nil")
 		}
@@ -171,7 +195,7 @@ func TestQuickHashFile(t *testing.T) {
 			}
 
 			// Call the function being tested
-			gotHash, err := QuickHashFile(filePath, int64(len(tt.content)))
+			gotHash, err := quickHashFile(filePath, int64(len(tt.content)))
 
 			// Check for errors
 			if (err != nil) != tt.wantErr {
@@ -195,7 +219,7 @@ func TestQuickHashFile(t *testing.T) {
 
 	// Test with a non-existent file
 	t.Run("non-existent file", func(t *testing.T) {
-		_, err := QuickHashFile(filepath.Join(tempDir, "non-existent-file"), 1)
+		_, err := quickHashFile(filepath.Join(tempDir, "non-existent-file"), 1)
 		if err == nil {
 			t.Errorf("QuickHashFile() expected error for non-existent file, got nil")
 		}
@@ -237,12 +261,12 @@ func TestQuickHashConsistency(t *testing.T) {
 	}
 
 	// Compute quick hashes
-	hash1, err := QuickHashFile(file1, int64(len(content)))
+	hash1, err := quickHashFile(file1, int64(len(content)))
 	if err != nil {
 		t.Fatalf("Failed to compute quick hash for file1: %v", err)
 	}
 
-	hash2, err := QuickHashFile(file2, int64(len(content)))
+	hash2, err := quickHashFile(file2, int64(len(content)))
 	if err != nil {
 		t.Fatalf("Failed to compute quick hash for file2: %v", err)
 	}
@@ -266,7 +290,7 @@ func TestQuickHashConsistency(t *testing.T) {
 		t.Fatalf("Failed to create file3: %v", err)
 	}
 
-	hash3, err := QuickHashFile(file3, int64(len(differentContent)))
+	hash3, err := quickHashFile(file3, int64(len(differentContent)))
 	if err != nil {
 		t.Fatalf("Failed to compute quick hash for file3: %v", err)
 	}
@@ -277,12 +301,12 @@ func TestQuickHashConsistency(t *testing.T) {
 	}
 
 	// But full hashes should be different
-	fullHash1, err := HashFile(file1)
+	fullHash1, err := hashFile(file1)
 	if err != nil {
 		t.Fatalf("Failed to compute full hash for file1: %v", err)
 	}
 
-	fullHash3, err := HashFile(file3)
+	fullHash3, err := hashFile(file3)
 	if err != nil {
 		t.Fatalf("Failed to compute full hash for file3: %v", err)
 	}
