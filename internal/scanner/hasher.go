@@ -1,17 +1,15 @@
 package scanner
 
 import (
+	"errors"
+	"hash"
 	"io"
 	"os"
 
 	"github.com/zeebo/xxh3"
-	"lukechampine.com/blake3"
 )
 
-const (
-	chunkSize     = 64 * 1024 // 64 KB
-	quickHashSize = 8 * 1024  // 8 KB for quick hash
-)
+const quickHashSize = 8 * 1024 // 8 KB for quick hash
 
 // FileInfo represents a file with its path, size, and hash.
 type FileInfo struct {
@@ -20,8 +18,11 @@ type FileInfo struct {
 	Hash string `json:"hash" yaml:"hash"`
 }
 
-// HashFile computes Blake3 hash of the entire file.
-func HashFile(filePath string) (string, error) {
+// HashFile computes the hash of an entire file.
+func HashFile(filePath string, buf []byte, hasher hash.Hash) (string, error) {
+	if hasher == nil {
+		return "", errors.New("hasher is nil")
+	}
 	//nolint:gosec
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -32,8 +33,7 @@ func HashFile(filePath string) (string, error) {
 		_ = file.Close()
 	}(file)
 
-	hasher := blake3.New(32, nil)
-	buf := make([]byte, chunkSize)
+	hasher.Reset()
 
 	for {
 		n, err := file.Read(buf)
@@ -57,9 +57,12 @@ func HashFile(filePath string) (string, error) {
 
 // QuickHashFile computes a XXH3 hash of the first and the last portions of a file
 // This is used as a quick preliminary check before computing the full hash.
-func QuickHashFile(filePath string, size int64) (uint64, error) {
+func QuickHashFile(filePath string, size int64, buf []byte, hasher *xxh3.Hasher) (uint64, error) {
 	if size <= 0 {
 		return 0, nil
+	}
+	if hasher == nil {
+		return 0, errors.New("hasher is nil")
 	}
 
 	//nolint:gosec
@@ -72,7 +75,8 @@ func QuickHashFile(filePath string, size int64) (uint64, error) {
 		_ = file.Close()
 	}(file)
 
-	buf := make([]byte, quickHashSize)
+	hasher.Reset()
+
 	n, err := file.Read(buf)
 	if err != nil && err != io.EOF {
 		return 0, err
@@ -85,7 +89,6 @@ func QuickHashFile(filePath string, size int64) (uint64, error) {
 		}
 	} else {
 		// Hash first quickHashSize bytes
-		hasher := xxh3.New()
 		if n > 0 {
 			_, _ = hasher.Write(buf[:n])
 		}
