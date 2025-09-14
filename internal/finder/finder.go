@@ -19,9 +19,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zeebo/xxh3"
+	"lukechampine.com/blake3"
+
 	"github.com/dr8co/doppel/internal/logger"
 	"github.com/dr8co/doppel/internal/model"
 	"github.com/dr8co/doppel/internal/scanner"
+)
+
+const (
+	chunkSize     = 64 * 1024 // 64 KB for hashing
+	quickHashSize = 8 * 1024  // 8 KB for quick hash
 )
 
 // fileInfoQuickHash is a helper struct for quick hashing.
@@ -129,6 +137,10 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 
 // quickHash performs quick hashing for a list of files using multiple workers and groups files by their quick hashes.
 func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorkers int, stats *model.Stats) map[uint64][]fileInfoQuickHash {
+	if len(candidateFiles) < 2 {
+		return map[uint64][]fileInfoQuickHash{}
+	}
+
 	if numWorkers > len(candidateFiles) {
 		numWorkers = len(candidateFiles)
 	}
@@ -140,8 +152,10 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 	var quickWg sync.WaitGroup
 	for range numWorkers {
 		quickWg.Go(func() {
+			buf := make([]byte, quickHashSize)
+			hasher := xxh3.New()
 			for item := range quickWorkChan {
-				hash, err := scanner.QuickHashFile(item.Path, item.Size)
+				hash, err := scanner.QuickHashFile(item.Path, item.Size, buf, hasher)
 				if err != nil {
 					logError(ctx, err, "quick hash", item.Path)
 					stats.IncrementErrorCount()
@@ -198,8 +212,10 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 	var fullWg sync.WaitGroup
 	for range numWorkers {
 		fullWg.Go(func() {
+			hasher := blake3.New(32, nil)
+			buf := make([]byte, chunkSize)
 			for item := range fullWorkChan {
-				hash, err := scanner.HashFile(item.path)
+				hash, err := scanner.HashFile(item.path, buf, hasher)
 				if err != nil {
 					logError(ctx, err, "full hash", item.path)
 					stats.IncrementErrorCount()
