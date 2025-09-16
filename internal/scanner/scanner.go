@@ -29,10 +29,10 @@ import (
 )
 
 // GroupFilesBySize scans directories and groups files by their size.
-func GroupFilesBySize(directories []string, filterConfig *filter.Config, stats *model.Stats, verbose bool) (map[int64][]FileInfo, error) {
+func GroupFilesBySize(ctx context.Context,
+	directories []string, filterConfig *filter.Config, stats *model.Stats, verbose bool) (map[int64][]FileInfo, error,
+) {
 	sizeGroups := make(map[int64][]FileInfo, len(directories))
-	ctx := context.TODO()
-
 	for _, dir := range directories {
 		err := filepath.WalkDir(dir, func(path string, dirEnt fs.DirEntry, err error) error {
 			if err != nil {

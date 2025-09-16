@@ -192,7 +192,7 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 	s := &model.Stats{StartTime: time.Now()}
 
 	// Phase 1: Group files by size
-	sizeGroups, err := scanner.GroupFilesBySize(directories, filterConfig, s, cfg.Verbose)
+	sizeGroups, err := scanner.GroupFilesBySize(ctx, directories, filterConfig, s, cfg.Verbose)
 	if err != nil {
 		return fmt.Errorf("error scanning files: %w", err)
 	}

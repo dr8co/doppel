@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -36,9 +37,10 @@ func TestGroupFilesBySize(t *testing.T) {
 			t.Fatalf("Failed to create directory %s: %v", dir, err)
 		}
 	}
+	ctx := context.Background()
 
 	// Test a directory tree without any files
-	sizeGroups, err := GroupFilesBySize([]string{tempDir}, &filter.Config{}, &model.Stats{}, false)
+	sizeGroups, err := GroupFilesBySize(ctx, []string{tempDir}, &filter.Config{}, &model.Stats{}, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -73,7 +75,7 @@ func TestGroupFilesBySize(t *testing.T) {
 	s := &model.Stats{}
 
 	// Test GroupFilesBySize
-	sizeGroups, err = GroupFilesBySize([]string{tempDir}, filterConfig, s, false)
+	sizeGroups, err = GroupFilesBySize(ctx, []string{tempDir}, filterConfig, s, false)
 	if err != nil {
 		t.Fatalf("GroupFilesBySize() error = %v", err)
 	}
@@ -123,7 +125,7 @@ func TestGroupFilesBySize(t *testing.T) {
 
 	// All files skipped due to size
 	filterConfig2 := &filter.Config{MinSize: 1000}
-	sizeGroups, err = GroupFilesBySize([]string{tempDir}, filterConfig2, &model.Stats{}, false)
+	sizeGroups, err = GroupFilesBySize(ctx, []string{tempDir}, filterConfig2, &model.Stats{}, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
