@@ -4,6 +4,7 @@ package config
 type defaultMerger struct{}
 
 // Merge merges two configurations.
+// The base values are only overwritten if the override values are non-empty.
 func (m *defaultMerger) Merge(base, override *Config) *Config {
 	result := *base // Copy base
 

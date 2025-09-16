@@ -13,17 +13,17 @@
 //
 // Custom configuration providers, validators, and mergers can be easily integrated.
 // The package ensures thread-safe operations and is designed for high performance in concurrent environments.
+//
+// Note: initialization of the package-global loader is performed in
+// `init()` within `config.go`. For explicit/custom loading use a
+// `NewLoader()` instance.
 package config
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
-	"time"
 
 	"github.com/dr8co/doppel/internal/logger"
 )
@@ -134,132 +134,6 @@ type Merger interface {
 	Merge(base, override *Config) *Config
 }
 
-// LoaderOptions configure the configuration loader.
-type LoaderOptions struct {
-	// Validator for configuration validation.
-	Validator Validator
-	// Merger for custom merging logic.
-	Merger Merger
-	// Timeout for provider operations.
-	Timeout time.Duration
-}
-
-// Loader manages configuration loading from multiple providers.
-type Loader struct {
-	providers []Provider
-	options   LoaderOptions
-	mu        sync.RWMutex
-}
-
-// Default timeout for provider operations.
-const defaultTimeout = 10 * time.Second
-
-// NewLoader creates a new configuration loader.
-func NewLoader(opts ...LoaderOption) *Loader {
-	options := LoaderOptions{
-		Validator: &defaultValidator{},
-		Merger:    &defaultMerger{},
-		Timeout:   defaultTimeout,
-	}
-
-	for _, opt := range opts {
-		opt(&options)
-	}
-
-	return &Loader{
-		providers: make([]Provider, 0),
-		options:   options,
-	}
-}
-
-// LoaderOption is a functional option for configuring the loader.
-type LoaderOption func(*LoaderOptions)
-
-// WithValidator sets a custom validator.
-func WithValidator(v Validator) LoaderOption {
-	return func(opts *LoaderOptions) {
-		opts.Validator = v
-	}
-}
-
-// WithMerger sets a custom merger.
-func WithMerger(m Merger) LoaderOption {
-	return func(opts *LoaderOptions) {
-		opts.Merger = m
-	}
-}
-
-// WithTimeout sets the operation timeout.
-func WithTimeout(timeout time.Duration) LoaderOption {
-	return func(opts *LoaderOptions) {
-		opts.Timeout = timeout
-	}
-}
-
-// AddProvider adds a configuration provider.
-func (l *Loader) AddProvider(provider Provider) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	// Insert in priority order (higher priority first)
-	inserted := false
-	for i, p := range l.providers {
-		if provider.Priority() > p.Priority() {
-			l.providers = append(l.providers[:i], append([]Provider{provider}, l.providers[i:]...)...)
-			inserted = true
-			break
-		}
-	}
-	if !inserted {
-		l.providers = append(l.providers, provider)
-	}
-}
-
-// Load loads configuration from all providers.
-func (l *Loader) Load(ctx context.Context) (*Config, error) {
-	if l.options.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, l.options.Timeout)
-		defer cancel()
-	}
-
-	l.mu.RLock()
-	providers := make([]Provider, len(l.providers))
-	copy(providers, l.providers)
-	l.mu.RUnlock()
-
-	config := DefaultConfig()
-	var errs []error
-
-	// Load from providers in reverse priority order for merging
-	for i := len(providers) - 1; i >= 0; i-- {
-		provider := providers[i]
-		providerConfig, err := provider.Load(ctx)
-		if err != nil {
-			logger.Error("Failed to load from provider",
-				"provider", provider.Name(),
-				"error", err)
-			errs = append(errs, fmt.Errorf("provider %s: %w", provider.Name(), err))
-			continue
-		}
-
-		if providerConfig != nil {
-			config = l.options.Merger.Merge(config, providerConfig)
-		}
-	}
-
-	// Validate the final configuration
-	if err := l.options.Validator.Validate(config); err != nil {
-		return nil, fmt.Errorf("configuration validation failed: %w", err)
-	}
-
-	if len(errs) > 0 {
-		return config, fmt.Errorf("some providers failed to load: %v", errs)
-	}
-
-	return config, nil
-}
-
 // defaultFindConfig returns a FindConfig instance with default settings.
 func defaultFindConfig() FindConfig {
 	return FindConfig{
@@ -289,66 +163,6 @@ func DefaultConfig() *Config {
 	}
 }
 
-var (
-	// Global loader instance.
-	globalLoader *Loader
-	globalOnce   sync.Once
-)
-
-// Initialize sets up the global configuration loader.
-// It should be called once at application startup.
-// The configuration providers are set up in the following priority order (highest to lowest):
-//  1. Environment Variables (prefix "DOPPEL_")
-//  2. JSON file (config.json)
-//  3. TOML file (config.toml)
-//  4. YAML file (config.yaml)
-//
-// The configDir parameter specifies the directory to look for configuration files.
-func Initialize(configDir string) error {
-	var err error
-	globalOnce.Do(func() {
-		globalLoader, err = createLoader(configDir)
-	})
-	return err
-}
-
-// createLoader creates and configures a new loader with the given config directory.
-// This is the internal implementation used by Initialize and init.
-func createLoader(configDir string) (*Loader, error) {
-	loader := NewLoader()
-
-	// Add providers in priority order
-	tomlPath := filepath.Join(configDir, "config.toml")
-	jsonPath := filepath.Join(configDir, "config.json")
-	yamlPath := filepath.Join(configDir, "config.yaml")
-
-	loader.AddProvider(NewFileProvider(yamlPath, 10))
-	loader.AddProvider(NewFileProvider(tomlPath, 20))
-	loader.AddProvider(NewFileProvider(jsonPath, 30))
-	loader.AddProvider(NewEnvProvider("DOPPEL_", 40))
-
-	// Load initial configuration
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-	_, err := loader.Load(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return loader, nil
-}
-
-// Load returns the current global configuration.
-func Load() (*Config, error) {
-	if globalLoader == nil {
-		return nil, errors.New("configuration not initialized, call Initialize() first")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-	return globalLoader.Load(ctx)
-}
-
 func init() {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
@@ -361,7 +175,14 @@ func init() {
 		logger.Error("Could not create config directory", "error", err, "path", configDir)
 	}
 
-	if err := Initialize(configDir); err != nil {
-		logger.Error("Failed to initialize configuration", "error", err)
-	}
+	// Initialize the global loader once. If createLoader fails, we log
+	// the error but continue; Load() will return an error if used before
+	// successful initialization.
+	globalOnce.Do(func() {
+		var e error
+		globalLoader, e = createLoader(configDir)
+		if e != nil {
+			logger.Error("Failed to initialize configuration", "error", e)
+		}
+	})
 }
