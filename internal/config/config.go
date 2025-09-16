@@ -307,24 +307,35 @@ var (
 func Initialize(configDir string) error {
 	var err error
 	globalOnce.Do(func() {
-		globalLoader = NewLoader()
-
-		// Add providers in priority order
-		tomlPath := filepath.Join(configDir, "config.toml")
-		jsonPath := filepath.Join(configDir, "config.json")
-		yamlPath := filepath.Join(configDir, "config.yaml")
-
-		globalLoader.AddProvider(NewFileProvider(yamlPath, 10))
-		globalLoader.AddProvider(NewFileProvider(tomlPath, 20))
-		globalLoader.AddProvider(NewFileProvider(jsonPath, 30))
-		globalLoader.AddProvider(NewEnvProvider("DOPPEL_", 40))
-
-		// Load initial configuration
-		ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-		defer cancel()
-		_, err = globalLoader.Load(ctx)
+		globalLoader, err = createLoader(configDir)
 	})
 	return err
+}
+
+// createLoader creates and configures a new loader with the given config directory.
+// This is the internal implementation used by Initialize and init.
+func createLoader(configDir string) (*Loader, error) {
+	loader := NewLoader()
+
+	// Add providers in priority order
+	tomlPath := filepath.Join(configDir, "config.toml")
+	jsonPath := filepath.Join(configDir, "config.json")
+	yamlPath := filepath.Join(configDir, "config.yaml")
+
+	loader.AddProvider(NewFileProvider(yamlPath, 10))
+	loader.AddProvider(NewFileProvider(tomlPath, 20))
+	loader.AddProvider(NewFileProvider(jsonPath, 30))
+	loader.AddProvider(NewEnvProvider("DOPPEL_", 40))
+
+	// Load initial configuration
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	_, err := loader.Load(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return loader, nil
 }
 
 // Load returns the current global configuration.
