@@ -13,6 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 )
 
 // TestNew tests creating a new logger with valid/invalid configurations.
@@ -309,101 +310,105 @@ func TestCreateHandler(t *testing.T) {
 
 // TestGlobalLoggerConcurrency tests that the global logger can be safely used from multiple goroutines.
 func TestGlobalLoggerConcurrency(t *testing.T) {
-	// Save the original default logger
-	originalLogger := defaultLogger.Load()
-	defer defaultLogger.Store(originalLogger)
+	synctest.Test(t, func(t *testing.T) {
+		// Save the original default logger
+		originalLogger := defaultLogger.Load()
+		defer defaultLogger.Store(originalLogger)
 
-	var buf bytes.Buffer
-	config := &Config{
-		Format:  "json",
-		Writer:  &buf,
-		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
-	}
+		var buf bytes.Buffer
+		config := &Config{
+			Format:  "json",
+			Writer:  &buf,
+			Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+		}
 
-	newLogger, err := New(config)
-	if err != nil {
-		t.Fatalf("failed to create logger: %v", err)
-	}
+		newLogger, err := New(config)
+		if err != nil {
+			t.Fatalf("failed to create logger: %v", err)
+		}
 
-	// Test concurrent setting of default logger
-	const numGoroutines = 100
-	var wg sync.WaitGroup
+		// Test concurrent setting of default logger
+		const numGoroutines = 100
+		var wg sync.WaitGroup
 
-	for i := range numGoroutines {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
+		for i := range numGoroutines {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
 
-			// Create a unique logger for this goroutine
-			var goroutineBuf bytes.Buffer
-			goroutineConfig := &Config{
-				Format:  "json",
-				Writer:  &goroutineBuf,
-				Options: &slog.HandlerOptions{Level: slog.LevelInfo},
-			}
+				// Create a unique logger for this goroutine
+				var goroutineBuf bytes.Buffer
+				goroutineConfig := &Config{
+					Format:  "json",
+					Writer:  &goroutineBuf,
+					Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+				}
 
-			goroutineLogger, err := New(goroutineConfig)
-			if err != nil {
-				t.Errorf("failed to create logger in goroutine %d: %v", id, err)
-				return
-			}
+				goroutineLogger, err := New(goroutineConfig)
+				if err != nil {
+					t.Errorf("failed to create logger in goroutine %d: %v", id, err)
+					return
+				}
 
-			// Set this logger as default (last one wins)
-			err = SetDefault(goroutineLogger)
-			if err != nil {
-				t.Errorf("failed to set logger in goroutine %d: %v", id, err)
-				return
-			}
+				// Set this logger as default (last one wins)
+				err = SetDefault(goroutineLogger)
+				if err != nil {
+					t.Errorf("failed to set logger in goroutine %d: %v", id, err)
+					return
+				}
 
-			// Use the current default logger
-			currentDefault := Default()
-			if currentDefault == nil {
-				t.Errorf("default logger is nil in goroutine %d", id)
-				return
-			}
-		}(i)
-	}
+				// Use the current default logger
+				currentDefault := Default()
+				if currentDefault == nil {
+					t.Errorf("default logger is nil in goroutine %d", id)
+					return
+				}
+			}(i)
+		}
 
-	wg.Wait()
+		wg.Wait()
 
-	// Verify we have a valid default logger
-	finalDefault := Default()
-	if finalDefault == nil {
-		t.Error("final default logger should not be nil")
-	}
+		// Verify we have a valid default logger
+		finalDefault := Default()
+		if finalDefault == nil {
+			t.Error("final default logger should not be nil")
+		}
 
-	// Test concurrent logging
-	err = SetDefault(newLogger)
-	if err != nil {
-		t.Fatalf("failed to set default logger: %v", err)
-	}
-	const numMessages = 1000
-	wg = sync.WaitGroup{}
+		// Test concurrent logging
+		err = SetDefault(newLogger)
+		if err != nil {
+			t.Fatalf("failed to set default logger: %v", err)
+		}
+		const numMessages = 1000
+		wg = sync.WaitGroup{}
 
-	for i := 0; i < numMessages; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			Info("concurrent message", "id", id)
-			Warn("concurrent warning", "id", id)
-			Error("concurrent error", "id", id)
-			Debug("concurrent debug", "id", id)
-		}(i)
-	}
+		for i := 0; i < numMessages; i++ {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
+				Info("concurrent message", "id", id)
+				Warn("concurrent warning", "id", id)
+				Error("concurrent error", "id", id)
+				Debug("concurrent debug", "id", id)
+			}(i)
+		}
 
-	wg.Wait()
+		wg.Wait()
 
-	// Verify logs were written (should have some output)
-	output := buf.String()
-	if len(output) == 0 {
-		t.Error("expected log output from concurrent logging")
-	}
+		// Verify logs were written (should have some output)
+		output := buf.String()
+		if len(output) == 0 {
+			t.Error("expected log output from concurrent logging")
+		}
 
-	// Count lines to ensure we got some reasonable number of log entries
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if len(lines) < numMessages {
-		t.Logf("Got %d log lines from %d concurrent operations", len(lines), numMessages*4)
-	}
+		// Count lines to ensure we got some reasonable number of log entries
+		lines := strings.Split(strings.TrimSpace(output), "\n")
+		if len(lines) < numMessages {
+			t.Logf("Got %d log lines from %d concurrent operations", len(lines), numMessages*4)
+		}
+
+		synctest.Wait()
+	})
 }
 
 // TestLoggerImmutability tests if the individual logger instances are truly immutable.
@@ -495,27 +500,30 @@ func TestConcurrencySafety(t *testing.T) {
 	}
 
 	t.Run("Concurrent logging", func(t *testing.T) {
-		var wg sync.WaitGroup
-		numGoroutines := 100
+		synctest.Test(t, func(t *testing.T) {
+			var wg sync.WaitGroup
+			numGoroutines := 100
 
-		// All goroutines will now log concurrently to the initialized default logger.
-		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
-			go func(id int) {
-				defer wg.Done()
-				Info("message from goroutine", "id", id)
-			}(i)
-		}
-		wg.Wait()
-
-		// Check if all messages were logged.
-		output := buf.String()
-		for i := 0; i < numGoroutines; i++ {
-			expectedMsg := fmt.Sprintf("id=%d", i)
-			if !strings.Contains(output, expectedMsg) {
-				t.Errorf("Log output is missing message from goroutine %d", i)
+			// All goroutines will now log concurrently to the initialized default logger.
+			wg.Add(numGoroutines)
+			for i := 0; i < numGoroutines; i++ {
+				go func(id int) {
+					defer wg.Done()
+					Info("message from goroutine", "id", id)
+				}(i)
 			}
-		}
+			wg.Wait()
+
+			// Check if all messages were logged.
+			output := buf.String()
+			for i := 0; i < numGoroutines; i++ {
+				expectedMsg := fmt.Sprintf("id=%d", i)
+				if !strings.Contains(output, expectedMsg) {
+					t.Errorf("Log output is missing message from goroutine %d", i)
+				}
+			}
+			synctest.Wait()
+		})
 	})
 }
 
@@ -787,90 +795,94 @@ func TestSourceInformation(t *testing.T) {
 
 // TestAtomicDefaultLogger verifies the atomic nature of the default logger.
 func TestAtomicDefaultLogger(t *testing.T) {
-	originalLogger := defaultLogger.Load()
-	defer defaultLogger.Store(originalLogger)
+	synctest.Test(t, func(t *testing.T) {
+		originalLogger := defaultLogger.Load()
+		defer defaultLogger.Store(originalLogger)
 
-	var buf1, buf2 bytes.Buffer
+		var buf1, buf2 bytes.Buffer
 
-	config1 := &Config{
-		Format:  "json",
-		Writer:  &buf1,
-		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
-	}
+		config1 := &Config{
+			Format:  "json",
+			Writer:  &buf1,
+			Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+		}
 
-	config2 := &Config{
-		Format:  "text",
-		Writer:  &buf2,
-		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
-	}
+		config2 := &Config{
+			Format:  "text",
+			Writer:  &buf2,
+			Options: &slog.HandlerOptions{Level: slog.LevelInfo},
+		}
 
-	logger1, err := New(config1)
-	if err != nil {
-		t.Fatalf("failed to create logger1: %v", err)
-	}
+		logger1, err := New(config1)
+		if err != nil {
+			t.Fatalf("failed to create logger1: %v", err)
+		}
 
-	logger2, err := New(config2)
-	if err != nil {
-		t.Fatalf("failed to create logger2: %v", err)
-	}
+		logger2, err := New(config2)
+		if err != nil {
+			t.Fatalf("failed to create logger2: %v", err)
+		}
 
-	const numGoroutines = 50
-	const messagesPerGoroutine = 20
+		const numGoroutines = 50
+		const messagesPerGoroutine = 20
 
-	var wg sync.WaitGroup
-	var swapCount int64
+		var wg sync.WaitGroup
+		var swapCount int64
 
-	// Start goroutines that will swap between loggers and log messages
-	for i := range numGoroutines {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
+		// Start goroutines that will swap between loggers and log messages
+		for i := range numGoroutines {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
 
-			for j := 0; j < messagesPerGoroutine; j++ {
-				// Randomly swap between loggers
-				if id%2 == 0 {
-					err := SetDefault(logger1)
-					if err != nil {
-						t.Errorf("SetDefault() failed in goroutine %d: %v", id, err)
-						return
+				for j := 0; j < messagesPerGoroutine; j++ {
+					// Randomly swap between loggers
+					if id%2 == 0 {
+						err := SetDefault(logger1)
+						if err != nil {
+							t.Errorf("SetDefault() failed in goroutine %d: %v", id, err)
+							return
+						}
+						atomic.AddInt64(&swapCount, 1)
+					} else {
+						err := SetDefault(logger2)
+						if err != nil {
+							t.Errorf("SetDefault() failed in goroutine %d: %v", id, err)
+							return
+						}
+						atomic.AddInt64(&swapCount, 1)
 					}
-					atomic.AddInt64(&swapCount, 1)
-				} else {
-					err := SetDefault(logger2)
-					if err != nil {
-						t.Errorf("SetDefault() failed in goroutine %d: %v", id, err)
-						return
+
+					// Log a message with the current default
+					Info("message from goroutine", "goroutine_id", id, "message_id", j)
+
+					// Verify we can always get a valid logger
+					current := Default()
+					if current == nil {
+						t.Errorf("Default() returned nil in goroutine %d", id)
 					}
-					atomic.AddInt64(&swapCount, 1)
 				}
+			}(i)
+		}
 
-				// Log a message with the current default
-				Info("message from goroutine", "goroutine_id", id, "message_id", j)
+		wg.Wait()
 
-				// Verify we can always get a valid logger
-				current := Default()
-				if current == nil {
-					t.Errorf("Default() returned nil in goroutine %d", id)
-				}
-			}
-		}(i)
-	}
+		// Verify we performed swaps
+		if atomic.LoadInt64(&swapCount) == 0 {
+			t.Error("expected some logger swaps to occur")
+		}
 
-	wg.Wait()
+		// Verify we got some output in at least one buffer
+		totalOutput := len(buf1.String()) + len(buf2.String())
+		if totalOutput == 0 {
+			t.Error("expected some log output from concurrent operations")
+		}
 
-	// Verify we performed swaps
-	if atomic.LoadInt64(&swapCount) == 0 {
-		t.Error("expected some logger swaps to occur")
-	}
+		t.Logf("Total swaps: %d, Output lengths: buf1=%d, buf2=%d",
+			atomic.LoadInt64(&swapCount), len(buf1.String()), len(buf2.String()))
 
-	// Verify we got some output in at least one buffer
-	totalOutput := len(buf1.String()) + len(buf2.String())
-	if totalOutput == 0 {
-		t.Error("expected some log output from concurrent operations")
-	}
-
-	t.Logf("Total swaps: %d, Output lengths: buf1=%d, buf2=%d",
-		atomic.LoadInt64(&swapCount), len(buf1.String()), len(buf2.String()))
+		synctest.Wait()
+	})
 }
 
 // TestFileOutput tests logging to actual files.
@@ -925,27 +937,31 @@ func TestFileOutput(t *testing.T) {
 
 // TestConcurrentLogging tests concurrent logging safety.
 func TestConcurrentLogging(t *testing.T) {
-	buf := new(bytes.Buffer)
-	cfg := &Config{Writer: buf, Options: &slog.HandlerOptions{Level: slog.LevelDebug}}
-	l, err := New(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	synctest.Test(t, func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		cfg := &Config{Writer: buf, Options: &slog.HandlerOptions{Level: slog.LevelDebug}}
+		l, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			l.Info(fmt.Sprintf("message %d", i))
-		}(i)
-	}
-	wg.Wait()
+		var wg sync.WaitGroup
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				l.Info(fmt.Sprintf("message %d", i))
+			}(i)
+		}
+		wg.Wait()
 
-	lines := strings.Count(buf.String(), "\n")
-	if lines != 100 {
-		t.Errorf("Expected 100 log lines, got %d", lines)
-	}
+		lines := strings.Count(buf.String(), "\n")
+		if lines != 100 {
+			t.Errorf("Expected 100 log lines, got %d", lines)
+		}
+
+		synctest.Wait()
+	})
 }
 
 // TestLogFormat tests different log formats.

@@ -17,7 +17,7 @@ func hashFile(filePath string) (string, error) {
 	hasher := blake3.New(32, nil)
 	buf := make([]byte, chunkSize)
 
-	return HashFile(filePath, buf, hasher)
+	return HashFile(filePath, hasher, buf)
 
 }
 
@@ -29,7 +29,7 @@ func quickHashFile(filePath string, size int64) (uint64, error) {
 	buf := make([]byte, quickHashSize)
 	hasher := xxh3.New()
 
-	return QuickHashFile(filePath, size, buf, hasher)
+	return QuickHashFile(filePath, size, hasher, buf)
 
 }
 
