@@ -62,16 +62,16 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 	renderer := lipgloss.NewRenderer(w)
 
 	styles := &prettyStyles{
-		timestamp: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#777777ff", Dark: "#888888ff"}),
-		debug:     renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#d401d4ff", Dark: "#ff2dffff"}).Bold(true),
-		info:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#02ca02ff", Dark: "#02e057ff"}).Bold(true),
-		warn:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#f9a825ff", Dark: "#fae100ff"}).Bold(true),
-		err:       renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff0000ff", Dark: "#ff4a4aff"}).Bold(true),
-		source:    renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00afafff", Dark: "#00e4e4ff"}),
+		timestamp: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#777777", Dark: "#888888"}),
+		debug:     renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#d401d4", Dark: "#ff2dff"}).Bold(true),
+		info:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#02ca02", Dark: "#02e057"}).Bold(true),
+		warn:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#f9a825", Dark: "#fae100"}).Bold(true),
+		err:       renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff0000", Dark: "#ff4a4a"}).Bold(true),
+		source:    renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00afaf", Dark: "#00e4e4"}),
 		message:   renderer.NewStyle().Bold(true),
-		attrKey:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0f00e4ff", Dark: "#8578faff"}),
-		attrValue: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#757575ff", Dark: "#888888ff"}),
-		bracket:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#666666ff", Dark: "#858585ff"}),
+		attrKey:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0f00e4", Dark: "#8578fa"}),
+		attrValue: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#757575", Dark: "#888888"}),
+		bracket:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#666666", Dark: "#858585"}),
 	}
 
 	return &PrettyHandler{
