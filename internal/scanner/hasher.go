@@ -19,7 +19,7 @@ type FileInfo struct {
 }
 
 // HashFile computes the hash of an entire file.
-func HashFile(filePath string, buf []byte, hasher hash.Hash) (string, error) {
+func HashFile(filePath string, hasher hash.Hash, buf []byte) (string, error) {
 	if hasher == nil {
 		return "", errors.New("hasher is nil")
 	}
@@ -34,22 +34,8 @@ func HashFile(filePath string, buf []byte, hasher hash.Hash) (string, error) {
 	}(file)
 
 	hasher.Reset()
-
-	for {
-		n, err := file.Read(buf)
-		if n > 0 {
-			if _, err2 := hasher.Write(buf[:n]); err2 != nil {
-				return "", err2
-			}
-		}
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return "", err
-		}
+	if _, err = io.CopyBuffer(hasher, file, buf); err != nil {
+		return "", err
 	}
 
 	return string(hasher.Sum(nil)), nil
@@ -57,7 +43,7 @@ func HashFile(filePath string, buf []byte, hasher hash.Hash) (string, error) {
 
 // QuickHashFile computes a XXH3 hash of the first and the last portions of a file
 // This is used as a quick preliminary check before computing the full hash.
-func QuickHashFile(filePath string, size int64, buf []byte, hasher *xxh3.Hasher) (uint64, error) {
+func QuickHashFile(filePath string, size int64, hasher *xxh3.Hasher, buf []byte) (uint64, error) {
 	if size <= 0 {
 		return 0, nil
 	}
@@ -94,21 +80,13 @@ func QuickHashFile(filePath string, size int64, buf []byte, hasher *xxh3.Hasher)
 		}
 
 		// Hash last quickHashSize bytes
-		_, err = file.Seek(-quickHashSize, io.SeekEnd)
-		if err != nil {
-			return 0, err
-		}
-
-		n, err = file.Read(buf)
+		n, err = file.ReadAt(buf, size-quickHashSize)
 		if err != nil && err != io.EOF {
 			return 0, err
 		}
 		if n > 0 {
 			_, _ = hasher.Write(buf[:n])
 		}
-
-		return hasher.Sum64(), nil
 	}
-
-	return 0, nil // unreachable!
+	return hasher.Sum64(), nil
 }

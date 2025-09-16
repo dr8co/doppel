@@ -155,7 +155,7 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 			buf := make([]byte, quickHashSize)
 			hasher := xxh3.New()
 			for item := range quickWorkChan {
-				hash, err := scanner.QuickHashFile(item.Path, item.Size, buf, hasher)
+				hash, err := scanner.QuickHashFile(item.Path, item.Size, hasher, buf)
 				if err != nil {
 					logError(ctx, err, "quick hash", item.Path)
 					stats.IncrementErrorCount()
@@ -215,7 +215,7 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 			hasher := blake3.New(32, nil)
 			buf := make([]byte, chunkSize)
 			for item := range fullWorkChan {
-				hash, err := scanner.HashFile(item.path, buf, hasher)
+				hash, err := scanner.HashFile(item.path, hasher, buf)
 				if err != nil {
 					logError(ctx, err, "full hash", item.path)
 					stats.IncrementErrorCount()
