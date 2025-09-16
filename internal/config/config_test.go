@@ -103,3 +103,15 @@ func TestDefaultConfig(t *testing.T) {
 		})
 	}
 }
+
+// TestInit verifies that package init sets up the global loader so that
+// Load() can be called without explicit initialization.
+func TestInit(t *testing.T) {
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() returned error after init: %v", err)
+	}
+	if cfg == nil {
+		t.Fatalf("Load() returned nil config after init")
+	}
+}
