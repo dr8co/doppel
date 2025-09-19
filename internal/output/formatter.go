@@ -95,7 +95,7 @@ func InitFormatters() (*FormatterRegistry, error) {
 
 // FormatBytes converts a byte count to a human-readable string.
 func FormatBytes(bytes int64) string {
-	const unit = 1024
+	const unit = 1000
 	if bytes < unit {
 		return fmt.Sprintf("%d B", bytes)
 	}

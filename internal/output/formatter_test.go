@@ -27,27 +27,27 @@ func TestFormatBytes(t *testing.T) {
 		{
 			name:     "megabytes",
 			bytes:    1500000,
-			expected: "1.4 MB",
+			expected: "1.5 MB",
 		},
 		{
 			name:     "gigabytes",
 			bytes:    1500000000,
-			expected: "1.4 GB",
+			expected: "1.5 GB",
 		},
 		{
 			name:     "terabytes",
 			bytes:    1500000000000,
-			expected: "1.4 TB",
+			expected: "1.5 TB",
 		},
 		{
 			name:     "petabytes",
 			bytes:    1500000000000000,
-			expected: "1.3 PB",
+			expected: "1.5 PB",
 		},
 		{
 			name:     "exabytes",
 			bytes:    1500000000000000000,
-			expected: "1.3 EB",
+			expected: "1.5 EB",
 		},
 	}
 
