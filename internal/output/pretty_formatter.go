@@ -19,6 +19,7 @@ func NewPrettyFormatter() *PrettyFormatter {
 }
 
 // Format formats the duplicate report in a human-readable way and writes it to the provided writer.
+// Inspired by the Catppuccin theme.
 func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
 	renderer := lipgloss.NewRenderer(w)
 
@@ -28,41 +29,41 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 		Bold(true)
 
 	// sizeStyle: File size. Teal provides good readability without being too loud.
-	sizeStyle := lipgloss.NewStyle().
+	sizeStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#179299", Dark: "#94e2d5"})
 
 	// wastedStyle: Wasted space. Peach has a slight "warning" feel, perfect for this metric.
-	wastedStyle := lipgloss.NewStyle().
+	wastedStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#fe640b", Dark: "#fab387"})
 
 	// fileStyle: The path of a duplicate file. Blue is a classic choice for file paths or links.
-	fileStyle := lipgloss.NewStyle().
+	fileStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#1e66f5", Dark: "#89b4fa"})
 
 	// summaryHeaderStyle: Header for the final statistics summary. Green feels positive and conclusive.
-	summaryHeaderStyle := lipgloss.NewStyle().
+	summaryHeaderStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#40a02b", Dark: "#a6e3a1"}).
 		Bold(true)
 
 	// statLabelStyle: The label for a statistic. A subdued color for contrast with the value.
-	statLabelStyle := lipgloss.NewStyle().
+	statLabelStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#6c6f85", Dark: "#a6adc8"})
 
 	// statValueStyle: The actual statistic value. The primary text color in bold makes it pop.
-	statValueStyle := lipgloss.NewStyle().
+	statValueStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#4c4f69", Dark: "#cdd6f4"}).
 		Bold(true)
 
 	// okStyle: For success messages. A clear and standard green.
-	okStyle := lipgloss.NewStyle().
+	okStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#40a02b", Dark: "#a6e3a1"})
 
 	// errorStyle: For error messages. A clear and standard red.
-	errorStyle := lipgloss.NewStyle().
+	errorStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#d20f39", Dark: "#f38ba8"})
 
 	// rateStyle: For displaying rates. Yellow is great for dynamic or important numbers.
-	rateStyle := lipgloss.NewStyle().
+	rateStyle := renderer.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#df8e1d", Dark: "#f9e2af"})
 
 	for _, group := range report.Groups {
@@ -75,7 +76,7 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 		// Print size and wasted space
 		sizeStr := sizeStyle.Render(fmt.Sprintf("Size: %s each", FormatBytes(group.Size)))
 		//nolint:gosec
-		wastedStr := wastedStyle.Render(FormatBytes(int64(group.WastedSpace)) + "% wasted space")
+		wastedStr := wastedStyle.Render(FormatBytes(int64(group.WastedSpace)) + " wasted space")
 		if _, err := fmt.Fprintf(w, "   %s, %s\n", sizeStr, wastedStr); err != nil {
 			return err
 		}
@@ -96,7 +97,8 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 
 	if report.Stats.DuplicateFiles > 0 {
 		found := statLabelStyle.Render("🔗 Duplicate files found:") + " " + statValueStyle.Render(strconv.FormatUint(report.Stats.DuplicateFiles, 10)) +
-			statLabelStyle.Render(" (in ") + statValueStyle.Render(strconv.FormatUint(report.Stats.DuplicateGroups, 10)) + statLabelStyle.Render(" groups)")
+			statLabelStyle.Render(" (in ") + statValueStyle.Render(strconv.FormatUint(report.Stats.DuplicateGroups, 10)) +
+			statLabelStyle.Render(" group"+pluralize(report.Stats.DuplicateGroups)+")")
 		if _, err := fmt.Fprintf(w, "   %s\n", found); err != nil {
 			return err
 		}
@@ -148,4 +150,11 @@ func (f *PrettyFormatter) Format(report *model.DuplicateReport, w io.Writer) err
 // Name returns the name of the formatter.
 func (f *PrettyFormatter) Name() string {
 	return "pretty"
+}
+
+func pluralize(num uint64) string {
+	if num < 2 {
+		return ""
+	}
+	return "s"
 }
