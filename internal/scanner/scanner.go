@@ -54,7 +54,8 @@ func GroupFilesBySize(ctx context.Context,
 			// Check if we should skip this directory
 			if dirEnt.IsDir() && filterConfig.ShouldExcludeDir(path) {
 				if verbose {
-					logger.InfoAttrs(ctx, "skipping directory", slog.String("path", path))
+					logger.InfoAttrs(ctx, "skipping directory", slog.String("path", path),
+						slog.String("exclusion reason", "filter match"))
 				}
 				stats.SkippedDirs++
 				return filepath.SkipDir
@@ -84,7 +85,7 @@ func GroupFilesBySize(ctx context.Context,
 				if filterConfig.ShouldExcludeFile(path, size) {
 					if verbose {
 						logger.InfoAttrs(ctx, "skipping file", slog.String("path", path),
-							slog.String("reason", "excluded due to the filters"))
+							slog.String("exclusion reason", "filter match"))
 					}
 					stats.SkippedFiles++
 					return nil
