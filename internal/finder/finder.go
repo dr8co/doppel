@@ -57,7 +57,7 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 	candidateFiles = slices.Clip(candidateFiles)
 
 	if verbose {
-		fmt.Printf("\n🔐 Multi-stage hashing %d candidate files with %d workers\n\n", len(candidateFiles), numWorkers)
+		fmt.Printf("\n🔐 Multi-stage hashing %d candidate files with %d workers.\n\n", len(candidateFiles), numWorkers)
 	}
 
 	// Stage 1: Quick hashing
@@ -71,7 +71,7 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 
 	if verbose {
 		elapsed := time.Since(now).Round(time.Millisecond).String()
-		fmt.Printf("Quick hashing took %s\n\n", elapsed)
+		fmt.Printf("Quick hashing took %s.\n\n", elapsed)
 	}
 
 	// Stage 2: Full hashing only for files with matching quick hashes
@@ -98,7 +98,7 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 
 	if verbose {
 		elapsed := time.Since(now).Round(time.Millisecond).String()
-		fmt.Printf("Full hashing took %s\n", elapsed)
+		fmt.Printf("Full hashing took %s.\n", elapsed)
 	}
 
 	groups := make([]model.DuplicateGroup, 0, len(hashGroups))
@@ -157,7 +157,7 @@ func quickHash(ctx context.Context, candidateFiles []scanner.FileInfo, numWorker
 			for item := range quickWorkChan {
 				hash, err := scanner.QuickHashFile(item.Path, item.Size, hasher, buf)
 				if err != nil {
-					logError(ctx, err, "quick hash", item.Path)
+					logError(ctx, err, "quick-hash", item.Path)
 					stats.IncrementErrorCount()
 					continue
 				}
@@ -217,7 +217,7 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 			for item := range fullWorkChan {
 				hash, err := scanner.HashFile(item.path, hasher, buf)
 				if err != nil {
-					logError(ctx, err, "full hash", item.path)
+					logError(ctx, err, "full-hash", item.path)
 					stats.IncrementErrorCount()
 					continue
 				}
@@ -261,7 +261,7 @@ func fullHash(ctx context.Context, fullHashCandidates []fileInfoQuickHash, numWo
 // logError logs errors encountered during file processing.
 func logError(ctx context.Context, err error, action, filePath string) {
 	if errors.Is(err, os.ErrNotExist) {
-		logger.ErrorAttrs(ctx, "file removed after the scan but before hashing", slog.String("path", filePath), slog.String("err", err.Error()))
+		logger.ErrorAttrs(ctx, "file (likely) removed after the scan but before hashing", slog.String("path", filePath), slog.String("err", err.Error()))
 		return
 	}
 	var filepathErr *os.PathError
