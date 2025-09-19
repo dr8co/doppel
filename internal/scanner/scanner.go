@@ -84,7 +84,7 @@ func GroupFilesBySize(ctx context.Context,
 				if filterConfig.ShouldExcludeFile(path, size) {
 					if verbose {
 						logger.InfoAttrs(ctx, "skipping file", slog.String("path", path),
-							slog.Int64("size", size))
+							slog.String("reason", "excluded due to the filters"))
 					}
 					stats.SkippedFiles++
 					return nil
@@ -100,12 +100,39 @@ func GroupFilesBySize(ctx context.Context,
 		}
 	}
 
-	if verbose && (stats.SkippedDirs > 0 || stats.SkippedFiles > 0) {
-		fmt.Printf("\n⏭️  Skipped %d directories and %d files due to filters\n",
-			stats.SkippedDirs, stats.SkippedFiles)
-	}
+	printSummary(stats, verbose)
 
 	return sizeGroups, nil
+}
+
+func printSummary(stats *model.Stats, verbose bool) {
+	if verbose && (stats.SkippedDirs > 0 || stats.SkippedFiles > 0) {
+		fmt.Print("\n⏭️ Skipped ")
+		if stats.SkippedDirs > 0 {
+			fmt.Printf("%d director%s ", stats.SkippedDirs, pluralize(stats.SkippedDirs, true))
+			if stats.SkippedFiles > 0 {
+				fmt.Print("and ")
+			}
+		}
+		if stats.SkippedFiles > 0 {
+			fmt.Printf("%d file%s ", stats.SkippedFiles, pluralize(stats.SkippedFiles, false))
+		}
+		fmt.Println("due to filters.")
+	}
+}
+
+func pluralize(num uint64, ies bool) string {
+	if ies {
+		if num < 2 {
+			return "y"
+		}
+		return "ies"
+	}
+
+	if num < 2 {
+		return ""
+	}
+	return "s"
 }
 
 // GetDirectoriesFromArgs returns the directories to scan from command arguments.
