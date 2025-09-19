@@ -1,8 +1,4 @@
-// Package main provides the entry point for doppel, a fast concurrent CLI tool
-// for finding duplicate files across directories.
-//
-// Doppel scans directories for duplicate files by comparing file sizes first,
-// then computing Blake3 hashes for files of the same size.
+// Doppel is a fast concurrent CLI tool for finding duplicate files across directories.
 // It supports parallel processing and extensive filtering options to skip unwanted files and directories.
 package main
 
@@ -73,9 +69,8 @@ func main() {
 		Copyright: "(c) 2025 Ian Duncan",
 		Description: `A fast, concurrent duplicate file finder with advanced filtering capabilities.
 		
-This tool scans directories for duplicate files by comparing file sizes first, 
-then computing Blake3 hashes for files of the same size. It supports parallel 
-processing and extensive filtering options to skip unwanted files and directories.`,
+This tool scans directories for duplicate files using efficient hashing algorithms
+and supports extensive filtering options to exclude unwanted files and directories.`,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "log-level",
@@ -131,7 +126,7 @@ processing and extensive filtering options to skip unwanted files and directorie
 
 	if err := app.Run(ctx, os.Args); err != nil {
 		fmt.Println()
-		logger.Error("error running the application", "error", err)
+		logger.Error("application error", "error", err)
 		exit(1)
 	}
 }

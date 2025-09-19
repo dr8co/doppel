@@ -34,8 +34,8 @@ func FindCommand(cfg *config.FindConfig) *cli.Command {
 		Aliases: []string{"search", "f"},
 		Usage:   "Find duplicate files in specified directories",
 		Description: `Scan directories for duplicate files. If no directories are specified, 
-the current directory is used. Files are compared using Blake3 hashes after 
-initial size-based filtering.`,
+only the current working directory is scanned.
+Files are compared by their hashes after filtration.`,
 		ArgsUsage:             "[directories...]",
 		EnableShellCompletion: true,
 		Suggest:               true,
