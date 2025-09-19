@@ -198,7 +198,12 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 	}
 
 	if cfg.Verbose {
-		fmt.Printf("📊 Found %d files, %d size groups\n", s.TotalFiles, len(sizeGroups))
+		if s.TotalFiles > 0 {
+			n := len(sizeGroups)
+			fmt.Printf("📊 Found %d file%s, %d size group%s.\n", s.TotalFiles, pluralize(s.TotalFiles), n, pluralize(n))
+		} else {
+			fmt.Println(" Did not find any regular files.")
+		}
 	}
 
 	// Phase 2: Hash files that have potential duplicates
@@ -255,4 +260,16 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 	fmt.Println()
 
 	return nil
+}
+
+type integral interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+}
+
+func pluralize[T integral](num T) string {
+	if num < 2 {
+		return ""
+	}
+	return "s"
 }
