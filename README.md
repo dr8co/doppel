@@ -45,6 +45,8 @@ doppel preset media ~/Pictures
 
 ## 🔮 Terminal Preview
 
+![terminal preview](./assets/ghostty_ubuntu.png)
+
 ## ✨ Features
 
 - ⚡️ **Fast scanning** with parallel hashing (Blake3, configurable workers)
