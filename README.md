@@ -27,23 +27,23 @@ Doppel is designed for speed, flexibility, and reliability.
 ## 📋 Table of Contents
 
 <!-- TOC -->
-* [📋 Table of Contents](#📋-table-of-contents)
-* [⚡️ Quick Start](#⚡️-quick-start)
-* [🔮 Terminal Preview](#🔮-terminal-preview)
-* [✨ Features](#✨-features)
-* [📦 Installation](#📦-installation)
-* [🚀 Usage](#🚀-usage)
-  * [🛠️ Command-Line Interface](#🛠️-command-line-interface)
-  * [⚙️ Configuration Files](#⚙️-configuration-files)
-  * [Environment Variables](#environment-variables)
-    * [Automatic Completion](#automatic-completion)
-  * [🔎 Find Command](#🔎-find-command)
-    * [⚙️ Find Command Options](#⚙️-find-command-options)
-  * [🎛️ Preset Command](#🎛️-preset-command)
-* [🧬 How It Works](#🧬-how-it-works)
-* [🏗️ Development](#🏗️-development)
-* [📜 License](#📜-license)
-* [🤝 Contributing](#🤝-contributing)
+  * [📋 Table of Contents](#-table-of-contents)
+  * [⚡️ Quick Start](#-quick-start)
+  * [🔮 Terminal Preview](#-terminal-preview)
+  * [✨ Features](#-features)
+  * [📦 Installation](#-installation)
+  * [🚀 Usage](#-usage)
+    * [🛠️ Command-Line Interface](#-command-line-interface)
+    * [⚙️ Configuration Files](#-configuration-files)
+    * [Environment Variables](#environment-variables)
+      * [Automatic Completion](#automatic-completion)
+    * [🔎 Find Command](#-find-command)
+      * [⚙️ Find Command Options](#-find-command-options)
+    * [🎛️ Preset Command](#-preset-command)
+  * [🧬 How It Works](#-how-it-works)
+  * [🏗️ Development](#-development)
+  * [📜 License](#-license)
+  * [🤝 Contributing](#-contributing)
 <!-- TOC -->
 
 ## ⚡️ Quick Start
@@ -325,6 +325,8 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 Contributions, issues, and feature requests are welcome!
 Please open an issue or pull request on [GitHub](https://github.com/dr8co/doppel).
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ---
 
