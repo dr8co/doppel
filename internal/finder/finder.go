@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/zeebo/xxh3"
 	"lukechampine.com/blake3"
 
@@ -60,6 +61,10 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 		fmt.Printf("\n🔐 Multi-stage hashing %d candidate files with %d workers.\n\n", len(candidateFiles), numWorkers)
 	}
 
+	sp := spinner.New(spinner.CharSets[7], 100*time.Millisecond, spinner.WithSuffix(" processing..."))
+	_ = sp.Color("fgHiBlue", "bold")
+	sp.Start()
+
 	// Stage 1: Quick hashing
 	var now time.Time
 	if verbose {
@@ -68,6 +73,7 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 	}
 
 	quickHashGroups := quickHash(ctx, candidateFiles, numWorkers, stats)
+	sp.Stop()
 
 	if verbose {
 		elapsed := time.Since(now).Round(time.Millisecond).String()
@@ -94,7 +100,11 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 		now = time.Now()
 	}
 
+	sp2 := spinner.New(spinner.CharSets[69], 100*time.Millisecond, spinner.WithSuffix(" almost there..."))
+	_ = sp2.Color("fgHiBlue", "bold")
+	sp2.Start()
 	hashGroups := fullHash(ctx, fullHashCandidates, numWorkers, stats)
+	sp2.Stop()
 
 	if verbose {
 		elapsed := time.Since(now).Round(time.Millisecond).String()

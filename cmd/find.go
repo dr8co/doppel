@@ -15,8 +15,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/urfave/cli/v3"
 
 	"github.com/dr8co/doppel/internal/config"
@@ -188,15 +190,21 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 		return nil
 	}
 
+	sp := spinner.New(spinner.CharSets[35], 100*time.Millisecond, spinner.WithSuffix(" scanning...\n"))
+	_ = sp.Color("fgHiRed", "bold")
+
 	if cfg.Verbose {
 		fmt.Printf("🔍 Scanning directories: %v\n", directories)
 		filter.DisplayActiveFilters(filterConfig)
+		sp.UpdateCharSet(spinner.CharSets[7])
 	}
 
+	sp.Start()
 	s := &model.Stats{StartTime: time.Now()}
 
 	// Phase 1: Group files by size
 	sizeGroups, err := scanner.GroupFilesBySize(ctx, directories, filterConfig, s, cfg.Verbose)
+	sp.Stop()
 	if err != nil {
 		return fmt.Errorf("error scanning files: %w", err)
 	}
@@ -226,31 +234,44 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 	outputFile := cfg.OutputFile
 	var out io.Writer = os.Stdout
 
-	if outputFile != "" {
-		outputFile = filepath.Clean(outputFile)
-		if outputFile == "." {
-			outputFile = "doppel-report.txt"
+	if outputFile != "" && strings.ToLower(outputFile) != "stdout" {
+		if strings.ToLower(outputFile) == "stderr" {
+			out = os.Stderr
+		} else {
+			outputFile = filepath.Clean(outputFile)
+			if outputFile == "." {
+				outputFile = "doppel-report.txt"
+			}
+
+			outputFile, err = filepath.Abs(outputFile)
+			if err != nil {
+				return fmt.Errorf("error getting absolute path for output file: %w", err)
+			}
+
+			if err := os.MkdirAll(filepath.Dir(outputFile), 0o750); err != nil {
+				return fmt.Errorf("error creating output directory: %w", err)
+			}
+
+			file, err := os.Create(outputFile)
+			if err != nil {
+				return fmt.Errorf("error opening output file: %w", err)
+			}
+
+			defer func(file *os.File) {
+				_ = file.Close()
+			}(file)
+
+			out = file
 		}
+	}
 
-		outputFile, err = filepath.Abs(outputFile)
-		if err != nil {
-			return fmt.Errorf("error getting absolute path for output file: %w", err)
-		}
-
-		if err := os.MkdirAll(filepath.Dir(outputFile), 0o750); err != nil {
-			return fmt.Errorf("error creating output directory: %w", err)
-		}
-
-		file, err := os.Create(outputFile)
-		if err != nil {
-			return fmt.Errorf("error opening output file: %w", err)
-		}
-
-		defer func(file *os.File) {
-			_ = file.Close()
-		}(file)
-
-		out = file
+	var sp2 *spinner.Spinner
+	isFsFile := out != os.Stdout && out != os.Stderr
+	if isFsFile {
+		sp2 = spinner.New(spinner.CharSets[70], 100*time.Millisecond, spinner.WithSuffix("  writing the results...\n"))
+		_ = sp2.Color("fgHiMagenta", "bold")
+		sp2.Start()
+		defer sp2.Stop()
 	}
 
 	err = reg.Format(cfg.OutputFormat, report, out)
@@ -258,7 +279,8 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 		return fmt.Errorf("error formatting report: %w", err)
 	}
 
-	if out != os.Stdout {
+	if isFsFile {
+		sp2.Stop()
 		fmt.Printf("\n✅ Results written to \"%s\"", outputFile)
 	}
 	fmt.Println()
