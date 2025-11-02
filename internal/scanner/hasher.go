@@ -64,7 +64,7 @@ func QuickHashFile(filePath string, size int64, hasher *xxh3.Hasher, buf []byte)
 	hasher.Reset()
 
 	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
@@ -81,7 +81,7 @@ func QuickHashFile(filePath string, size int64, hasher *xxh3.Hasher, buf []byte)
 
 		// Hash last quickHashSize bytes
 		n, err = file.ReadAt(buf, size-quickHashSize)
-		if err != nil && err != io.EOF {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return 0, err
 		}
 		if n > 0 {
