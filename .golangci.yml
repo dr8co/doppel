@@ -30,6 +30,12 @@ linters:
     - wastedassign
     - whitespace
     - unconvert
+    - modernize
+    - errcheck
+    - errorlint
+    - iface
+    - mirror
+    - prealloc
 
 formatters:
   enable:
