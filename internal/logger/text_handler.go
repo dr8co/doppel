@@ -38,7 +38,8 @@ func (h *TextHandler) Handle(ctx context.Context, r slog.Record) error {
 
 	if h.opts.AddSource && r.PC != 0 {
 		var pcs [1]uintptr
-		if runtime.Callers(5, pcs[:]) == 1 {
+		n := runtime.Callers(5, pcs[:])
+		if n > 0 {
 			r.PC = pcs[0]
 		}
 	}
