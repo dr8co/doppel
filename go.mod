@@ -7,7 +7,7 @@ require (
 	github.com/briandowns/spinner v1.23.2
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/urfave/cli/v3 v3.6.2
-	github.com/zeebo/xxh3 v1.0.2
+	github.com/zeebo/xxh3 v1.1.0
 	gopkg.in/yaml.v3 v3.0.1
 	lukechampine.com/blake3 v1.4.1
 )
