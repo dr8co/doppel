@@ -37,6 +37,17 @@ linters:
     - mirror
     - prealloc
 
+  settings:
+    revive:
+      enable-default: true
+      enable-default-rules: true
+      rules:
+        - name: var-naming
+          arguments:
+           - []
+           - []
+           - - skip-package-name-collision-with-go-std: true
+
 formatters:
   enable:
     - gofumpt

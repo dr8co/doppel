@@ -355,10 +355,10 @@ func normalizeUnit(unit string) string {
 		}
 		c := unit[j]
 		if c >= 'A' && c <= 'Z' {
-			//nolint:gosec // false positive: unitBytes is fixed size array
+			// //nolint:gosec // false positive: unitBytes is fixed size array
 			unitBytes[j] = c + ('a' - 'A')
 		} else {
-			//nolint:gosec
+			// //nolint:gosec
 			unitBytes[j] = c
 		}
 		j++
