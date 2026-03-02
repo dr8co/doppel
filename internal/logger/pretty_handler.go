@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"runtime"
 	"slices"
 	"strconv"
@@ -12,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // PrettyHandler implements [slog.Handler] for human-friendly terminal output.
@@ -21,7 +22,7 @@ type PrettyHandler struct {
 	opts slog.HandlerOptions
 
 	// Writer where logs will be written
-	renderer *lipgloss.Renderer
+	renderer *io.Writer
 
 	// Attributes to include in every log record
 	attrs []slog.Attr
@@ -58,25 +59,25 @@ func NewPrettyHandler(w io.Writer, opts *slog.HandlerOptions) *PrettyHandler {
 	if opts == nil {
 		opts = &slog.HandlerOptions{}
 	}
-
-	renderer := lipgloss.NewRenderer(w)
+	hasDark := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
+	lightDark := lipgloss.LightDark(hasDark)
 
 	styles := &prettyStyles{
-		timestamp: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#777777", Dark: "#888888"}),
-		debug:     renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#d401d4", Dark: "#ff2dff"}).Bold(true),
-		info:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#02ca02", Dark: "#02e057"}).Bold(true),
-		warn:      renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#f9a825", Dark: "#fae100"}).Bold(true),
-		err:       renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff0000", Dark: "#ff4a4a"}).Bold(true),
-		source:    renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00afaf", Dark: "#00e4e4"}),
-		message:   renderer.NewStyle().Bold(true),
-		attrKey:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#0f00e4", Dark: "#8578fa"}),
-		attrValue: renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#757575", Dark: "#888888"}),
-		bracket:   renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#666666", Dark: "#858585"}),
+		timestamp: lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#777777"), lipgloss.Color("#888888"))),
+		debug:     lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#d401d4"), lipgloss.Color("#ff2dff"))).Bold(true),
+		info:      lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#02ca02"), lipgloss.Color("#02e057"))).Bold(true),
+		warn:      lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#f9a825"), lipgloss.Color("#fae100"))).Bold(true),
+		err:       lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#ff0000"), lipgloss.Color("#ff4a4a"))).Bold(true),
+		source:    lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#00afaf"), lipgloss.Color("#00e4e4"))),
+		message:   lipgloss.NewStyle().Bold(true),
+		attrKey:   lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#0f00e4"), lipgloss.Color("#8578fa"))),
+		attrValue: lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#757575"), lipgloss.Color("#888888"))),
+		bracket:   lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#666666"), lipgloss.Color("#858585"))),
 	}
 
 	return &PrettyHandler{
 		opts:     *opts,
-		renderer: renderer,
+		renderer: &w,
 		styles:   styles,
 		mu:       &sync.Mutex{},
 		builderPool: &sync.Pool{
@@ -126,7 +127,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	_, err := h.renderer.Output().WriteString(buf.String())
+	_, err := lipgloss.Fprint(*h.renderer, buf.String())
 	return err
 }
 
@@ -214,7 +215,9 @@ func (h *PrettyHandler) getLevelStyle(level slog.Level) lipgloss.Style {
 	case slog.LevelError:
 		return h.styles.err
 	default:
-		return h.renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#af0089ff", Dark: "#ff3ed5ff"})
+		hasDark := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
+		lightDark := lipgloss.LightDark(hasDark)
+		return lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#af0089ff"), lipgloss.Color("#ff3ed5ff")))
 	}
 }
 
