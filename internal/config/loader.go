@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -115,8 +116,7 @@ func (l *Loader) Load(ctx context.Context) (*Config, error) {
 	var errs []error
 
 	// Load from providers in reverse priority order for merging
-	for i := len(providers) - 1; i >= 0; i-- {
-		provider := providers[i]
+	for _, provider := range slices.Backward(providers) {
 		providerConfig, err := provider.Load(ctx)
 		if err != nil {
 			logger.Error("Failed to load from provider",
