@@ -1,6 +1,8 @@
 package filter
 
-// GetPresetConfig returns a predefined [Config] based on the preset name
+// GetPresetConfig returns a predefined [Config] based on the preset name.
+//
+//nolint:goconst
 func GetPresetConfig(preset string) *Config {
 	switch preset {
 	case "dev":
