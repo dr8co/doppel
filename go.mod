@@ -3,7 +3,7 @@ module github.com/dr8co/doppel
 go 1.26
 
 require (
-	charm.land/lipgloss/v2 v2.0.3
+	charm.land/lipgloss/v2 v2.0.5
 	github.com/BurntSushi/toml v1.6.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/urfave/cli/v3 v3.9.0
@@ -31,6 +31,6 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/term v0.1.0 // indirect
 )
