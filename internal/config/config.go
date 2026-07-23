@@ -54,43 +54,33 @@ type LogConfig struct {
 
 // FindConfig holds configuration for the 'find' command.
 type FindConfig struct {
-	// Workers sets the number of concurrent workers for file processing.
-	// Default is the number of CPU cores.
-	Workers int `toml:"workers" yaml:"workers" json:"workers"`
-
-	// Verbose enables verbose output.
-	Verbose bool `toml:"verbose" yaml:"verbose" json:"verbose"`
-
 	// ExcludeDirs holds the glob patterns to exclude directories from searching.
 	// This is a comma-separated list of patterns, which should be escaped as needed.
 	ExcludeDirs string `toml:"exclude_dirs" yaml:"exclude_dirs" json:"exclude_dirs"`
-
 	// ExcludeFiles holds the glob patterns to exclude files from searching.
 	// This is a comma-separated list of patterns, which should be escaped as needed.
 	ExcludeFiles string `toml:"exclude_files" yaml:"exclude_files" json:"exclude_files"`
-
 	// ExcludeDirRegex holds regex patterns to exclude directories.
 	// This is a comma-separated list of patterns, which should be escaped as needed.
 	ExcludeDirRegex string `toml:"exclude_dir_regex" yaml:"exclude_dir_regex" json:"exclude_dir_regex"`
-
 	// ExcludeFileRegex holds regex patterns to exclude files.
 	// This is a comma-separated list of patterns, which should be escaped as needed.
 	ExcludeFileRegex string `toml:"exclude_file_regex" yaml:"exclude_file_regex" json:"exclude_file_regex"`
-
 	// MinSize sets the minimum file size to consider (e.g., "10KB", "5MB").
 	MinSize string `toml:"min_size" yaml:"min_size" json:"min_size"`
-
 	// MaxSize sets the maximum file size to consider (e.g., "100MB", "1GB").
 	MaxSize string `toml:"max_size" yaml:"max_size" json:"max_size"`
-
-	// ShowFilters enables displaying the active filters.
-	ShowFilters bool `toml:"show_filters" yaml:"show_filters" json:"show_filters"`
-
 	// OutputFormat sets the output format (e.g., "pretty", "json", "yaml").
 	OutputFormat string `toml:"output_format" yaml:"output_format" json:"output_format"`
-
 	// OutputFile sets the file to write output to (default is stdout).
 	OutputFile string `toml:"output_file" yaml:"output_file" json:"output_file"`
+	// Workers sets the number of concurrent workers for file processing.
+	// Default is the number of CPU cores.
+	Workers int `toml:"workers" yaml:"workers" json:"workers"`
+	// Verbose enables verbose output.
+	Verbose bool `toml:"verbose" yaml:"verbose" json:"verbose"`
+	// ShowFilters enables displaying the active filters.
+	ShowFilters bool `toml:"show_filters" yaml:"show_filters" json:"show_filters"`
 }
 
 // PresetConfig holds configuration for the 'preset' command.
