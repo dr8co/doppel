@@ -28,6 +28,10 @@ import (
 	"github.com/dr8co/doppel/internal/logger"
 )
 
+const (
+	pretty = "pretty"
+)
+
 // Config represents the application configuration structure.
 type Config struct {
 	// Log holds the logging configuration.
@@ -128,7 +132,7 @@ type Merger interface {
 func defaultFindConfig() FindConfig {
 	return FindConfig{
 		Workers:      runtime.NumCPU(),
-		OutputFormat: "pretty",
+		OutputFormat: pretty,
 	}
 }
 
@@ -136,7 +140,7 @@ func defaultFindConfig() FindConfig {
 func defaultPresetConfig() PresetConfig {
 	return PresetConfig{
 		Workers:      runtime.NumCPU(),
-		OutputFormat: "pretty",
+		OutputFormat: pretty,
 	}
 }
 
@@ -145,7 +149,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Log: LogConfig{
 			Level:  "info",
-			Format: "pretty",
+			Format: pretty,
 			Output: "stdout",
 		},
 		Find:   defaultFindConfig(),

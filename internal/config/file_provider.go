@@ -12,6 +12,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	yamlStr = "yaml"
+	jsonStr = "json"
+	tomlStr = "toml"
+)
+
 // FileProvider provides configuration from files.
 type FileProvider struct {
 	path     string
@@ -24,15 +30,14 @@ type FileProvider struct {
 // The file format is inferred from the file extension, or assumed to be TOML if not available.
 func NewFileProvider(path string, priority int) *FileProvider {
 	ext := strings.ToLower(filepath.Ext(path))
-	//nolint:goconst
-	format := "toml"
+	format := tomlStr
 	switch ext {
 	case ".yaml", ".yml":
-		format = "yaml"
+		format = yamlStr
 	case ".json":
-		format = "json"
+		format = jsonStr
 	case ".toml":
-		format = "toml"
+		format = tomlStr
 	}
 
 	return &FileProvider{
@@ -73,15 +78,15 @@ func (p *FileProvider) Load(ctx context.Context) (*Config, error) {
 
 	config := &Config{}
 	switch p.format {
-	case "toml":
+	case tomlStr:
 		if err := toml.Unmarshal(data, config); err != nil {
 			return nil, fmt.Errorf("failed to decode TOML: %w", err)
 		}
-	case "yaml":
+	case yamlStr, "yml":
 		if err := yaml.Unmarshal(data, config); err != nil {
 			return nil, fmt.Errorf("failed to decode YAML: %w", err)
 		}
-	case "json":
+	case jsonStr:
 		if err := json.Unmarshal(data, config); err != nil {
 			return nil, fmt.Errorf("failed to decode JSON: %w", err)
 		}
