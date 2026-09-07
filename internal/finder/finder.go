@@ -274,9 +274,8 @@ func logError(ctx context.Context, err error, action, filePath string) {
 		logger.ErrorAttrs(ctx, "file (likely) removed after the scan but before hashing", slog.String("path", filePath), slog.String("err", err.Error()))
 		return
 	}
-	var filepathErr *os.PathError
 
-	if errors.As(err, &filepathErr) {
+	if filepathErr, ok := errors.AsType[*os.PathError](err); ok {
 		logger.ErrorAttrs(ctx, "failed to "+action+" a file", slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op), slog.String("err", filepathErr.Err.Error()))
 	} else {
 		logger.ErrorAttrs(ctx, "failed to "+action+" a file", slog.String("path", filePath), slog.String("err", err.Error()))

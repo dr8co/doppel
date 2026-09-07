@@ -37,8 +37,7 @@ func GroupFilesBySize(ctx context.Context,
 		err := filepath.WalkDir(dir, func(path string, dirEnt fs.DirEntry, err error) error {
 			if err != nil {
 				if verbose {
-					var filepathErr *os.PathError
-					if errors.As(err, &filepathErr) {
+					if filepathErr, ok := errors.AsType[*os.PathError](err); ok {
 						logger.ErrorAttrs(ctx, "error accessing file",
 							slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op),
 							slog.String("err", filepathErr.Err.Error()))
@@ -65,8 +64,7 @@ func GroupFilesBySize(ctx context.Context,
 				info, err := dirEnt.Info()
 				if err != nil {
 					if verbose {
-						var filepathErr *os.PathError
-						if errors.As(err, &filepathErr) {
+						if filepathErr, ok := errors.AsType[*os.PathError](err); ok {
 							logger.ErrorAttrs(ctx, "error getting file info",
 								slog.String("path", filepathErr.Path), slog.String("op", filepathErr.Op),
 								slog.String("err", filepathErr.Err.Error()))
