@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -53,7 +52,7 @@ func NewLoader(opts ...LoaderOption) *Loader {
 var (
 	// Global loader instance.
 	globalLoader *Loader
-	globalOnce   sync.Once
+	globalMu     sync.Mutex
 )
 
 // LoaderOption is a functional option for configuring the loader.
@@ -145,10 +144,14 @@ func (l *Loader) Load(ctx context.Context) (*Config, error) {
 
 // createLoader creates and configures a new loader with the given config directory.
 // This is the internal implementation used by Initialize and init.
-func createLoader(configDir string) (*Loader, error) {
+func createLoader(configDir string) *Loader {
 	loader := NewLoader()
 
 	// Add providers in priority order
+	if configDir == "" {
+		configDir = defaultConfigDir()
+	}
+
 	tomlPath := filepath.Join(configDir, "config.toml")
 	jsonPath := filepath.Join(configDir, "config.json")
 	yamlPath := filepath.Join(configDir, "config.yaml")
@@ -158,24 +161,36 @@ func createLoader(configDir string) (*Loader, error) {
 	loader.AddProvider(NewFileProvider(jsonPath, 30))
 	loader.AddProvider(NewEnvProvider("DOPPEL_", 40))
 
-	// Load initial configuration
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-	_, err := loader.Load(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return loader, nil
+	return loader
 }
 
 // Load returns the current global configuration.
 func Load() (*Config, error) {
-	if globalLoader == nil {
-		return nil, errors.New("configuration not initialized, use custom loader via NewLoader()")
+	return LoadWithMode(context.Background(), "", "")
+}
+
+// LoadWithMode loads configuration, optionally bypassing config sources when mode is set.
+func LoadWithMode(ctx context.Context, configPath, mode string) (*Config, error) {
+	if ShouldIgnoreConfig(mode) {
+		return DefaultConfig(), nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+	if configPath != "" {
+		loader := NewLoader(WithTimeout(2 * time.Second))
+		loader.AddProvider(NewFileProvider(configPath, 10))
+		loader.AddProvider(NewEnvProvider("DOPPEL_", 100))
+		return loader.Load(ctx)
+	}
+
+	globalMu.Lock()
+	defer globalMu.Unlock()
+	if globalLoader == nil {
+		loader := createLoader(defaultConfigDir())
+		globalLoader = loader
+	}
+
 	return globalLoader.Load(ctx)
 }
