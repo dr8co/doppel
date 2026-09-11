@@ -184,6 +184,26 @@ func TestLoader(t *testing.T) {
 	})
 }
 
+func TestLoadWithModeIgnoresConfigSources(t *testing.T) {
+	prevLoader := globalLoader
+	globalLoader = nil
+	defer func() { globalLoader = prevLoader }()
+
+	cfg, err := LoadWithMode(context.Background(), "", "none")
+	if err != nil {
+		t.Fatalf("LoadWithMode() unexpected error = %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("LoadWithMode() returned nil config")
+	}
+	if cfg.Log.Level != "info" {
+		t.Fatalf("LoadWithMode() log level = %q, want %q", cfg.Log.Level, "info")
+	}
+	if cfg.Find.OutputFormat != "pretty" {
+		t.Fatalf("LoadWithMode() output format = %q, want %q", cfg.Find.OutputFormat, "pretty")
+	}
+}
+
 // TestCreateLoader tests the createLoader function.
 func TestCreateLoader(t *testing.T) {
 	dir, cleanup := testDir(t)
@@ -217,11 +237,7 @@ output = "app.log"`)
   output: app.log`)
 
 	// Test createLoader
-	loader, err := createLoader(dir)
-	if err != nil {
-		t.Errorf("createLoader() error = %v", err)
-		return
-	}
+	loader := createLoader(dir)
 
 	// Test loading from the created loader
 	ctx := context.Background()
@@ -234,12 +250,28 @@ output = "app.log"`)
 		t.Errorf("Load() = %+v\nwant %+v", config.Log, testConfig.Log)
 	}
 
-	// Test Load() without initialization
+	// Test Load() without initialization lazily initializes the default loader.
 	prevLoader := globalLoader
 	globalLoader = nil
 	defer func() { globalLoader = prevLoader }()
 
-	if _, err := Load(); err == nil {
-		t.Error("Load() without initialization = nil, want error")
+	if _, err := Load(); err != nil {
+		t.Errorf("Load() without initialization unexpected error = %v", err)
+	}
+}
+
+func TestCreateLoaderDefersLoading(t *testing.T) {
+	dir, cleanup := testDir(t)
+	defer cleanup()
+
+	writeConfigFile(t, dir, "config", "toml", "invalid = [")
+
+	loader := createLoader(dir)
+	if loader == nil {
+		t.Fatal("createLoader() returned nil loader")
+	}
+
+	if _, err := loader.Load(context.Background()); err == nil {
+		t.Fatal("Load() error = nil, want invalid configuration error")
 	}
 }
