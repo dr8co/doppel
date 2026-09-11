@@ -12,7 +12,7 @@ import (
 )
 
 // PresetCommand returns the preset command configuration.
-func PresetCommand(cfg *config.PresetConfig) *cli.Command {
+func PresetCommand(cfg *config.PresetConfig, loadConfig ConfigLoader) *cli.Command {
 	return &cli.Command{
 		Name:    "preset",
 		Aliases: []string{"p"},
@@ -58,6 +58,11 @@ func PresetCommand(cfg *config.PresetConfig) *cli.Command {
 				Name:  "dev",
 				Usage: "Development preset - skip build dirs, temp files, version control",
 				Action: func(ctx context.Context, c *cli.Command) error {
+					loaded, err := loadConfig(ctx, c)
+					if err != nil {
+						return err
+					}
+					*cfg = loaded.Preset
 					return findDuplicatesWithPreset(ctx, c, cfg, "dev")
 				},
 				Suggest:               true,
@@ -67,6 +72,11 @@ func PresetCommand(cfg *config.PresetConfig) *cli.Command {
 				Name:  "media",
 				Usage: "Media preset - focus on images/videos, skip small files",
 				Action: func(ctx context.Context, c *cli.Command) error {
+					loaded, err := loadConfig(ctx, c)
+					if err != nil {
+						return err
+					}
+					*cfg = loaded.Preset
 					return findDuplicatesWithPreset(ctx, c, cfg, "media")
 				},
 				Suggest:               true,
@@ -76,6 +86,11 @@ func PresetCommand(cfg *config.PresetConfig) *cli.Command {
 				Name:  "docs",
 				Usage: "Documents preset - focus on document files",
 				Action: func(ctx context.Context, c *cli.Command) error {
+					loaded, err := loadConfig(ctx, c)
+					if err != nil {
+						return err
+					}
+					*cfg = loaded.Preset
 					return findDuplicatesWithPreset(ctx, c, cfg, "docs")
 				},
 				Suggest:               true,
@@ -85,6 +100,11 @@ func PresetCommand(cfg *config.PresetConfig) *cli.Command {
 				Name:  "clean",
 				Usage: "Clean preset - skip temporary and cache files",
 				Action: func(ctx context.Context, c *cli.Command) error {
+					loaded, err := loadConfig(ctx, c)
+					if err != nil {
+						return err
+					}
+					*cfg = loaded.Preset
 					return findDuplicatesWithPreset(ctx, c, cfg, "clean")
 				},
 				Suggest:               true,
