@@ -1050,8 +1050,7 @@ func BenchmarkLoggerCreation(b *testing.B) {
 		Options: &slog.HandlerOptions{Level: slog.LevelInfo},
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		logger, err := New(config)
 		if err != nil {
 			b.Fatalf("failed to create logger: %v", err)
@@ -1076,8 +1075,7 @@ func BenchmarkGlobalLogging(b *testing.B) {
 		b.Fatalf("failed to set default logger: %v", err)
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		Info("benchmark message", "iteration", i, "key", "value")
 	}
 }
