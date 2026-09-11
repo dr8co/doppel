@@ -29,8 +29,11 @@ import (
 	"github.com/dr8co/doppel/internal/scanner"
 )
 
+// ConfigLoader loads the application configuration for a command action.
+type ConfigLoader func(context.Context, *cli.Command) (*config.Config, error)
+
 // FindCommand returns the find command configuration.
-func FindCommand(cfg *config.FindConfig) *cli.Command {
+func FindCommand(cfg *config.FindConfig, loadConfig ConfigLoader) *cli.Command {
 	return &cli.Command{
 		Name:    "find",
 		Aliases: []string{"search", "f"},
@@ -104,6 +107,11 @@ Files are compared by their hashes after filtration.`,
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
+			loaded, err := loadConfig(ctx, c)
+			if err != nil {
+				return err
+			}
+			*cfg = loaded.Find
 			return findDuplicatesCmd(ctx, c, cfg)
 		},
 	}
