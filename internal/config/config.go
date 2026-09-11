@@ -24,12 +24,18 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/dr8co/doppel/internal/logger"
 )
 
 const (
 	pretty = "pretty"
+
+	// ConfigModeNone disables config loading from files and environment variables.
+	ConfigModeNone = "none"
+	// ConfigModeIgnore is an alias for disabling config loading.
+	ConfigModeIgnore = "ignore"
 )
 
 // Config represents the application configuration structure.
@@ -158,25 +164,28 @@ func DefaultConfig() *Config {
 }
 
 func init() {
+	configDir := defaultConfigDir()
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
+		logger.Error("Could not create config directory", "error", err, "path", configDir)
+	}
+}
+
+func defaultConfigDir() string {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		configDir = os.TempDir()
 		logger.Error("Could not get the user config directory. Using "+configDir, "error", err)
 	}
 
-	configDir = filepath.Join(configDir, "doppel")
-	if err := os.MkdirAll(configDir, 0o750); err != nil {
-		logger.Error("Could not create config directory", "error", err, "path", configDir)
-	}
+	return filepath.Join(configDir, "doppel")
+}
 
-	// Initialize the global loader once. If createLoader fails, we log
-	// the error but continue; Load() will return an error if used before
-	// successful initialization.
-	globalOnce.Do(func() {
-		var e error
-		globalLoader, e = createLoader(configDir)
-		if e != nil {
-			logger.Error("Failed to initialize configuration", "error", e)
-		}
-	})
+// ShouldIgnoreConfig returns true when the caller wants to bypass config loading.
+func ShouldIgnoreConfig(mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case ConfigModeNone, ConfigModeIgnore:
+		return true
+	default:
+		return false
+	}
 }
