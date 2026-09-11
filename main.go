@@ -11,7 +11,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/urfave/cli/v3"
 
@@ -53,10 +52,22 @@ func main() {
 		exit(1)
 	}()
 
-	appConfig, err := config.Load()
-	if err != nil {
-		logger.Error("failed to load the config", "error", err)
-		exit(1)
+	appConfig := config.DefaultConfig()
+	loadConfig := func(ctx context.Context, command *cli.Command) (*config.Config, error) {
+		if !command.IsSet("config") {
+			return config.LoadWithMode(ctx, "", "")
+		}
+
+		configValue := strings.TrimSpace(command.String("config"))
+		if config.ShouldIgnoreConfig(configValue) {
+			return config.DefaultConfig(), nil
+		}
+
+		configPath, err := pathutil.ValidateRegularFile(configValue)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse the config: %w", err)
+		}
+		return config.LoadWithMode(ctx, configPath, "")
 	}
 
 	app := &cli.Command{
@@ -93,31 +104,13 @@ and supports extensive filtering options to exclude unwanted files and directori
 			},
 		},
 		Commands: []*cli.Command{
-			cmd.FindCommand(&appConfig.Find),
-			cmd.PresetCommand(&appConfig.Preset),
+			cmd.FindCommand(&appConfig.Find, loadConfig),
+			cmd.PresetCommand(&appConfig.Preset, loadConfig),
 		},
 		DefaultCommand:        "find",
 		Suggest:               true,
 		EnableShellCompletion: true,
 		Before: func(ctx context.Context, command *cli.Command) (context.Context, error) {
-			if command.IsSet("config") {
-				configPath, err := pathutil.ValidateRegularFile(command.String("config"))
-				if err != nil {
-					return ctx, fmt.Errorf("failed to parse the config: %w", err)
-				}
-
-				loader := config.NewLoader(
-					config.WithTimeout(2 * time.Second),
-				)
-				loader.AddProvider(config.NewFileProvider(configPath, 10))
-				loader.AddProvider(config.NewEnvProvider("DOPPEL_", 100))
-				customConfig, err := loader.Load(ctx)
-				if err != nil {
-					return ctx, err
-				}
-				*appConfig = *customConfig
-			}
-
 			logCloser, newCtx, err := initialize(ctx, command, appConfig)
 			closer = logCloser
 			return newCtx, err
