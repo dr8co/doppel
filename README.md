@@ -48,7 +48,7 @@ Doppel is designed for speed, flexibility, and reliability.
 
 ## ⚡️ Quick Start
 
-Install (requires Go 1.25+):
+Install (requires Go 1.27+):
 
 ```sh
 go install github.com/dr8co/doppel@latest
@@ -145,6 +145,17 @@ where `$CONFIG_DIR` is your system's user configuration directory:
 * Other Unix: `~/.config`
 
 The configuration files can be used to set default values for any command-line options.
+
+Use the global `--config` option to load a specific configuration file:
+
+```sh
+doppel --config /path/to/config.toml find ~/Documents
+```
+
+Pass `--config=none` or `--config=ignore` to bypass both configuration files and
+environment variables and use built-in defaults. Configuration is loaded when a
+search action runs, so invalid configuration does not prevent help, version, or
+completion output.
 
 The key names in the configuration file match the long option names for each command,
 with dashes replaced with underscores.
