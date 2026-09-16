@@ -104,6 +104,23 @@ func GroupFilesBySize(ctx context.Context,
 	return sizeGroups, nil
 }
 
+// GroupFilesBySizeFromFiles groups an explicitly selected list of regular files by size.
+func GroupFilesBySizeFromFiles(files []string, stats *model.Stats) (map[int64][]FileInfo, error) {
+	sizeGroups := make(map[int64][]FileInfo, len(files))
+	for _, file := range files {
+		info, err := os.Stat(file)
+		if err != nil {
+			return nil, fmt.Errorf("error accessing file %s: %w", file, err)
+		}
+
+		size := info.Size()
+		sizeGroups[size] = append(sizeGroups[size], FileInfo{Path: file, Size: size})
+		stats.TotalFiles++
+	}
+
+	return sizeGroups, nil
+}
+
 func printSummary(stats *model.Stats, verbose bool) {
 	if verbose && (stats.SkippedDirs > 0 || stats.SkippedFiles > 0) {
 		fmt.Print("\n⏭️ Skipped ")
@@ -137,6 +154,11 @@ func pluralize(num uint64, ies bool) string {
 // GetDirectoriesFromArgs returns the directories to scan from command arguments.
 func GetDirectoriesFromArgs(c *cli.Command) ([]string, error) {
 	return processDirectories(c.Args().Slice())
+}
+
+// GetFilesFromArgs returns the regular files to scan from command arguments.
+func GetFilesFromArgs(c *cli.Command) ([]string, error) {
+	return processFiles(c.Args().Slice())
 }
 
 // processDirectories receives a list of directories, resolves absolute paths, validates them, and returns unique paths.
@@ -183,6 +205,42 @@ func processDirectories(directories []string) ([]string, error) {
 	}
 
 	return removeSubdirectories(absDirs), nil
+}
+
+// processFiles resolves, validates, and deduplicates explicitly selected files.
+func processFiles(files []string) ([]string, error) {
+	if len(files) == 0 {
+		return nil, errors.New("no files specified")
+	}
+
+	uniqueFiles := make(map[string]bool, len(files))
+	absFiles := make([]string, 0, len(files))
+	for _, file := range files {
+		absFile, err := filepath.Abs(file)
+		if err != nil {
+			return nil, fmt.Errorf("error converting to absolute path %s: %w", file, err)
+		}
+
+		if uniqueFiles[absFile] {
+			continue
+		}
+
+		info, err := os.Stat(absFile)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("path does not exist: %s", absFile)
+			}
+			return nil, fmt.Errorf("error accessing file %s: %w", absFile, err)
+		}
+		if !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("not a regular file: %s", absFile)
+		}
+
+		uniqueFiles[absFile] = true
+		absFiles = append(absFiles, absFile)
+	}
+
+	return absFiles, nil
 }
 
 // removeSubdirectories removes paths that are subdirectories of other paths.
