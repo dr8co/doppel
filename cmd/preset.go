@@ -147,5 +147,5 @@ func findDuplicatesWithPreset(ctx context.Context, c *cli.Command, cfg *config.P
 		OutputFormat: cfg.OutputFormat,
 	}
 
-	return findDuplicates(ctx, &cfg2, directories, filterConfig)
+	return findDuplicates(ctx, &cfg2, directories, nil, false, filterConfig)
 }
