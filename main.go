@@ -18,10 +18,7 @@ import (
 	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/logger"
 	"github.com/dr8co/doppel/internal/pathutil"
-)
-
-const (
-	version = "1.0.0"
+	"github.com/dr8co/doppel/internal/version"
 )
 
 func main() {
@@ -73,7 +70,7 @@ func main() {
 	app := &cli.Command{
 		Name:    "doppel",
 		Usage:   "Find duplicate files across directories",
-		Version: version,
+		Version: fmt.Sprintf("%s built with %s", version.Version, version.GoVersion),
 		Authors: []any{
 			"Ian Duncan <dr8co@duck.com>",
 		},
