@@ -37,11 +37,12 @@ func FindCommand(cfg *config.FindConfig, loadConfig ConfigLoader) *cli.Command {
 	return &cli.Command{
 		Name:    "find",
 		Aliases: []string{"search", "f"},
-		Usage:   "Find duplicate files in specified directories",
+		Usage:   "Find duplicate files in specified directories or files",
 		Description: `Scan directories for duplicate files. If no directories are specified, 
 only the current working directory is scanned.
+With --files, positional arguments are treated as an explicit list of regular files and filters are ignored.
 Files are compared by their hashes after filtration.`,
-		ArgsUsage:             "[directories...]",
+		ArgsUsage:             "[directories...] or --files [files...]",
 		EnableShellCompletion: true,
 		Suggest:               true,
 
@@ -56,6 +57,10 @@ Files are compared by their hashes after filtration.`,
 				Name:    "verbose",
 				Aliases: []string{"v"},
 				Usage:   "Enable verbose output with detailed progress information",
+			},
+			&cli.BoolFlag{
+				Name:  "files",
+				Usage: "Treat positional arguments as explicit regular files and ignore all filters",
 			},
 			&cli.StringFlag{
 				Name:    "exclude-dirs",
@@ -154,9 +159,20 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 		cfg.OutputFormat = c.String("output-format")
 	}
 
-	directories, err := scanner.GetDirectoriesFromArgs(c)
+	explicitFiles := c.Bool("files")
+	var directories, files []string
+	var err error
+	if explicitFiles {
+		files, err = scanner.GetFilesFromArgs(c)
+	} else {
+		directories, err = scanner.GetDirectoriesFromArgs(c)
+	}
 	if err != nil {
 		return err
+	}
+
+	if explicitFiles {
+		return findDuplicates(ctx, cfg, directories, files, true, &filter.Config{})
 	}
 
 	// Parse size strings to int64 bytes
@@ -188,12 +204,12 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
-	return findDuplicates(ctx, cfg, directories, filterConfig)
+	return findDuplicates(ctx, cfg, directories, nil, false, filterConfig)
 }
 
 // findDuplicates performs the main logic of finding duplicate files.
-func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []string, filterConfig *filter.Config) error {
-	if cfg.ShowFilters {
+func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, files []string, explicitFiles bool, filterConfig *filter.Config) error {
+	if cfg.ShowFilters && !explicitFiles {
 		filter.DisplayActiveFilters(filterConfig)
 		return nil
 	}
@@ -202,8 +218,12 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 	_ = sp.Color("fgHiRed", "bold")
 
 	if cfg.Verbose {
-		fmt.Printf("🔍 Scanning directories: %v\n", directories)
-		filter.DisplayActiveFilters(filterConfig)
+		if explicitFiles {
+			fmt.Printf("🔍 Scanning files: %v\n", files)
+		} else {
+			fmt.Printf("🔍 Scanning directories: %v\n", directories)
+			filter.DisplayActiveFilters(filterConfig)
+		}
 		sp.UpdateCharSet(spinner.CharSets[7])
 	}
 
@@ -211,7 +231,13 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories []s
 	s := &model.Stats{StartTime: time.Now()}
 
 	// Phase 1: Group files by size
-	sizeGroups, err := scanner.GroupFilesBySize(ctx, directories, filterConfig, s, cfg.Verbose)
+	var sizeGroups map[int64][]scanner.FileInfo
+	var err error
+	if explicitFiles {
+		sizeGroups, err = scanner.GroupFilesBySizeFromFiles(files, s)
+	} else {
+		sizeGroups, err = scanner.GroupFilesBySize(ctx, directories, filterConfig, s, cfg.Verbose)
+	}
 	sp.Stop()
 	if err != nil {
 		return fmt.Errorf("error scanning files: %w", err)
