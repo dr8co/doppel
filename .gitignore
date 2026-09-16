@@ -120,3 +120,9 @@ fabric.properties
 
 # Local Backups
 *.bak
+
+# Distribution / packaging
+dist/
+
+# TODOs
+TODO.*
