@@ -134,6 +134,82 @@ func TestGroupFilesBySize(t *testing.T) {
 	}
 }
 
+// TestProcessFiles tests the [processFiles] function to ensure it correctly processes a list of files.
+func TestProcessFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "file.txt")
+	if err := os.WriteFile(filePath, []byte("duplicate"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	files, err := processFiles([]string{filePath, filePath})
+	if err != nil {
+		t.Fatalf("processFiles() error = %v", err)
+	}
+	if len(files) != 1 || files[0] != filePath {
+		t.Fatalf("processFiles() = %v, want [%s]", files, filePath)
+	}
+}
+
+// TestProcessFilesRejectsInvalidInputs tests that [processFiles] correctly rejects invalid inputs
+// such as empty strings, non-existent files, and directories.
+func TestProcessFilesRejectsInvalidInputs(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "file.txt")
+	if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{name: "empty input", path: "", want: "no files specified"},
+		{name: "missing file", path: filepath.Join(tempDir, "missing"), want: "path does not exist"},
+		{name: "directory", path: tempDir, want: "not a regular file"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := []string{tt.path}
+			if tt.path == "" {
+				input = nil
+			}
+			_, err := processFiles(input)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("processFiles() error = %v, want substring %q", err, tt.want)
+			}
+		})
+	}
+}
+
+// TestGroupFilesBySizeFromFilesIgnoresFilters verifies that [GroupFilesBySizeFromFiles] correctly groups files by size.
+func TestGroupFilesBySizeFromFilesIgnoresFilters(t *testing.T) {
+	tempDir := t.TempDir()
+	first := filepath.Join(tempDir, "first.log")
+	second := filepath.Join(tempDir, "second.log")
+	content := []byte("same content")
+	for _, filePath := range []string{first, second} {
+		if err := os.WriteFile(filePath, content, 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+
+	stats := &model.Stats{}
+	sizeGroups, err := GroupFilesBySizeFromFiles([]string{first, second}, stats)
+	if err != nil {
+		t.Fatalf("GroupFilesBySizeFromFiles() error = %v", err)
+	}
+
+	if len(sizeGroups[int64(len(content))]) != 2 {
+		t.Fatalf("size group contains %d files, want 2", len(sizeGroups[int64(len(content))]))
+	}
+	if stats.TotalFiles != 2 {
+		t.Errorf("Stats.TotalFiles = %d, want 2", stats.TotalFiles)
+	}
+}
+
 // TestProcessDirectories_EmptyInput verifies that processDirectories returns
 // the absolute path of the current directory when given an empty input.
 func TestProcessDirectories_EmptyInput(t *testing.T) {
