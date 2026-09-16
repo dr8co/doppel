@@ -225,10 +225,22 @@ Scan specific directories:
 doppel find /path/to/dir1 /path/to/dir2
 ```
 
+Scan an explicit list of regular files. In this mode, all directory, filename,
+regex, and size filters are ignored:
+
+```sh
+doppel find --files /path/to/file1 /path/to/file2
+find . -type f -name '*.go' -print0 | xargs -0 doppel find --files
+```
+
+Every explicit path must exist and resolve to a regular file. Invalid paths cause
+the command to fail instead of being skipped.
+
 #### ⚙️ Find Command Options
 
 * `-w, --workers <n>`: Number of parallel hashing workers (default: number of CPUs)
 * `-v, --verbose`: Enable verbose output
+* `--files`: Treat positional arguments as regular files and ignore all filters
 * `--min-size <size>`: Minimum file size to consider (default: 0 = no limit)
 * `--max-size <size>`: Maximum file size to consider (default: 0 = no limit)
 * `--exclude-dirs <patterns>`: Comma-separated glob patterns for directories to exclude
