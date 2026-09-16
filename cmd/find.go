@@ -218,9 +218,7 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 	_ = sp.Color("fgHiRed", "bold")
 
 	if cfg.Verbose {
-		if explicitFiles {
-			fmt.Printf("🔍 Scanning files: %v\n", files)
-		} else {
+		if !explicitFiles {
 			fmt.Printf("🔍 Scanning directories: %v\n", directories)
 			filter.DisplayActiveFilters(filterConfig)
 		}
