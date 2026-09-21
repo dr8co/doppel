@@ -124,5 +124,6 @@ fabric.properties
 # Distribution / packaging
 dist/
 
-# TODOs
+# Project tasks and TODOs
+docs/tasks*
 TODO.*
