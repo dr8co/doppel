@@ -116,7 +116,7 @@ Files are compared by their hashes after filtration.`,
 			},
 			&cli.StringFlag{
 				Name:  "output-format",
-				Usage: "Output format: pretty, json, yaml",
+				Usage: "Output format: pretty, json, jsonl, yaml",
 				Value: "pretty",
 			},
 			&cli.StringFlag{
