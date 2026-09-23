@@ -88,7 +88,7 @@ func TestLoader(t *testing.T) {
 					Log: LogConfig{
 						Level:  "debug",
 						Format: "pretty",
-						Output: "stdout",
+						Output: "stderr",
 					},
 					Find: FindConfig{
 						Workers:      runtime.NumCPU(),
