@@ -14,7 +14,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -208,38 +210,43 @@ func (fc *Config) ShouldExcludeFile(filePath string, size int64) bool {
 
 // DisplayActiveFilters prints the currently active file and directory filters from the provided configuration.
 func DisplayActiveFilters(config *Config) {
-	fmt.Println("🔧 Active filters:")
+	DisplayActiveFiltersTo(config, os.Stdout)
+}
+
+// DisplayActiveFiltersTo writes the currently active filters to w.
+func DisplayActiveFiltersTo(config *Config, w io.Writer) {
+	_, _ = fmt.Fprintln(w, "🔧 Active filters:")
 	if len(config.ExcludeDirs) > 0 {
-		fmt.Printf("  📁 Exclude directories: %s\n", strings.Join(config.ExcludeDirs, ", "))
+		_, _ = fmt.Fprintf(w, "  📁 Exclude directories: %s\n", strings.Join(config.ExcludeDirs, ", "))
 	}
 
 	if len(config.ExcludeFiles) > 0 {
-		fmt.Printf("  📄 Exclude files: %s\n", strings.Join(config.ExcludeFiles, ", "))
+		_, _ = fmt.Fprintf(w, "  📄 Exclude files: %s\n", strings.Join(config.ExcludeFiles, ", "))
 	}
 
 	if len(config.excludeDirRegex) > 0 {
-		fmt.Printf("  📁 Exclude directory regex: %q\n", config.ExcludeDirRegexRaw)
+		_, _ = fmt.Fprintf(w, "  📁 Exclude directory regex: %q\n", config.ExcludeDirRegexRaw)
 	}
 
 	if len(config.excludeFileRegex) > 0 {
-		fmt.Printf("  📄 Exclude file regex: %q\n", config.ExcludeFileRegexRaw)
+		_, _ = fmt.Fprintf(w, "  📄 Exclude file regex: %q\n", config.ExcludeFileRegexRaw)
 	}
 
 	if config.MinSize > 0 {
-		fmt.Printf("  📏 Minimum file size: %s\n", output.FormatBytes(config.MinSize))
+		_, _ = fmt.Fprintf(w, "  📏 Minimum file size: %s\n", output.FormatBytes(config.MinSize))
 	}
 
 	if config.MaxSize > 0 {
-		fmt.Printf("  📏 Maximum file size: %s\n", output.FormatBytes(config.MaxSize))
+		_, _ = fmt.Fprintf(w, "  📏 Maximum file size: %s\n", output.FormatBytes(config.MaxSize))
 	}
 
 	if len(config.ExcludeDirs) == 0 && len(config.ExcludeFiles) == 0 &&
 		len(config.excludeDirRegex) == 0 && len(config.excludeFileRegex) == 0 &&
 		config.MinSize == 0 && config.MaxSize == 0 {
-		fmt.Println("  ✅ No filters active")
+		_, _ = fmt.Fprintln(w, "  ✅ No filters active")
 	}
 
-	fmt.Println()
+	_, _ = fmt.Fprintln(w)
 }
 
 // ParseFileSize parses a file size string with optional suffix and returns size in bytes.
