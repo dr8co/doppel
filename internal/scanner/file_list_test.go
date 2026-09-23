@@ -26,7 +26,7 @@ func TestReadFilesFrom(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ReadFilesFrom(strings.NewReader(tt.input), tt.nullDelimited)
+			got, err := ReadFilesFrom(strings.NewReader(tt.input), tt.nullDelimited, false)
 			if err != nil {
 				t.Fatalf("ReadFilesFrom() error = %v", err)
 			}
@@ -50,9 +50,33 @@ func TestReadFilesFromRejectsEmptyRecords(t *testing.T) {
 		{name: "whitespace-only nul record", input: " \t\x00", nullDelimited: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := ReadFilesFrom(strings.NewReader(tt.input), tt.nullDelimited)
+			_, err := ReadFilesFrom(strings.NewReader(tt.input), tt.nullDelimited, false)
 			if err == nil || !strings.Contains(err.Error(), "empty path") {
 				t.Fatalf("ReadFilesFrom() error = %v, want empty path error", err)
+			}
+		})
+	}
+}
+
+func TestReadFilesFromIgnoresEmptyRecords(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		nullDelimited bool
+		want          []string
+	}{
+		{name: "newline", input: "first\n\n \t\nsecond\n", want: []string{"first", "second"}},
+		{name: "nul", input: "first\x00\x00 \t\x00second\x00", nullDelimited: true, want: []string{"first", "second"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ReadFilesFrom(strings.NewReader(tt.input), tt.nullDelimited, true)
+			if err != nil {
+				t.Fatalf("ReadFilesFrom() error = %v", err)
+			}
+			if strings.Join(got, "\x00") != strings.Join(tt.want, "\x00") {
+				t.Fatalf("ReadFilesFrom() = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -62,7 +86,7 @@ func TestReadFilesFromReturnsReadErrors(t *testing.T) {
 	wantErr := errors.New("read failed")
 	reader := errorReader{err: wantErr}
 
-	_, err := ReadFilesFrom(reader, false)
+	_, err := ReadFilesFrom(reader, false, false)
 	if err == nil || !errors.Is(err, wantErr) {
 		t.Fatalf("ReadFilesFrom() error = %v, want wrapped read error", err)
 	}
