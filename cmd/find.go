@@ -10,6 +10,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -41,8 +42,9 @@ func FindCommand(cfg *config.FindConfig, loadConfig ConfigLoader) *cli.Command {
 		Description: `Scan directories for duplicate files. If no directories are specified, 
 only the current working directory is scanned.
 With --files, positional arguments are treated as an explicit list of regular files and filters are ignored.
+With --files-from, paths are read from a file or stdin and filters are ignored.
 Files are compared by their hashes after filtration.`,
-		ArgsUsage:             "[directories...] or --files [files...]",
+		ArgsUsage:             "[directories...] or --files [files...] or --files-from <file>",
 		EnableShellCompletion: true,
 		Suggest:               true,
 
@@ -61,6 +63,14 @@ Files are compared by their hashes after filtration.`,
 			&cli.BoolFlag{
 				Name:  "files",
 				Usage: "Treat positional arguments as explicit regular files and ignore all filters",
+			},
+			&cli.StringFlag{
+				Name:  "files-from",
+				Usage: "Read explicit regular file paths from a file, or '-' for stdin",
+			},
+			&cli.BoolFlag{
+				Name:  "null",
+				Usage: "Read NUL-delimited paths from --files-from",
 			},
 			&cli.StringFlag{
 				Name:    "exclude-dirs",
@@ -162,7 +172,42 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	explicitFiles := c.Bool("files")
 	var directories, files []string
 	var err error
-	if explicitFiles {
+	filesFrom := c.String("files-from")
+	filesFromSet := c.IsSet("files-from")
+	if c.Bool("null") && !filesFromSet {
+		return errors.New("--null requires --files-from")
+	}
+	//nolint:gocritic
+	if filesFromSet {
+		if explicitFiles {
+			return errors.New("--files-from cannot be combined with --files")
+		}
+		if c.Args().Len() > 0 {
+			return errors.New("--files-from cannot be combined with positional arguments")
+		}
+		if filesFrom == "" {
+			return errors.New("--files-from requires a file path or '-' for stdin")
+		}
+
+		var input io.Reader = os.Stdin
+		var inputFile *os.File
+		if filesFrom != "-" {
+			//nolint:gosec
+			inputFile, err = os.Open(filesFrom)
+			if err != nil {
+				return fmt.Errorf("error opening file list %s: %w", filesFrom, err)
+			}
+			defer func() {
+				_ = inputFile.Close()
+			}()
+			input = inputFile
+		}
+		files, err = scanner.GetFilesFromReader(input, c.Bool("null"))
+		if err != nil {
+			return err
+		}
+		explicitFiles = true
+	} else if explicitFiles {
 		files, err = scanner.GetFilesFromArgs(c)
 	} else {
 		directories, err = scanner.GetDirectoriesFromArgs(c)
