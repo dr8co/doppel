@@ -74,7 +74,7 @@ func validate(workers int, outputFormat string) error {
 	}
 
 	if outputFormat != "" {
-		validFormats := []string{"json", "pretty", "yaml"}
+		validFormats := []string{"json", "jsonl", "pretty", "yaml"}
 		if !contains(validFormats, outputFormat) {
 			return fmt.Errorf("invalid output format: %s, must be one of %v", outputFormat, validFormats)
 		}
