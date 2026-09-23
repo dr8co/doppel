@@ -72,6 +72,10 @@ Files are compared by their hashes after filtration.`,
 				Name:  "null",
 				Usage: "Read NUL-delimited paths from --files-from",
 			},
+			&cli.BoolFlag{
+				Name:  "ignore-empty-paths",
+				Usage: "Ignore empty or whitespace-only paths from --files-from",
+			},
 			&cli.StringFlag{
 				Name:    "exclude-dirs",
 				Aliases: []string{"skip-dirs"},
@@ -202,7 +206,7 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 			}()
 			input = inputFile
 		}
-		files, err = scanner.GetFilesFromReader(input, c.Bool("null"))
+		files, err = scanner.GetFilesFromReader(input, c.Bool("null"), c.Bool("ignore-empty-paths"))
 		if err != nil {
 			return err
 		}
