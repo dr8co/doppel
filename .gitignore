@@ -127,3 +127,7 @@ dist/
 # Project tasks and TODOs
 docs/tasks*
 TODO.*
+
+# Built executables
+*.exe
+doppel
