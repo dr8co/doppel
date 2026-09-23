@@ -2,6 +2,8 @@ package output
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
+	json2 "encoding/json/v2"
 	"io"
 
 	"github.com/dr8co/doppel/internal/model"
@@ -17,9 +19,9 @@ func NewJSONLFormatter() *JSONLFormatter {
 
 // Format writes one JSON object for each duplicate group.
 func (f *JSONLFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
-	encoder := json.NewEncoder(w)
+	encoder := jsontext.NewEncoder(w, jsontext.Multiline(false), json.FormatDurationAsNano(true))
 	for _, group := range report.Groups {
-		if err := encoder.Encode(group); err != nil {
+		if err := json2.MarshalEncode(encoder, group); err != nil {
 			return err
 		}
 	}

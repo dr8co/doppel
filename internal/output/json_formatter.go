@@ -2,6 +2,8 @@ package output
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
+	json2 "encoding/json/v2"
 	"io"
 
 	"github.com/dr8co/doppel/internal/model"
@@ -17,10 +19,9 @@ func NewJSONFormatter() *JSONFormatter {
 
 // Format writes the duplicate report as formatted JSON to the writer.
 func (f *JSONFormatter) Format(report *model.DuplicateReport, w io.Writer) error {
-	encoder := json.NewEncoder(w)
 	// Pretty print with 2-space indentation
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(report)
+	encoder := jsontext.NewEncoder(w, jsontext.WithIndent("  "), jsontext.Multiline(true), json.FormatDurationAsNano(true))
+	return json2.MarshalEncode(encoder, report)
 }
 
 // Name returns the name of the formatter.
