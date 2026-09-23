@@ -79,6 +79,7 @@ doppel preset media ~/Pictures
 * 🛠️ **Dry-run mode** to preview filters
 * 📄 **Structured output** for easy integration with other tools. Supported formats:
   * JSON
+  * JSONL (one duplicate group per line)
   * YAML
   * Text (default)
 * 🧩 **Extensible presets** for common use cases (media, dev, docs, clean)
@@ -265,7 +266,7 @@ are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only recor
 * `--exclude-dirs-regex <regexes>`: Comma-separated regex patterns for directories to exclude
 * `--exclude-files-regex <regexes>`: Comma-separated regex patterns for files to exclude
 * `--show-filters`: Show active filters and exit
-* `--output-format <format>`: Output format for duplicate groups (default: pretty, options: `pretty`, `json`, `yaml`)
+* `--output-format <format>`: Output format for duplicate groups (default: pretty, options: `pretty`, `json`, `jsonl`, `yaml`)
 * `--output-file <file>`: Write output to a file instead of stdout
 
 For more details, run:
