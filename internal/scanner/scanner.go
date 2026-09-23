@@ -34,6 +34,14 @@ import (
 func GroupFilesBySize(ctx context.Context,
 	directories []string, filterConfig *filter.Config, stats *model.Stats, verbose bool) (map[int64][]FileInfo, error,
 ) {
+	return GroupFilesBySizeWithOutput(ctx, directories, filterConfig, stats, verbose, os.Stderr)
+}
+
+// GroupFilesBySizeWithOutput scans directories and writes diagnostics to progressOut.
+func GroupFilesBySizeWithOutput(ctx context.Context,
+	directories []string, filterConfig *filter.Config, stats *model.Stats, verbose bool, progressOut io.Writer,
+) (map[int64][]FileInfo, error,
+) {
 	sizeGroups := make(map[int64][]FileInfo, len(directories))
 	for _, dir := range directories {
 		err := filepath.WalkDir(dir, func(path string, dirEnt fs.DirEntry, err error) error {
@@ -101,7 +109,7 @@ func GroupFilesBySize(ctx context.Context,
 		}
 	}
 
-	printSummary(stats, verbose)
+	printSummaryTo(stats, verbose, progressOut)
 
 	return sizeGroups, nil
 }
@@ -123,19 +131,19 @@ func GroupFilesBySizeFromFiles(files []string, stats *model.Stats) (map[int64][]
 	return sizeGroups, nil
 }
 
-func printSummary(stats *model.Stats, verbose bool) {
+func printSummaryTo(stats *model.Stats, verbose bool, w io.Writer) {
 	if verbose && (stats.SkippedDirs > 0 || stats.SkippedFiles > 0) {
-		fmt.Print("\n⏭️ Skipped ")
+		_, _ = fmt.Fprint(w, "\n⏭️ Skipped ")
 		if stats.SkippedDirs > 0 {
-			fmt.Printf("%d director%s ", stats.SkippedDirs, pluralize(stats.SkippedDirs, true))
+			_, _ = fmt.Fprintf(w, "%d director%s ", stats.SkippedDirs, pluralize(stats.SkippedDirs, true))
 			if stats.SkippedFiles > 0 {
-				fmt.Print("and ")
+				_, _ = fmt.Fprint(w, "and ")
 			}
 		}
 		if stats.SkippedFiles > 0 {
-			fmt.Printf("%d file%s ", stats.SkippedFiles, pluralize(stats.SkippedFiles, false))
+			_, _ = fmt.Fprintf(w, "%d file%s ", stats.SkippedFiles, pluralize(stats.SkippedFiles, false))
 		}
-		fmt.Println("due to filters.")
+		_, _ = fmt.Fprintln(w, "due to filters.")
 	}
 }
 
