@@ -80,6 +80,11 @@ func InitFormatters() (*FormatterRegistry, error) {
 		return nil, err
 	}
 
+	err = registry.Register("jsonl", NewJSONLFormatter())
+	if err != nil {
+		return nil, err
+	}
+
 	err = registry.Register("pretty", NewPrettyFormatter())
 	if err != nil {
 		return nil, err
