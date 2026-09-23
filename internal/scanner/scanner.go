@@ -11,9 +11,11 @@
 package scanner
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -159,6 +161,50 @@ func GetDirectoriesFromArgs(c *cli.Command) ([]string, error) {
 // GetFilesFromArgs returns the regular files to scan from command arguments.
 func GetFilesFromArgs(c *cli.Command) ([]string, error) {
 	return processFiles(c.Args().Slice())
+}
+
+// ReadFilesFrom reads paths from r using newline or NUL delimiters.
+func ReadFilesFrom(r io.Reader, nullDelimited bool) ([]string, error) {
+	delimiter := byte('\n')
+	if nullDelimited {
+		delimiter = 0
+	}
+
+	reader := bufio.NewReader(r)
+	files := make([]string, 0, 50) // Start with a reasonable initial capacity
+	for {
+		record, err := reader.ReadString(delimiter)
+		if len(record) > 0 {
+			if record[len(record)-1] == delimiter {
+				record = record[:len(record)-1]
+			}
+			if !nullDelimited {
+				record = strings.TrimSuffix(record, "\r")
+			}
+			if record == "" {
+				return nil, errors.New("empty path in file list")
+			}
+			files = append(files, record)
+		}
+
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error reading file list: %w", err)
+		}
+	}
+
+	return files, nil
+}
+
+// GetFilesFromReader reads and validates an explicit file list.
+func GetFilesFromReader(r io.Reader, nullDelimited bool) ([]string, error) {
+	files, err := ReadFilesFrom(r, nullDelimited)
+	if err != nil {
+		return nil, err
+	}
+	return processFiles(files)
 }
 
 // processDirectories receives a list of directories, resolves absolute paths, validates them, and returns unique paths.
