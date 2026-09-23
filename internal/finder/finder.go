@@ -13,6 +13,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"slices"
@@ -44,6 +45,13 @@ type fileInfoQuickHash struct {
 func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.FileInfo,
 	numWorkers int, stats *model.Stats, verbose bool) (*model.DuplicateReport, error,
 ) {
+	return FindDuplicatesByHashWithOutput(ctx, sizeGroups, numWorkers, stats, verbose, os.Stderr)
+}
+
+// FindDuplicatesByHashWithOutput processes files and writes progress diagnostics to progressOut.
+func FindDuplicatesByHashWithOutput(ctx context.Context, sizeGroups map[int64][]scanner.FileInfo,
+	numWorkers int, stats *model.Stats, verbose bool, progressOut io.Writer) (*model.DuplicateReport, error,
+) {
 	candidateFiles := make([]scanner.FileInfo, 0, len(sizeGroups))
 	for _, files := range sizeGroups {
 		if len(files) > 1 {
@@ -58,17 +66,17 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 	candidateFiles = slices.Clip(candidateFiles)
 
 	if verbose {
-		fmt.Printf("\n🔐 Multi-stage hashing %d candidate files with %d workers.\n\n", len(candidateFiles), numWorkers)
+		_, _ = fmt.Fprintf(progressOut, "\n🔐 Multi-stage hashing %d candidate files with %d workers.\n\n", len(candidateFiles), numWorkers)
 	}
 
-	sp := spinner.New(spinner.CharSets[7], 100*time.Millisecond, spinner.WithSuffix(" processing..."))
+	sp := spinner.New(spinner.CharSets[7], 100*time.Millisecond, spinner.WithSuffix(" processing..."), spinner.WithWriter(progressOut))
 	_ = sp.Color("fgHiBlue", "bold")
 	sp.Start()
 
 	// Stage 1: Quick hashing
 	var now time.Time
 	if verbose {
-		fmt.Println("Stage 1: Quick hashing...")
+		_, _ = fmt.Fprintln(progressOut, "Stage 1: Quick hashing...")
 		now = time.Now()
 	}
 
@@ -77,7 +85,7 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 
 	if verbose {
 		elapsed := time.Since(now).Round(time.Millisecond).String()
-		fmt.Printf("Quick hashing took %s.\n\n", elapsed)
+		_, _ = fmt.Fprintf(progressOut, "Quick hashing took %s.\n\n", elapsed)
 	}
 
 	// Stage 2: Full hashing only for files with matching quick hashes
@@ -96,11 +104,11 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 	fullHashCandidates = slices.Clip(fullHashCandidates)
 
 	if verbose {
-		fmt.Printf("Stage 2: Full hashing %d files with potential duplicates...\n", len(fullHashCandidates))
+		_, _ = fmt.Fprintf(progressOut, "Stage 2: Full hashing %d files with potential duplicates...\n", len(fullHashCandidates))
 		now = time.Now()
 	}
 
-	sp2 := spinner.New(spinner.CharSets[69], 100*time.Millisecond, spinner.WithSuffix(" almost there..."))
+	sp2 := spinner.New(spinner.CharSets[69], 100*time.Millisecond, spinner.WithSuffix(" almost there..."), spinner.WithWriter(progressOut))
 	_ = sp2.Color("fgHiBlue", "bold")
 	sp2.Start()
 	hashGroups := fullHash(ctx, fullHashCandidates, numWorkers, stats)
@@ -108,7 +116,7 @@ func FindDuplicatesByHash(ctx context.Context, sizeGroups map[int64][]scanner.Fi
 
 	if verbose {
 		elapsed := time.Since(now).Round(time.Millisecond).String()
-		fmt.Printf("Full hashing took %s.\n", elapsed)
+		_, _ = fmt.Fprintf(progressOut, "Full hashing took %s.\n", elapsed)
 	}
 
 	groups := make([]model.DuplicateGroup, 0, len(hashGroups))
