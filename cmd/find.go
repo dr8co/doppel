@@ -259,17 +259,18 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 // findDuplicates performs the main logic of finding duplicate files.
 func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, files []string, explicitFiles bool, filterConfig *filter.Config) error {
 	if cfg.ShowFilters && !explicitFiles {
-		filter.DisplayActiveFilters(filterConfig)
+		filter.DisplayActiveFiltersTo(filterConfig, os.Stderr)
 		return nil
 	}
 
-	sp := spinner.New(spinner.CharSets[35], 100*time.Millisecond, spinner.WithSuffix(" scanning...\n"))
+	progressOut := os.Stderr
+	sp := spinner.New(spinner.CharSets[35], 100*time.Millisecond, spinner.WithSuffix(" scanning...\n"), spinner.WithWriter(progressOut))
 	_ = sp.Color("fgHiRed", "bold")
 
 	if cfg.Verbose {
 		if !explicitFiles {
-			fmt.Printf("🔍 Scanning directories: %v\n", directories)
-			filter.DisplayActiveFilters(filterConfig)
+			_, _ = fmt.Fprintf(progressOut, "🔍 Scanning directories: %v\n", directories)
+			filter.DisplayActiveFiltersTo(filterConfig, progressOut)
 		}
 		sp.UpdateCharSet(spinner.CharSets[7])
 	}
@@ -283,7 +284,7 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 	if explicitFiles {
 		sizeGroups, err = scanner.GroupFilesBySizeFromFiles(files, s)
 	} else {
-		sizeGroups, err = scanner.GroupFilesBySize(ctx, directories, filterConfig, s, cfg.Verbose)
+		sizeGroups, err = scanner.GroupFilesBySizeWithOutput(ctx, directories, filterConfig, s, cfg.Verbose, progressOut)
 	}
 	sp.Stop()
 	if err != nil {
@@ -293,14 +294,14 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 	if cfg.Verbose {
 		if s.TotalFiles > 0 {
 			n := len(sizeGroups)
-			fmt.Printf("📊 Found %d file%s, %d size group%s.\n", s.TotalFiles, pluralize(s.TotalFiles), n, pluralize(n))
+			_, _ = fmt.Fprintf(progressOut, "📊 Found %d file%s, %d size group%s.\n", s.TotalFiles, pluralize(s.TotalFiles), n, pluralize(n))
 		} else {
-			fmt.Println(" Did not find any regular files.")
+			_, _ = fmt.Fprintln(progressOut, " Did not find any regular files.")
 		}
 	}
 
 	// Phase 2: Hash files that have potential duplicates
-	report, err := finder.FindDuplicatesByHash(ctx, sizeGroups, cfg.Workers, s, cfg.Verbose)
+	report, err := finder.FindDuplicatesByHashWithOutput(ctx, sizeGroups, cfg.Workers, s, cfg.Verbose, progressOut)
 	s.Duration = time.Since(s.StartTime)
 	if err != nil {
 		return fmt.Errorf("error finding duplicates: %w", err)
@@ -349,7 +350,7 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 	var sp2 *spinner.Spinner
 	isFsFile := out != os.Stdout && out != os.Stderr
 	if isFsFile {
-		sp2 = spinner.New(spinner.CharSets[70], 100*time.Millisecond, spinner.WithSuffix("  writing the results...\n"))
+		sp2 = spinner.New(spinner.CharSets[70], 100*time.Millisecond, spinner.WithSuffix("  writing the results...\n"), spinner.WithWriter(progressOut))
 		_ = sp2.Color("fgHiMagenta", "bold")
 		sp2.Start()
 		defer sp2.Stop()
@@ -362,9 +363,11 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 
 	if isFsFile {
 		sp2.Stop()
-		fmt.Printf("\n✅ Results written to \"%s\"", outputFile)
+		_, _ = fmt.Fprintf(progressOut, "\n✅ Results written to \"%s\"", outputFile)
 	}
-	fmt.Println()
+	if isFsFile {
+		_, _ = fmt.Fprintln(progressOut)
+	}
 
 	return nil
 }
