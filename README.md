@@ -236,11 +236,28 @@ find . -type f -name '*.go' -print0 | xargs -0 doppel find --files
 Every explicit path must exist and resolve to a regular file. Invalid paths cause
 the command to fail instead of being skipped.
 
+Read an explicit file list from a file or stdin. Paths are newline-delimited by default;
+use `--null` for NUL-delimited input such as `find -print0` output:
+
+```sh
+doppel find --files-from paths.txt
+printf '%s\n' /path/to/file1 /path/to/file2 | doppel find --files-from=-
+find . -type f -print0 | doppel find --files-from=- --null
+```
+
+`--files-from` implies explicit-file mode, so directory, filename, regex, and size filters
+are ignored. Every listed path must resolve to a regular file, and invalid paths cause the
+command to fail. It cannot be combined with `--files` or positional paths. Empty records
+are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only records.
+
 #### ⚙️ Find Command Options
 
 * `-w, --workers <n>`: Number of parallel hashing workers (default: number of CPUs)
 * `-v, --verbose`: Enable verbose output
 * `--files`: Treat positional arguments as regular files and ignore all filters
+* `--files-from <file>`: Read explicit file paths from a file, or `-` for stdin
+* `--null`: Read NUL-delimited paths from `--files-from`
+* `--ignore-empty-paths`: Ignore empty or whitespace-only paths from `--files-from`
 * `--min-size <size>`: Minimum file size to consider (default: 0 = no limit)
 * `--max-size <size>`: Maximum file size to consider (default: 0 = no limit)
 * `--exclude-dirs <patterns>`: Comma-separated glob patterns for directories to exclude
