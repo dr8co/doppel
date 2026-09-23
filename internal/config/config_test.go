@@ -80,7 +80,7 @@ func TestDefaultConfig(t *testing.T) {
 				Log: LogConfig{
 					Level:  "info",
 					Format: "pretty",
-					Output: "stdout",
+					Output: "stderr",
 				},
 				Find: FindConfig{
 					Workers:      runtime.NumCPU(),

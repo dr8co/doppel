@@ -156,7 +156,7 @@ func DefaultConfig() *Config {
 		Log: LogConfig{
 			Level:  "info",
 			Format: pretty,
-			Output: "stdout",
+			Output: "stderr",
 		},
 		Find:   defaultFindConfig(),
 		Preset: defaultPresetConfig(),
