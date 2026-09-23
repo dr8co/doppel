@@ -17,9 +17,9 @@ func TestReadFilesFrom(t *testing.T) {
 	}{
 		{name: "newline", input: "first\nsecond\n", want: []string{"first", "second"}},
 		{name: "crlf", input: "first\r\nsecond\r\n", want: []string{"first", "second"}},
-		{name: "spaces", input: "path with spaces\n", want: []string{"path with spaces"}},
+		{name: "trimmed spaces", input: "  first  \n\tpath with spaces\t\n", want: []string{"first", "path with spaces"}},
 		{name: "unterminated", input: "first\nsecond", want: []string{"first", "second"}},
-		{name: "nul", input: "first\x00second\x00", nullDelimited: true, want: []string{"first", "second"}},
+		{name: "nul", input: "  first  \x00\tsecond\t\x00", nullDelimited: true, want: []string{"first", "second"}},
 		{name: "embedded newline", input: "first\npart\x00second\x00", nullDelimited: true, want: []string{"first\npart", "second"}},
 		{name: "long record", input: longPath + "\n", want: []string{longPath}},
 	}
@@ -46,6 +46,8 @@ func TestReadFilesFromRejectsEmptyRecords(t *testing.T) {
 		{name: "empty line", input: "first\n\n"},
 		{name: "empty nul record", input: "first\x00\x00", nullDelimited: true},
 		{name: "empty final line", input: "\n"},
+		{name: "whitespace-only line", input: " \t\n"},
+		{name: "whitespace-only nul record", input: " \t\x00", nullDelimited: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := ReadFilesFrom(strings.NewReader(tt.input), tt.nullDelimited)

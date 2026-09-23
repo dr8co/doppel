@@ -178,9 +178,7 @@ func ReadFilesFrom(r io.Reader, nullDelimited bool) ([]string, error) {
 			if record[len(record)-1] == delimiter {
 				record = record[:len(record)-1]
 			}
-			if !nullDelimited {
-				record = strings.TrimSuffix(record, "\r")
-			}
+			record = strings.TrimSpace(record)
 			if record == "" {
 				return nil, errors.New("empty path in file list")
 			}
