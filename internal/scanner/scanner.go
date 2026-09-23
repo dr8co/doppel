@@ -164,7 +164,7 @@ func GetFilesFromArgs(c *cli.Command) ([]string, error) {
 }
 
 // ReadFilesFrom reads paths from r using newline or NUL delimiters.
-func ReadFilesFrom(r io.Reader, nullDelimited bool) ([]string, error) {
+func ReadFilesFrom(r io.Reader, nullDelimited, ignoreEmpty bool) ([]string, error) {
 	delimiter := byte('\n')
 	if nullDelimited {
 		delimiter = 0
@@ -180,6 +180,9 @@ func ReadFilesFrom(r io.Reader, nullDelimited bool) ([]string, error) {
 			}
 			record = strings.TrimSpace(record)
 			if record == "" {
+				if ignoreEmpty {
+					continue
+				}
 				return nil, errors.New("empty path in file list")
 			}
 			files = append(files, record)
@@ -197,8 +200,8 @@ func ReadFilesFrom(r io.Reader, nullDelimited bool) ([]string, error) {
 }
 
 // GetFilesFromReader reads and validates an explicit file list.
-func GetFilesFromReader(r io.Reader, nullDelimited bool) ([]string, error) {
-	files, err := ReadFilesFrom(r, nullDelimited)
+func GetFilesFromReader(r io.Reader, nullDelimited, ignoreEmpty bool) ([]string, error) {
+	files, err := ReadFilesFrom(r, nullDelimited, ignoreEmpty)
 	if err != nil {
 		return nil, err
 	}
