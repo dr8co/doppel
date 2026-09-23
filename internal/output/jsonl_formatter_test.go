@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	json2 "encoding/json/v2"
 	"reflect"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestJSONLFormatterFormat(t *testing.T) {
 	scanner := bufio.NewScanner(&buf)
 	for scanner.Scan() {
 		var group model.DuplicateGroup
-		if err := json.Unmarshal(scanner.Bytes(), &group); err != nil {
+		if err := json2.Unmarshal(scanner.Bytes(), &group, json.FormatDurationAsNano(true)); err != nil {
 			t.Fatalf("output line is not valid JSON: %v", err)
 		}
 		got = append(got, group)

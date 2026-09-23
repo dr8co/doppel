@@ -3,6 +3,7 @@ package output
 import (
 	"bytes"
 	"encoding/json"
+	json2 "encoding/json/v2"
 	"reflect"
 	"testing"
 	"time"
@@ -54,7 +55,7 @@ func TestJSONFormatter_Format(t *testing.T) {
 
 	// Validate output is valid JSON and matches the expected structure
 	var got model.DuplicateReport
-	err = json.Unmarshal(buf.Bytes(), &got)
+	err = json2.UnmarshalRead(&buf, &got, json.FormatDurationAsNano(true))
 	if err != nil {
 		t.Fatalf("Output is not valid JSON: %v", err)
 	}
