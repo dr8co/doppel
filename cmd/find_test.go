@@ -105,6 +105,13 @@ func TestFindCommandFilesFromRejectsInvalidPath(t *testing.T) {
 	}
 }
 
+func TestFindCommandRejectsInvalidSortMode(t *testing.T) {
+	err := newTestFindCommand().Run(context.Background(), []string{"find", "--sort", "bad", "--quiet"})
+	if err == nil || !strings.Contains(err.Error(), "invalid --sort") {
+		t.Fatalf("Run() error = %v, want invalid --sort error", err)
+	}
+}
+
 func readTestReport(t *testing.T, path string) model.DuplicateReport {
 	t.Helper()
 	contents, err := os.ReadFile(path)
