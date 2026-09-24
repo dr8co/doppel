@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"runtime"
 
 	"github.com/urfave/cli/v3"
@@ -37,6 +38,10 @@ func PresetCommand(cfg *config.PresetConfig, loadConfig ConfigLoader) *cli.Comma
 				Name:    "verbose",
 				Aliases: []string{"v"},
 				Usage:   "Enable verbose output with detailed progress information",
+			},
+			&cli.BoolFlag{
+				Name:  "quiet",
+				Usage: "Suppress progress and informational output",
 			},
 			&cli.BoolFlag{
 				Name:  "show-filters",
@@ -138,6 +143,10 @@ func findDuplicatesWithPreset(ctx context.Context, c *cli.Command, cfg *config.P
 	if c.IsSet("output-format") {
 		cfg.OutputFormat = c.String("output-format")
 	}
+	quiet := c.Bool("quiet")
+	if quiet && cfg.Verbose {
+		return errors.New("--quiet cannot be combined with --verbose")
+	}
 
 	cfg2 := config.FindConfig{
 		Workers:      cfg.Workers,
@@ -147,5 +156,5 @@ func findDuplicatesWithPreset(ctx context.Context, c *cli.Command, cfg *config.P
 		OutputFormat: cfg.OutputFormat,
 	}
 
-	return findDuplicates(ctx, &cfg2, directories, nil, false, filterConfig, outputOptions{})
+	return findDuplicates(ctx, &cfg2, directories, nil, false, filterConfig, outputOptions{quiet: quiet})
 }
