@@ -119,6 +119,14 @@ Files are compared by their hashes after filtration.`,
 				Usage: "Output format: pretty, json, jsonl, yaml",
 				Value: "pretty",
 			},
+			&cli.BoolFlag{
+				Name:  "paths-only",
+				Usage: "Output only paths from duplicate groups",
+			},
+			&cli.BoolFlag{
+				Name:  "print0",
+				Usage: "Terminate paths with NUL instead of newline",
+			},
 			&cli.StringFlag{
 				Name:  "output-file",
 				Usage: "Write output to file (default: stdout)",
@@ -137,6 +145,8 @@ Files are compared by their hashes after filtration.`,
 }
 
 // findDuplicatesCmd is the action function for the find command.
+//
+//nolint:gocyclo
 func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConfig) error {
 	// Override with CLI flags
 	if c.IsSet("workers") {
@@ -220,8 +230,18 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 		return err
 	}
 
+	pathsOnly := c.Bool("paths-only")
+	print0 := c.Bool("print0")
+	if print0 && !pathsOnly {
+		return errors.New("--print0 requires --paths-only")
+	}
+	if pathsOnly && !strings.EqualFold(cfg.OutputFormat, "pretty") {
+		return errors.New("--paths-only cannot be combined with --output-format")
+	}
+	outputOptions := outputOptions{pathsOnly: pathsOnly, print0: print0}
+
 	if explicitFiles {
-		return findDuplicates(ctx, cfg, directories, files, true, &filter.Config{})
+		return findDuplicates(ctx, cfg, directories, files, true, &filter.Config{}, outputOptions)
 	}
 
 	// Parse size strings to int64 bytes
@@ -253,11 +273,16 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
-	return findDuplicates(ctx, cfg, directories, nil, false, filterConfig)
+	return findDuplicates(ctx, cfg, directories, nil, false, filterConfig, outputOptions)
+}
+
+type outputOptions struct {
+	pathsOnly bool
+	print0    bool
 }
 
 // findDuplicates performs the main logic of finding duplicate files.
-func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, files []string, explicitFiles bool, filterConfig *filter.Config) error {
+func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, files []string, explicitFiles bool, filterConfig *filter.Config, outputOptions outputOptions) error {
 	if cfg.ShowFilters && !explicitFiles {
 		filter.DisplayActiveFiltersTo(filterConfig, os.Stderr)
 		return nil
@@ -308,9 +333,12 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 	}
 
 	// Phase 3: Output the results
-	reg, err := output.InitFormatters()
-	if err != nil {
-		return fmt.Errorf("error initializing formatters: %w", err)
+	var reg *output.FormatterRegistry
+	if !outputOptions.pathsOnly {
+		reg, err = output.InitFormatters()
+		if err != nil {
+			return fmt.Errorf("error initializing formatters: %w", err)
+		}
 	}
 
 	outputFile := cfg.OutputFile
@@ -356,7 +384,11 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 		defer sp2.Stop()
 	}
 
-	err = reg.Format(cfg.OutputFormat, report, out)
+	if outputOptions.pathsOnly {
+		err = output.WritePaths(report, out, outputOptions.print0)
+	} else {
+		err = reg.Format(cfg.OutputFormat, report, out)
+	}
 	if err != nil {
 		return fmt.Errorf("error formatting report: %w", err)
 	}
