@@ -6,6 +6,8 @@
 //
 // Each command supports various flags for controlling worker threads, output formats,
 // filtering criteria, and other operational parameters.
+//
+//nolint:goconst
 package cmd
 
 import (
@@ -122,6 +124,15 @@ Files are compared by their hashes after filtration.`,
 				Usage: "Output format: pretty, json, jsonl, yaml",
 				Value: "pretty",
 			},
+			&cli.StringFlag{
+				Name:  "sort",
+				Usage: "Sort duplicate groups by path, size, wasted-space, or count",
+				Value: "path",
+			},
+			&cli.BoolFlag{
+				Name:  "reverse",
+				Usage: "Reverse the selected sort order",
+			},
 			&cli.BoolFlag{
 				Name:  "paths-only",
 				Usage: "Output only paths from duplicate groups",
@@ -193,9 +204,23 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	if c.IsSet("output-format") {
 		cfg.OutputFormat = c.String("output-format")
 	}
+	if c.IsSet("sort") {
+		cfg.Sort = c.String("sort")
+	}
+	if c.IsSet("reverse") {
+		cfg.SortReverse = c.Bool("reverse")
+	}
 	quiet := c.Bool("quiet")
 	if quiet && cfg.Verbose {
 		return errors.New("--quiet cannot be combined with --verbose")
+	}
+
+	sortMode := strings.TrimSpace(strings.ToLower(cfg.Sort))
+	if sortMode == "" {
+		sortMode = "path"
+	}
+	if err := output.SortReport(&model.DuplicateReport{}, sortMode, false); err != nil {
+		return fmt.Errorf("invalid --sort value %q: %w", cfg.Sort, err)
 	}
 
 	explicitFiles := c.Bool("files")
@@ -366,7 +391,15 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 		return fmt.Errorf("error finding duplicates: %w", err)
 	}
 
-	// Phase 3: Output the results
+	// Phase 3: Sort and output the results
+	sortMode := strings.TrimSpace(strings.ToLower(cfg.Sort))
+	if sortMode == "" {
+		sortMode = "path"
+	}
+	if err := output.SortReport(report, sortMode, cfg.SortReverse); err != nil {
+		return fmt.Errorf("invalid --sort value %q: %w", cfg.Sort, err)
+	}
+
 	var reg *output.FormatterRegistry
 	if !outputOptions.pathsOnly {
 		reg, err = output.InitFormatters()
@@ -432,6 +465,7 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 		_, _ = fmt.Fprintf(progressOut, "\n✅ Results written to \"%s\"", outputFile)
 		_, _ = fmt.Fprintln(progressOut)
 	}
+
 	if outputOptions.failOnDuplicates && len(report.Groups) > 0 {
 		return ErrDuplicatesFound
 	}
