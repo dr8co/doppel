@@ -46,3 +46,28 @@ func TestWritePathsEmptyReport(t *testing.T) {
 		t.Fatalf("output = %q, want empty output", buf.String())
 	}
 }
+
+func TestSortReportDeterministicOrder(t *testing.T) {
+	report := &model.DuplicateReport{
+		Groups: []model.DuplicateGroup{
+			{ID: 2, Size: 200, WastedSpace: 50, Count: 2, Files: []string{"/tmp/z.txt", "/tmp/a.txt"}},
+			{ID: 1, Size: 100, WastedSpace: 10, Count: 3, Files: []string{"/tmp/m.txt", "/tmp/b.txt"}},
+		},
+	}
+
+	SortReport(report, "path", false)
+	if report.Groups[0].ID != 2 || report.Groups[1].ID != 1 {
+		t.Fatalf("path sort mismatch: got group IDs %d,%d want 2,1", report.Groups[0].ID, report.Groups[1].ID)
+	}
+	if report.Groups[0].Files[0] != "/tmp/a.txt" || report.Groups[0].Files[1] != "/tmp/z.txt" {
+		t.Fatalf("path sort in group: got %v want [/tmp/a.txt /tmp/z.txt]", report.Groups[0].Files)
+	}
+
+	SortReport(report, "size", true)
+	if report.Groups[0].ID != 2 || report.Groups[1].ID != 1 {
+		t.Fatalf("size reverse sort mismatch: got group IDs %d,%d want 2,1", report.Groups[0].ID, report.Groups[1].ID)
+	}
+	if err := SortReport(report, "bogus", false); err == nil {
+		t.Fatal("SortReport() error = nil, want invalid sort error")
+	}
+}
