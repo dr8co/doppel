@@ -82,6 +82,10 @@ type FindConfig struct {
 	MaxSize string `toml:"max_size" yaml:"max_size" json:"max_size"`
 	// OutputFormat sets the output format (e.g., "pretty", "json", "yaml").
 	OutputFormat string `toml:"output_format" yaml:"output_format" json:"output_format"`
+	// Sort sets the duplicate-group ordering strategy: path, size, wasted-space, count.
+	Sort string `toml:"sort" yaml:"sort" json:"sort"`
+	// SortReverse reverses the ordering of the selected sort mode.
+	SortReverse bool `toml:"sort_reverse" yaml:"sort_reverse" json:"sort_reverse"`
 	// OutputFile sets the file to write output to (default is stdout).
 	OutputFile string `toml:"output_file" yaml:"output_file" json:"output_file"`
 	// Workers sets the number of concurrent workers for file processing.
@@ -139,6 +143,7 @@ func defaultFindConfig() FindConfig {
 	return FindConfig{
 		Workers:      runtime.NumCPU(),
 		OutputFormat: pretty,
+		Sort:         "path",
 	}
 }
 

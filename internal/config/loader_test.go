@@ -93,6 +93,7 @@ func TestLoader(t *testing.T) {
 					Find: FindConfig{
 						Workers:      runtime.NumCPU(),
 						OutputFormat: "pretty",
+						Sort:         "path",
 					},
 					Preset: PresetConfig{
 						Workers:      runtime.NumCPU(),
