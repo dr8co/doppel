@@ -273,6 +273,22 @@ are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only recor
 * `--output-format <format>`: Output format for duplicate groups (default: pretty, options: `pretty`, `json`, `jsonl`, `yaml`)
 * `--output-file <file>`: Write output to a file instead of stdout
 
+Automation output examples:
+
+```sh
+# One duplicate-group object per line
+doppel find --quiet --output-format=jsonl ~/Downloads
+
+# Every path in duplicate groups, NUL-delimited for another command
+doppel find --quiet --paths-only --print0 ~/Downloads | xargs -0 -n1 printf '%s\n'
+
+# Use the exit status to fail a job when duplicates exist
+doppel find --quiet --fail-on-duplicates ~/Downloads
+```
+
+`--paths-only` emits every member of each duplicate group. It does not choose a
+file to keep or delete, so destructive actions require an explicit retention policy.
+
 For more details, run:
 
 ```sh
