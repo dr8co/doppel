@@ -13,6 +13,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
+	"strings"
 
 	"github.com/dr8co/doppel/internal/model"
 )
@@ -112,4 +114,81 @@ func FormatBytes(bytes int64) string {
 	}
 
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// SortReport sorts duplicate groups and member paths deterministically.
+func SortReport(report *model.DuplicateReport, sortBy string, reverse bool) error {
+	if report == nil {
+		return nil
+	}
+
+	const defaultSortBy = "path"
+
+	sortBy = strings.TrimSpace(strings.ToLower(sortBy))
+	if sortBy == "" {
+		sortBy = defaultSortBy
+	}
+
+	for i := range report.Groups {
+		sort.Strings(report.Groups[i].Files)
+	}
+
+	switch sortBy {
+	case defaultSortBy:
+		sort.SliceStable(report.Groups, func(i, j int) bool {
+			left, right := "", ""
+			if len(report.Groups[i].Files) > 0 {
+				left = report.Groups[i].Files[0]
+			}
+			if len(report.Groups[j].Files) > 0 {
+				right = report.Groups[j].Files[0]
+			}
+			if left == right {
+				return len(report.Groups[i].Files) < len(report.Groups[j].Files)
+			}
+			return left < right
+		})
+	case "size":
+		sort.SliceStable(report.Groups, func(i, j int) bool {
+			return report.Groups[i].Size < report.Groups[j].Size
+		})
+	case "wasted-space":
+		sort.SliceStable(report.Groups, func(i, j int) bool {
+			return report.Groups[i].WastedSpace < report.Groups[j].WastedSpace
+		})
+	case "count":
+		sort.SliceStable(report.Groups, func(i, j int) bool {
+			return report.Groups[i].Count < report.Groups[j].Count
+		})
+	default:
+		return fmt.Errorf("unsupported sort mode %q", sortBy)
+	}
+
+	if reverse {
+		sort.SliceStable(report.Groups, func(i, j int) bool {
+			left, right := report.Groups[i], report.Groups[j]
+			if sortBy == defaultSortBy {
+				leftPath, rightPath := "", ""
+				if len(left.Files) > 0 {
+					leftPath = left.Files[0]
+				}
+				if len(right.Files) > 0 {
+					rightPath = right.Files[0]
+				}
+				if leftPath == rightPath {
+					return len(left.Files) > len(right.Files)
+				}
+				return leftPath > rightPath
+			}
+			if sortBy == "size" {
+				return left.Size > right.Size
+			}
+			if sortBy == "wasted-space" {
+				return left.WastedSpace > right.WastedSpace
+			}
+			return left.Count > right.Count
+		})
+	}
+
+	return nil
 }
