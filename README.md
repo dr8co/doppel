@@ -259,6 +259,8 @@ are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only recor
 * `--files-from <file>`: Read explicit file paths from a file, or `-` for stdin
 * `--null`: Read NUL-delimited paths from `--files-from`
 * `--ignore-empty-paths`: Ignore empty or whitespace-only paths from `--files-from`
+* `--paths-only`: Emit every path in duplicate groups instead of a report
+* `--print0`: Terminate `--paths-only` paths with NUL characters
 * `--min-size <size>`: Minimum file size to consider (default: 0 = no limit)
 * `--max-size <size>`: Maximum file size to consider (default: 0 = no limit)
 * `--exclude-dirs <patterns>`: Comma-separated glob patterns for directories to exclude
