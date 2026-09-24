@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -115,6 +116,9 @@ and supports extensive filtering options to exclude unwanted files and directori
 	}
 
 	if err := app.Run(ctx, os.Args); err != nil {
+		if errors.Is(err, cmd.ErrDuplicatesFound) {
+			exit(1)
+		}
 		fmt.Println()
 		logger.Error("application error", "error", err)
 		exit(1)

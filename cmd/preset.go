@@ -44,6 +44,10 @@ func PresetCommand(cfg *config.PresetConfig, loadConfig ConfigLoader) *cli.Comma
 				Usage: "Suppress progress and informational output",
 			},
 			&cli.BoolFlag{
+				Name:  "fail-on-duplicates",
+				Usage: "Return a nonzero status when duplicates are found",
+			},
+			&cli.BoolFlag{
 				Name:  "show-filters",
 				Usage: "Show active filters and exit without scanning",
 			},
@@ -156,5 +160,8 @@ func findDuplicatesWithPreset(ctx context.Context, c *cli.Command, cfg *config.P
 		OutputFormat: cfg.OutputFormat,
 	}
 
-	return findDuplicates(ctx, &cfg2, directories, nil, false, filterConfig, outputOptions{quiet: quiet})
+	return findDuplicates(ctx, &cfg2, directories, nil, false, filterConfig, outputOptions{
+		quiet:            quiet,
+		failOnDuplicates: c.Bool("fail-on-duplicates"),
+	})
 }

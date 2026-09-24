@@ -262,6 +262,7 @@ are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only recor
 * `--paths-only`: Emit every path in duplicate groups instead of a report
 * `--print0`: Terminate `--paths-only` paths with NUL characters
 * `--quiet`: Suppress progress and informational output
+* `--fail-on-duplicates`: Return a nonzero status when duplicates are found
 * `--min-size <size>`: Minimum file size to consider (default: 0 = no limit)
 * `--max-size <size>`: Maximum file size to consider (default: 0 = no limit)
 * `--exclude-dirs <patterns>`: Comma-separated glob patterns for directories to exclude

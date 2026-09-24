@@ -33,6 +33,9 @@ import (
 // ConfigLoader loads the application configuration for a command action.
 type ConfigLoader func(context.Context, *cli.Command) (*config.Config, error)
 
+// ErrDuplicatesFound indicates that a scan found duplicates and the caller requested a failing status.
+var ErrDuplicatesFound = errors.New("duplicates found")
+
 // FindCommand returns the find command configuration.
 func FindCommand(cfg *config.FindConfig, loadConfig ConfigLoader) *cli.Command {
 	return &cli.Command{
@@ -130,6 +133,10 @@ Files are compared by their hashes after filtration.`,
 			&cli.BoolFlag{
 				Name:  "quiet",
 				Usage: "Suppress progress and informational output",
+			},
+			&cli.BoolFlag{
+				Name:  "fail-on-duplicates",
+				Usage: "Return a nonzero status when duplicates are found",
 			},
 			&cli.StringFlag{
 				Name:  "output-file",
@@ -246,7 +253,12 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	if pathsOnly && !strings.EqualFold(cfg.OutputFormat, "pretty") {
 		return errors.New("--paths-only cannot be combined with --output-format")
 	}
-	outputOptions := outputOptions{pathsOnly: pathsOnly, print0: print0, quiet: quiet}
+	outputOptions := outputOptions{
+		pathsOnly:        pathsOnly,
+		print0:           print0,
+		quiet:            quiet,
+		failOnDuplicates: c.Bool("fail-on-duplicates"),
+	}
 
 	if explicitFiles {
 		return findDuplicates(ctx, cfg, directories, files, true, &filter.Config{}, outputOptions)
@@ -285,9 +297,10 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 }
 
 type outputOptions struct {
-	pathsOnly bool
-	print0    bool
-	quiet     bool
+	pathsOnly        bool
+	print0           bool
+	quiet            bool
+	failOnDuplicates bool
 }
 
 // findDuplicates performs the main logic of finding duplicate files.
@@ -418,6 +431,9 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 		sp2.Stop()
 		_, _ = fmt.Fprintf(progressOut, "\n✅ Results written to \"%s\"", outputFile)
 		_, _ = fmt.Fprintln(progressOut)
+	}
+	if outputOptions.failOnDuplicates && len(report.Groups) > 0 {
+		return ErrDuplicatesFound
 	}
 
 	return nil
