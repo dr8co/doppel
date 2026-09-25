@@ -167,6 +167,7 @@ you would add the following to your TOML configuration file:
 ```toml
 [find]
 min_size = "1.5MB"
+ignore_hardlinks = true
 ```
 
 For more details on the TOML format,
@@ -251,6 +252,10 @@ find . -type f -print0 | doppel find --files-from=- --null
 are ignored. Every listed path must resolve to a regular file, and invalid paths cause the
 command to fail. It cannot be combined with `--files` or positional paths. Empty records
 are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only records.
+Symlinks are never followed: discovered symlinks are ignored, while symlink paths supplied
+explicitly cause the command to fail. Hard-linked paths are treated as separate path entries
+by default. Use `--ignore-hardlinks` to treat paths sharing the same underlying file as one
+candidate and avoid reporting them as reclaimable duplicate space.
 
 #### ⚙️ Find Command Options
 
@@ -260,6 +265,7 @@ are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only recor
 * `--files-from <file>`: Read explicit file paths from a file, or `-` for stdin
 * `--null`: Read NUL-delimited paths from `--files-from`
 * `--ignore-empty-paths`: Ignore empty or whitespace-only paths from `--files-from`
+* `--ignore-hardlinks`: Treat paths to the same underlying file as one candidate
 * `--paths-only`: Emit every path in duplicate groups instead of a report
 * `--print0`: Terminate `--paths-only` paths with NUL characters
 * `--quiet`: Suppress progress and informational output
@@ -273,6 +279,9 @@ are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only recor
 * `--show-filters`: Show active filters and exit
 * `--output-format <format>`: Output format for duplicate groups (default: pretty, options: `pretty`, `json`, `jsonl`, `yaml`)
 * `--output-file <file>`: Write output to a file instead of stdout
+
+The hard-link policy can also be configured with `ignore_hardlinks = true` under `[find]`
+or with `DOPPEL_FIND_IGNORE_HARDLINKS=true`.
 
 Automation output examples:
 
@@ -356,8 +365,9 @@ and `replace-with-hardlink`. Without `--dry-run` or `--yes`, an interactive
 confirmation is required; non-interactive runs must pass `--yes`.
 
 `--files` and `--files-from` use the same explicit-file behavior as `find`.
-Clean validates every action target with `Lstat`, rejects symlinks, and skips
-hard-linked paths that already share the keeper's inode. On Linux, `trash` uses
+Clean validates every action target with `Lstat` and rejects symlinks. Pass
+`--ignore-hardlinks` when scanning if paths sharing one underlying file should not
+be reported as duplicates. On Linux, `trash` uses
 the XDG user trash directory; unsupported platforms report an error rather than
 falling back to deletion.
 
