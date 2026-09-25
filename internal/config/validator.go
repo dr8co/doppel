@@ -29,6 +29,10 @@ func (v *defaultValidator) Validate(config *Config) error {
 		return fmt.Errorf("preset config validation failed: %w", err)
 	}
 
+	if err := v.validateCleanConfig(&config.Clean); err != nil {
+		return fmt.Errorf("clean config validation failed: %w", err)
+	}
+
 	return nil
 }
 
@@ -61,6 +65,20 @@ func (v *defaultValidator) validateFindConfig(config *FindConfig) error {
 // validatePresetConfig validates the preset configuration.
 func (v *defaultValidator) validatePresetConfig(config *PresetConfig) error {
 	return validate(config.Workers, config.OutputFormat)
+}
+
+func (v *defaultValidator) validateCleanConfig(config *CleanConfig) error {
+	validModes := []string{"delete", "trash", "replace-with-hardlink"}
+	if config.Mode != "" && !contains(validModes, config.Mode) {
+		return fmt.Errorf("invalid clean mode: %s, must be one of %v", config.Mode, validModes)
+	}
+	if config.Keep != "" {
+		validPolicies := []string{"newest", "oldest", "shortest-path", "first"}
+		if !contains(validPolicies, config.Keep) {
+			return fmt.Errorf("invalid clean keep policy: %s, must be one of %v", config.Keep, validPolicies)
+		}
+	}
+	return nil
 }
 
 // validate is a common validation function for both preset and find config.

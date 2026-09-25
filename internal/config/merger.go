@@ -71,5 +71,13 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 		result.Preset.OutputFile = override.Preset.OutputFile
 	}
 
+	// Merge clean config
+	if override.Clean.Mode != "" {
+		result.Clean.Mode = override.Clean.Mode
+	}
+	if override.Clean.Keep != "" {
+		result.Clean.Keep = override.Clean.Keep
+	}
+
 	return &result
 }

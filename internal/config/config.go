@@ -48,6 +48,9 @@ type Config struct {
 
 	// Preset holds the 'preset' command configuration.
 	Preset PresetConfig `toml:"preset" yaml:"preset" json:"preset"`
+
+	// Clean holds the 'clean' command configuration.
+	Clean CleanConfig `toml:"clean" yaml:"clean" json:"clean"`
 }
 
 // LogConfig holds the logging configuration.
@@ -116,6 +119,15 @@ type PresetConfig struct {
 	OutputFile string `toml:"output_file" yaml:"output_file" json:"output_file"`
 }
 
+// CleanConfig holds safe defaults for the 'clean' command.
+type CleanConfig struct {
+	// Mode selects the action to perform.
+	Mode string `toml:"mode" yaml:"mode" json:"mode"`
+
+	// Keep selects which file to retain from each duplicate group.
+	Keep string `toml:"keep" yaml:"keep" json:"keep"`
+}
+
 // Provider defines the interface for configuration providers.
 type Provider interface {
 	// Name returns the provider name for identification.
@@ -155,6 +167,10 @@ func defaultPresetConfig() PresetConfig {
 	}
 }
 
+func defaultCleanConfig() CleanConfig {
+	return CleanConfig{Mode: "delete"}
+}
+
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
@@ -165,6 +181,7 @@ func DefaultConfig() *Config {
 		},
 		Find:   defaultFindConfig(),
 		Preset: defaultPresetConfig(),
+		Clean:  defaultCleanConfig(),
 	}
 }
 

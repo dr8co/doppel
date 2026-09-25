@@ -91,6 +91,9 @@ func TestDefaultConfig(t *testing.T) {
 					Workers:      runtime.NumCPU(),
 					OutputFormat: "pretty",
 				},
+				Clean: CleanConfig{
+					Mode: "delete",
+				},
 			},
 		},
 	}
