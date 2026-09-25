@@ -98,6 +98,8 @@ type FindConfig struct {
 	Verbose bool `toml:"verbose" yaml:"verbose" json:"verbose"`
 	// ShowFilters enables displaying the active filters.
 	ShowFilters bool `toml:"show_filters" yaml:"show_filters" json:"show_filters"`
+	// IgnoreHardlinks collapses paths referring to the same underlying file.
+	IgnoreHardlinks bool `toml:"ignore_hardlinks" yaml:"ignore_hardlinks" json:"ignore_hardlinks"`
 }
 
 // PresetConfig holds configuration for the 'preset' command.

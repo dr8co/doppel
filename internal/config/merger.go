@@ -47,6 +47,9 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	if override.Find.ShowFilters {
 		result.Find.ShowFilters = override.Find.ShowFilters
 	}
+	if override.Find.IgnoreHardlinks {
+		result.Find.IgnoreHardlinks = override.Find.IgnoreHardlinks
+	}
 	if override.Find.OutputFormat != "" {
 		result.Find.OutputFormat = override.Find.OutputFormat
 	}

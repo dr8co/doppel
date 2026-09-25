@@ -50,18 +50,20 @@ func TestDefaultMerger(t *testing.T) {
 			},
 			override: &Config{
 				Find: FindConfig{
-					Workers:      8,
-					Verbose:      true,
-					ExcludeFiles: "*.log",
+					Workers:         8,
+					Verbose:         true,
+					ExcludeFiles:    "*.log",
+					IgnoreHardlinks: true,
 				},
 			},
 			want: &Config{
 				Find: FindConfig{
-					Workers:      8,
-					Verbose:      true,
-					ExcludeDirs:  "node_modules",
-					ExcludeFiles: "*.log",
-					OutputFormat: "pretty",
+					Workers:         8,
+					Verbose:         true,
+					ExcludeDirs:     "node_modules",
+					ExcludeFiles:    "*.log",
+					IgnoreHardlinks: true,
+					OutputFormat:    "pretty",
 				},
 			},
 		},

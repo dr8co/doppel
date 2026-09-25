@@ -61,6 +61,7 @@ func (p *EnvProvider) Load(ctx context.Context) (*Config, error) {
 	p.loadStringFromEnv("FIND_MIN_SIZE", &config.Find.MinSize)
 	p.loadStringFromEnv("FIND_MAX_SIZE", &config.Find.MaxSize)
 	p.loadBoolFromEnv("FIND_SHOW_FILTERS", &config.Find.ShowFilters)
+	p.loadBoolFromEnv("FIND_IGNORE_HARDLINKS", &config.Find.IgnoreHardlinks)
 	p.loadStringFromEnv("FIND_OUTPUT_FORMAT", &config.Find.OutputFormat)
 	p.loadStringFromEnv("FIND_OUTPUT_FILE", &config.Find.OutputFile)
 
