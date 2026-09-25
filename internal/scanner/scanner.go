@@ -42,7 +42,16 @@ func GroupFilesBySizeWithOutput(ctx context.Context,
 	directories []string, filterConfig *filter.Config, stats *model.Stats, verbose bool, progressOut io.Writer,
 ) (map[int64][]FileInfo, error,
 ) {
+	return GroupFilesBySizeWithOptions(ctx, directories, filterConfig, stats, verbose, progressOut, ScanOptions{})
+}
+
+// GroupFilesBySizeWithOptions scans directories with filesystem identity options.
+func GroupFilesBySizeWithOptions(ctx context.Context,
+	directories []string, filterConfig *filter.Config, stats *model.Stats, verbose bool, progressOut io.Writer, options ScanOptions,
+) (map[int64][]FileInfo, error,
+) {
 	sizeGroups := make(map[int64][]FileInfo, len(directories))
+	seenFiles := make([]os.FileInfo, 0)
 	for _, dir := range directories {
 		err := filepath.WalkDir(dir, func(path string, dirEnt fs.DirEntry, err error) error {
 			if err != nil {
@@ -68,6 +77,10 @@ func GroupFilesBySizeWithOutput(ctx context.Context,
 				}
 				stats.SkippedDirs++
 				return filepath.SkipDir
+			}
+			if dirEnt.Type()&os.ModeSymlink != 0 {
+				stats.SkippedFiles++
+				return nil
 			}
 
 			if dirEnt.Type().IsRegular() {
@@ -98,8 +111,13 @@ func GroupFilesBySizeWithOutput(ctx context.Context,
 					stats.SkippedFiles++
 					return nil
 				}
+				if options.IgnoreHardlinks && sameFile(seenFiles, info) {
+					stats.SkippedFiles++
+					return nil
+				}
 
 				sizeGroups[size] = append(sizeGroups[size], FileInfo{Path: path, Size: size})
+				seenFiles = append(seenFiles, info)
 				stats.TotalFiles++
 			}
 			return nil
@@ -116,19 +134,45 @@ func GroupFilesBySizeWithOutput(ctx context.Context,
 
 // GroupFilesBySizeFromFiles groups an explicitly selected list of regular files by size.
 func GroupFilesBySizeFromFiles(files []string, stats *model.Stats) (map[int64][]FileInfo, error) {
+	return GroupFilesBySizeFromFilesWithOptions(files, stats, ScanOptions{})
+}
+
+// GroupFilesBySizeFromFilesWithOptions groups explicit files with filesystem identity options.
+func GroupFilesBySizeFromFilesWithOptions(files []string, stats *model.Stats, options ScanOptions) (map[int64][]FileInfo, error) {
 	sizeGroups := make(map[int64][]FileInfo, len(files))
+	seenFiles := make([]os.FileInfo, 0, len(files))
 	for _, file := range files {
-		info, err := os.Stat(file)
+		info, err := os.Lstat(file)
 		if err != nil {
 			return nil, fmt.Errorf("error accessing file %s: %w", file, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil, fmt.Errorf("symlink paths are not supported: %s", file)
+		}
+		if !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("not a regular file: %s", file)
+		}
+		if options.IgnoreHardlinks && sameFile(seenFiles, info) {
+			stats.SkippedFiles++
+			continue
 		}
 
 		size := info.Size()
 		sizeGroups[size] = append(sizeGroups[size], FileInfo{Path: file, Size: size})
+		seenFiles = append(seenFiles, info)
 		stats.TotalFiles++
 	}
 
 	return sizeGroups, nil
+}
+
+func sameFile(files []os.FileInfo, candidate os.FileInfo) bool {
+	for _, file := range files {
+		if os.SameFile(file, candidate) {
+			return true
+		}
+	}
+	return false
 }
 
 func printSummaryTo(stats *model.Stats, verbose bool, w io.Writer) {
@@ -280,12 +324,15 @@ func processFiles(files []string) ([]string, error) {
 			continue
 		}
 
-		info, err := os.Stat(absFile)
+		info, err := os.Lstat(absFile)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return nil, fmt.Errorf("path does not exist: %s", absFile)
 			}
 			return nil, fmt.Errorf("error accessing file %s: %w", absFile, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil, fmt.Errorf("symlink paths are not supported: %s", absFile)
 		}
 		if !info.Mode().IsRegular() {
 			return nil, fmt.Errorf("not a regular file: %s", absFile)

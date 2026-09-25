@@ -18,6 +18,11 @@ type FileInfo struct {
 	Hash string `json:"hash" yaml:"hash"`
 }
 
+// ScanOptions controls filesystem identity handling during file collection.
+type ScanOptions struct {
+	IgnoreHardlinks bool
+}
+
 // HashFile computes the hash of an entire file.
 func HashFile(filePath string, hasher hash.Hash, buf []byte) (string, error) {
 	if hasher == nil {
