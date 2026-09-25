@@ -210,6 +210,79 @@ func TestGroupFilesBySizeFromFilesIgnoresFilters(t *testing.T) {
 	}
 }
 
+func TestGroupFilesBySizeHardlinkPolicy(t *testing.T) {
+	tempDir := t.TempDir()
+	first := filepath.Join(tempDir, "first.txt")
+	second := filepath.Join(tempDir, "second.txt")
+	if err := os.WriteFile(first, []byte("same content"), 0o600); err != nil {
+		t.Fatalf("write first file: %v", err)
+	}
+	if err := os.Link(first, second); err != nil {
+		t.Skipf("hard links are unavailable: %v", err)
+	}
+
+	defaultGroups, err := GroupFilesBySizeFromFiles([]string{first, second}, &model.Stats{})
+	if err != nil {
+		t.Fatalf("default scan: %v", err)
+	}
+	if got := len(defaultGroups[int64(len("same content"))]); got != 2 {
+		t.Fatalf("default hard-link group contains %d files, want 2", got)
+	}
+
+	stats := &model.Stats{}
+	ignoredGroups, err := GroupFilesBySizeFromFilesWithOptions([]string{first, second}, stats, ScanOptions{IgnoreHardlinks: true})
+	if err != nil {
+		t.Fatalf("ignore-hardlinks scan: %v", err)
+	}
+	if got := len(ignoredGroups[int64(len("same content"))]); got != 1 {
+		t.Fatalf("ignore-hardlinks group contains %d files, want 1", got)
+	}
+	if stats.TotalFiles != 1 || stats.SkippedFiles != 1 {
+		t.Fatalf("stats = %+v, want one scanned and one skipped file", stats)
+	}
+}
+
+func TestGroupFilesBySizeSkipsDirectorySymlinks(t *testing.T) {
+	tempDir := t.TempDir()
+	target := filepath.Join(tempDir, "target.txt")
+	link := filepath.Join(tempDir, "link.txt")
+	if err := os.WriteFile(target, []byte("content"), 0o600); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+
+	stats := &model.Stats{}
+	groups, err := GroupFilesBySize(context.Background(), []string{tempDir}, &filter.Config{}, stats, false)
+	if err != nil {
+		t.Fatalf("directory scan: %v", err)
+	}
+	if got := len(groups[int64(len("content"))]); got != 1 {
+		t.Fatalf("directory scan contains %d files, want 1", got)
+	}
+	if stats.SkippedFiles != 1 {
+		t.Fatalf("SkippedFiles = %d, want 1", stats.SkippedFiles)
+	}
+}
+
+func TestProcessFilesRejectsSymlink(t *testing.T) {
+	tempDir := t.TempDir()
+	target := filepath.Join(tempDir, "target.txt")
+	link := filepath.Join(tempDir, "link.txt")
+	if err := os.WriteFile(target, []byte("content"), 0o600); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+
+	_, err := processFiles([]string{link})
+	if err == nil || !strings.Contains(err.Error(), "symlink paths are not supported") {
+		t.Fatalf("processFiles() error = %v, want symlink error", err)
+	}
+}
+
 // TestProcessDirectories_EmptyInput verifies that processDirectories returns
 // the absolute path of the current directory when given an empty input.
 func TestProcessDirectories_EmptyInput(t *testing.T) {
