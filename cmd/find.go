@@ -119,6 +119,10 @@ Files are compared by their hashes after filtration.`,
 				Name:  "show-filters",
 				Usage: "Show active filters and exit without scanning",
 			},
+			&cli.BoolFlag{
+				Name:  "ignore-hardlinks",
+				Usage: "Treat hard-linked paths as one underlying file",
+			},
 			&cli.StringFlag{
 				Name:  "output-format",
 				Usage: "Output format: pretty, json, jsonl, yaml",
@@ -197,6 +201,9 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	}
 	if c.IsSet("show-filters") {
 		cfg.ShowFilters = c.Bool("show-filters")
+	}
+	if c.IsSet("ignore-hardlinks") {
+		cfg.IgnoreHardlinks = c.Bool("ignore-hardlinks")
 	}
 	if c.IsSet("output-file") {
 		cfg.OutputFile = c.String("output-file")
@@ -362,9 +369,13 @@ func scanDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 	var sizeGroups map[int64][]scanner.FileInfo
 	var err error
 	if explicitFiles {
-		sizeGroups, err = scanner.GroupFilesBySizeFromFiles(files, s)
+		sizeGroups, err = scanner.GroupFilesBySizeFromFilesWithOptions(files, s, scanner.ScanOptions{
+			IgnoreHardlinks: cfg.IgnoreHardlinks,
+		})
 	} else {
-		sizeGroups, err = scanner.GroupFilesBySizeWithOutput(ctx, directories, filterConfig, s, verbose, progressOut)
+		sizeGroups, err = scanner.GroupFilesBySizeWithOptions(ctx, directories, filterConfig, s, verbose, progressOut, scanner.ScanOptions{
+			IgnoreHardlinks: cfg.IgnoreHardlinks,
+		})
 	}
 	if !quiet {
 		sp.Stop()

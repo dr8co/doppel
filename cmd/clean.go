@@ -35,6 +35,7 @@ func CleanCommand(cfg *config.CleanConfig, loadConfig ConfigLoader) *cli.Command
 			&cli.StringFlag{Name: "files-from", Usage: "Read regular file paths from a file, or '-' for stdin"},
 			&cli.BoolFlag{Name: "null", Usage: "Read NUL-delimited paths from --files-from"},
 			&cli.BoolFlag{Name: "ignore-empty-paths", Usage: "Ignore empty paths from --files-from"},
+			&cli.BoolFlag{Name: "ignore-hardlinks", Usage: "Treat hard-linked paths as one underlying file"},
 			&cli.StringFlag{Name: "exclude-dirs", Usage: "Comma-separated directory glob patterns to exclude"},
 			&cli.StringFlag{Name: "exclude-files", Usage: "Comma-separated file glob patterns to exclude"},
 			&cli.StringFlag{Name: "exclude-dirs-regex", Usage: "Comma-separated directory regex patterns to exclude"},
@@ -57,6 +58,7 @@ func CleanCommand(cfg *config.CleanConfig, loadConfig ConfigLoader) *cli.Command
 	}
 }
 
+//nolint:gocyclo
 func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Config) error {
 	cleanCfg := loaded.Clean
 	findCfg := loaded.Find
@@ -99,6 +101,9 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	}
 	if c.IsSet("max-size") {
 		findCfg.MaxSize = c.String("max-size")
+	}
+	if c.IsSet("ignore-hardlinks") {
+		findCfg.IgnoreHardlinks = c.Bool("ignore-hardlinks")
 	}
 
 	directories, files, explicitFiles, filterConfig, err := cleanInputs(c, &findCfg)
