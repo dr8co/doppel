@@ -112,6 +112,28 @@ func TestFindCommandRejectsInvalidSortMode(t *testing.T) {
 	}
 }
 
+func TestFindCommandIgnoreHardlinks(t *testing.T) {
+	tempDir := t.TempDir()
+	first := filepath.Join(tempDir, "first.txt")
+	second := filepath.Join(tempDir, "second.txt")
+	outputFile := filepath.Join(tempDir, "report.json")
+	if err := os.WriteFile(first, []byte("duplicate"), 0o600); err != nil {
+		t.Fatalf("write first file: %v", err)
+	}
+	if err := os.Link(first, second); err != nil {
+		t.Skipf("hard links are unavailable: %v", err)
+	}
+
+	if err := newTestFindCommand().Run(context.Background(), []string{
+		"find", "--files", "--ignore-hardlinks", "--quiet", "--output-format", "json", "--output-file", outputFile, first, second,
+	}); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if report := readTestReport(t, outputFile); len(report.Groups) != 0 {
+		t.Fatalf("ignore-hardlinks groups = %d, want 0", len(report.Groups))
+	}
+}
+
 func readTestReport(t *testing.T, path string) model.DuplicateReport {
 	t.Helper()
 	contents, err := os.ReadFile(path)
