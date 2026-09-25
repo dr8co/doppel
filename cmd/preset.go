@@ -13,6 +13,8 @@ import (
 )
 
 // PresetCommand returns the preset command configuration.
+//
+//nolint:goconst
 func PresetCommand(cfg *config.PresetConfig, loadConfig ConfigLoader) *cli.Command {
 	return &cli.Command{
 		Name:    "preset",

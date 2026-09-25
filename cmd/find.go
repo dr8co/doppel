@@ -328,22 +328,20 @@ type outputOptions struct {
 	failOnDuplicates bool
 }
 
-// findDuplicates performs the main logic of finding duplicate files.
-//
-//nolint:gocyclo
-func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, files []string, explicitFiles bool, filterConfig *filter.Config, outputOptions outputOptions) error {
+// scanDuplicates performs the scanning and hashing phases of duplicate detection.
+func scanDuplicates(ctx context.Context, cfg *config.FindConfig, directories, files []string, explicitFiles bool, filterConfig *filter.Config, quiet bool) (*model.DuplicateReport, error) {
 	if cfg.ShowFilters && !explicitFiles {
-		if !outputOptions.quiet {
+		if !quiet {
 			filter.DisplayActiveFiltersTo(filterConfig, os.Stderr)
 		}
-		return nil
+		return &model.DuplicateReport{ScanDate: time.Now(), Stats: &model.Stats{StartTime: time.Now()}}, nil
 	}
 
 	var progressOut io.Writer = os.Stderr
-	if outputOptions.quiet {
+	if quiet {
 		progressOut = io.Discard
 	}
-	verbose := cfg.Verbose && !outputOptions.quiet
+	verbose := cfg.Verbose && !quiet
 	sp := spinner.New(spinner.CharSets[35], 100*time.Millisecond, spinner.WithSuffix(" scanning...\n"), spinner.WithWriter(progressOut))
 	_ = sp.Color("fgHiRed", "bold")
 
@@ -355,7 +353,7 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 		sp.UpdateCharSet(spinner.CharSets[7])
 	}
 
-	if !outputOptions.quiet {
+	if !quiet {
 		sp.Start()
 	}
 	s := &model.Stats{StartTime: time.Now()}
@@ -368,11 +366,11 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 	} else {
 		sizeGroups, err = scanner.GroupFilesBySizeWithOutput(ctx, directories, filterConfig, s, verbose, progressOut)
 	}
-	if !outputOptions.quiet {
+	if !quiet {
 		sp.Stop()
 	}
 	if err != nil {
-		return fmt.Errorf("error scanning files: %w", err)
+		return nil, fmt.Errorf("error scanning files: %w", err)
 	}
 
 	if verbose {
@@ -384,14 +382,26 @@ func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 		}
 	}
 
-	// Phase 2: Hash files that have potential duplicates
 	report, err := finder.FindDuplicatesByHashWithOutput(ctx, sizeGroups, cfg.Workers, s, verbose, progressOut)
 	s.Duration = time.Since(s.StartTime)
 	if err != nil {
-		return fmt.Errorf("error finding duplicates: %w", err)
+		return nil, fmt.Errorf("error finding duplicates: %w", err)
 	}
 
-	// Phase 3: Sort and output the results
+	return report, nil
+}
+
+// findDuplicates performs the main logic of finding duplicate files.
+func findDuplicates(ctx context.Context, cfg *config.FindConfig, directories, files []string, explicitFiles bool, filterConfig *filter.Config, outputOptions outputOptions) error {
+	report, err := scanDuplicates(ctx, cfg, directories, files, explicitFiles, filterConfig, outputOptions.quiet)
+	if err != nil {
+		return err
+	}
+	var progressOut io.Writer = os.Stderr
+	if outputOptions.quiet {
+		progressOut = io.Discard
+	}
+
 	sortMode := strings.TrimSpace(strings.ToLower(cfg.Sort))
 	if sortMode == "" {
 		sortMode = "path"
