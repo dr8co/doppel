@@ -39,6 +39,7 @@ Doppel is designed for speed, flexibility, and reliability.
     * [Automatic Completion](#automatic-completion)
   * [🔎 Find Command](#-find-command)
     * [⚙️ Find Command Options](#%EF%B8%8F-find-command-options)
+  * [🧹 Clean Command](#-clean-command)
   * [🎛️ Preset Command](#%EF%B8%8F-preset-command)
 * [🧬 How It Works](#-how-it-works)
 * [🏗️ Development](#%EF%B8%8F-development)
@@ -332,6 +333,39 @@ doppel find /var/logs --min-size=1 --exclude-files="*.log" --exclude-dirs="temp*
 
 > [!NOTE]
 > When using glob patterns and regexes, be sure to quote (and escape, if necessary) them to prevent shell expansion.
+
+### 🧹 Clean Command
+
+`clean` performs duplicate actions separately from `find`. It always requires an
+explicit retention policy and never assumes which file should be kept:
+
+```sh
+# Preview which files would be deleted
+doppel clean ~/Downloads --keep shortest-path --dry-run
+
+# Delete duplicates after explicitly bypassing confirmation
+doppel clean ~/Downloads --keep newest --mode delete --yes
+
+# Scan an explicit list of files
+doppel clean --files --keep first --dry-run file-a file-b
+```
+
+The available policies are `newest`, `oldest`, `shortest-path`, and `first`.
+Ties are resolved by lexical path order. Available modes are `delete`, `trash`,
+and `replace-with-hardlink`. Without `--dry-run` or `--yes`, an interactive
+confirmation is required; non-interactive runs must pass `--yes`.
+
+`--files` and `--files-from` use the same explicit-file behavior as `find`.
+Clean validates every action target with `Lstat`, rejects symlinks, and skips
+hard-linked paths that already share the keeper's inode. On Linux, `trash` uses
+the XDG user trash directory; unsupported platforms report an error rather than
+falling back to deletion.
+
+For more details, run:
+
+```sh
+doppel clean --help
+```
 
 ### 🎛️ Preset Command
 
