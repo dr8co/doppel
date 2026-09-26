@@ -82,6 +82,14 @@ Files are compared by their hashes after filtration.`,
 				Usage: "Ignore empty or whitespace-only paths from --files-from",
 			},
 			&cli.StringFlag{
+				Name:  "exclude",
+				Usage: "Comma-separated glob patterns to exclude files and directories",
+			},
+			&cli.IntFlag{
+				Name:  "max-depth",
+				Usage: "Maximum containing-directory depth to scan (0 = root level)",
+			},
+			&cli.StringFlag{
 				Name:    "exclude-dirs",
 				Aliases: []string{"skip-dirs"},
 				Usage:   "Comma-separated list of directory patterns to exclude (glob patterns)",
@@ -181,17 +189,24 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	if c.IsSet("verbose") {
 		cfg.Verbose = c.Bool("verbose")
 	}
+	if c.IsSet("exclude") {
+		cfg.Exclude = c.String("exclude")
+	}
+	if c.IsSet("max-depth") {
+		maxDepth := c.Int("max-depth")
+		cfg.MaxDepth = &maxDepth
+	}
 	if c.IsSet("exclude-dirs") {
 		cfg.ExcludeDirs = c.String("exclude-dirs")
 	}
 	if c.IsSet("exclude-files") {
 		cfg.ExcludeFiles = c.String("exclude-files")
 	}
-	if c.IsSet("exclude-dir-regex") {
-		cfg.ExcludeDirRegex = c.String("exclude-dir-regex")
+	if c.IsSet("exclude-dirs-regex") {
+		cfg.ExcludeDirRegex = c.String("exclude-dirs-regex")
 	}
-	if c.IsSet("exclude-file-regex") {
-		cfg.ExcludeFileRegex = c.String("exclude-file-regex")
+	if c.IsSet("exclude-files-regex") {
+		cfg.ExcludeFileRegex = c.String("exclude-files-regex")
 	}
 	if c.IsSet("min-size") {
 		cfg.MinSize = c.String("min-size")
@@ -220,6 +235,12 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	quiet := c.Bool("quiet")
 	if quiet && cfg.Verbose {
 		return errors.New("--quiet cannot be combined with --verbose")
+	}
+	if err := validateExclusionMode(cfg); err != nil {
+		return err
+	}
+	if cfg.MaxDepth != nil && *cfg.MaxDepth < 0 {
+		return fmt.Errorf("invalid --max-depth: %d (must be zero or greater)", *cfg.MaxDepth)
 	}
 
 	sortMode := strings.TrimSpace(strings.ToLower(cfg.Sort))
@@ -320,12 +341,30 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 		cfg.ExcludeFileRegex,
 		minSize,
 		maxSize,
+		cfg.Exclude,
 	)
 	if err != nil {
 		return fmt.Errorf("error building filter configuration: %w", err)
 	}
 
 	return findDuplicates(ctx, cfg, directories, nil, false, filterConfig, outputOptions)
+}
+
+func validateExclusionMode(cfg *config.FindConfig) error {
+	if strings.TrimSpace(cfg.Exclude) == "" {
+		return nil
+	}
+	for name, value := range map[string]string{
+		"--exclude-dirs":        cfg.ExcludeDirs,
+		"--exclude-files":       cfg.ExcludeFiles,
+		"--exclude-dirs-regex":  cfg.ExcludeDirRegex,
+		"--exclude-files-regex": cfg.ExcludeFileRegex,
+	} {
+		if strings.TrimSpace(value) != "" {
+			return fmt.Errorf("--exclude cannot be combined with %s", name)
+		}
+	}
+	return nil
 }
 
 type outputOptions struct {
@@ -373,8 +412,15 @@ func scanDuplicates(ctx context.Context, cfg *config.FindConfig, directories, fi
 			IgnoreHardlinks: cfg.IgnoreHardlinks,
 		})
 	} else {
+		scanOptions := scanner.ScanOptions{IgnoreHardlinks: cfg.IgnoreHardlinks}
+		if cfg.MaxDepth != nil {
+			scanOptions.MaxDepth = *cfg.MaxDepth
+			scanOptions.MaxDepthSet = true
+		}
 		sizeGroups, err = scanner.GroupFilesBySizeWithOptions(ctx, directories, filterConfig, s, verbose, progressOut, scanner.ScanOptions{
-			IgnoreHardlinks: cfg.IgnoreHardlinks,
+			IgnoreHardlinks: scanOptions.IgnoreHardlinks,
+			MaxDepth:        scanOptions.MaxDepth,
+			MaxDepthSet:     scanOptions.MaxDepthSet,
 		})
 	}
 	if !quiet {
