@@ -266,12 +266,14 @@ candidate and avoid reporting them as reclaimable duplicate space.
 * `--null`: Read NUL-delimited paths from `--files-from`
 * `--ignore-empty-paths`: Ignore empty or whitespace-only paths from `--files-from`
 * `--ignore-hardlinks`: Treat paths to the same underlying file as one candidate
+* `--max-depth <n>`: Limit directory scanning by containing-directory depth; `0` scans files directly in the root
 * `--paths-only`: Emit every path in duplicate groups instead of a report
 * `--print0`: Terminate `--paths-only` paths with NUL characters
 * `--quiet`: Suppress progress and informational output
 * `--fail-on-duplicates`: Return a nonzero status when duplicates are found
 * `--min-size <size>`: Minimum file size to consider (default: 0 = no limit)
 * `--max-size <size>`: Maximum file size to consider (default: 0 = no limit)
+* `--exclude <patterns>`: Comma-separated glob patterns for both files and directories
 * `--exclude-dirs <patterns>`: Comma-separated glob patterns for directories to exclude
 * `--exclude-files <patterns>`: Comma-separated glob patterns for files to exclude
 * `--exclude-dirs-regex <regexes>`: Comma-separated regex patterns for directories to exclude
@@ -279,6 +281,16 @@ candidate and avoid reporting them as reclaimable duplicate space.
 * `--show-filters`: Show active filters and exit
 * `--output-format <format>`: Output format for duplicate groups (default: pretty, options: `pretty`, `json`, `jsonl`, `yaml`)
 * `--output-file <file>`: Write output to a file instead of stdout
+
+`--exclude` is mutually exclusive with the four specialized exclusion options:
+`--exclude-dirs`, `--exclude-files`, `--exclude-dirs-regex`, and
+`--exclude-files-regex`. Unified patterns match either an entry's basename or its
+full walked path. The specialized options remain available when `--exclude` is
+not used.
+
+The same scan controls are available on `clean`. An omitted `--max-depth` is
+unlimited. Explicit `--files` and `--files-from` inputs ignore all scan filters,
+including exclusions and depth.
 
 The hard-link policy can also be configured with `ignore_hardlinks = true` under `[find]`
 or with `DOPPEL_FIND_IGNORE_HARDLINKS=true`.
