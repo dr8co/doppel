@@ -59,6 +59,9 @@ func (v *defaultValidator) validateLogConfig(config *LogConfig) error {
 
 // validateFindConfig validates the find configuration.
 func (v *defaultValidator) validateFindConfig(config *FindConfig) error {
+	if config.MaxDepth != nil && *config.MaxDepth < 0 {
+		return fmt.Errorf("invalid max depth: %d (must be zero or greater)", *config.MaxDepth)
+	}
 	return validate(config.Workers, config.OutputFormat)
 }
 

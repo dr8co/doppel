@@ -20,6 +20,13 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	}
 
 	// Merge find config
+	if override.Find.Exclude != "" {
+		result.Find.Exclude = override.Find.Exclude
+	}
+	if override.Find.MaxDepth != nil {
+		maxDepth := *override.Find.MaxDepth
+		result.Find.MaxDepth = &maxDepth
+	}
 	if override.Find.Workers != 0 {
 		result.Find.Workers = override.Find.Workers
 	}

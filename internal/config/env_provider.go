@@ -53,7 +53,9 @@ func (p *EnvProvider) Load(ctx context.Context) (*Config, error) {
 
 	// Load find configuration
 	p.loadIntFromEnv("FIND_WORKERS", &config.Find.Workers)
+	p.loadOptionalIntFromEnv("FIND_MAX_DEPTH", &config.Find.MaxDepth)
 	p.loadBoolFromEnv("FIND_VERBOSE", &config.Find.Verbose)
+	p.loadStringFromEnv("FIND_EXCLUDE", &config.Find.Exclude)
 	p.loadStringFromEnv("FIND_EXCLUDE_DIRS", &config.Find.ExcludeDirs)
 	p.loadStringFromEnv("FIND_EXCLUDE_FILES", &config.Find.ExcludeFiles)
 	p.loadStringFromEnv("FIND_EXCLUDE_DIR_REGEX", &config.Find.ExcludeDirRegex)
@@ -87,6 +89,14 @@ func (p *EnvProvider) loadIntFromEnv(key string, target *int) {
 	if value := os.Getenv(p.prefix + key); value != "" {
 		if parsed, err := strconv.Atoi(value); err == nil {
 			*target = parsed
+		}
+	}
+}
+
+func (p *EnvProvider) loadOptionalIntFromEnv(key string, target **int) {
+	if value := os.Getenv(p.prefix + key); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			*target = &parsed
 		}
 	}
 }

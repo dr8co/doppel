@@ -67,6 +67,10 @@ type LogConfig struct {
 
 // FindConfig holds configuration for the 'find' command.
 type FindConfig struct {
+	// Exclude holds unified glob patterns for files and directories.
+	Exclude string `toml:"exclude" yaml:"exclude" json:"exclude"`
+	// MaxDepth limits scanning by containing-directory depth when set.
+	MaxDepth *int `toml:"max_depth" yaml:"max_depth" json:"max_depth"`
 	// ExcludeDirs holds the glob patterns to exclude directories from searching.
 	// This is a comma-separated list of patterns, which should be escaped as needed.
 	ExcludeDirs string `toml:"exclude_dirs" yaml:"exclude_dirs" json:"exclude_dirs"`
