@@ -28,6 +28,9 @@ import (
 
 // Config defines criteria for excluding files and directories.
 type Config struct {
+	// Exclude contains glob patterns that exclude both files and directories.
+	Exclude []string `json:"exclude" yaml:"exclude"`
+
 	// ExcludeDirs contains directory names to exclude.
 	ExcludeDirs []string `json:"exclude_dirs" yaml:"exclude_dirs"`
 
@@ -54,7 +57,7 @@ type Config struct {
 }
 
 // BuildConfig creates a [Config] from command line arguments.
-func BuildConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64) (*Config, error) {
+func BuildConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64, unifiedExclude ...string) (*Config, error) {
 	// Handle negative values
 	if minSize < 0 {
 		logger.DebugAttrs(context.TODO(), "minSize is negative, setting to 0", slog.Int64("minSize", minSize))
@@ -73,6 +76,15 @@ func BuildConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex st
 	config := &Config{
 		MinSize: minSize,
 		MaxSize: maxSize,
+	}
+	if len(unifiedExclude) > 0 && unifiedExclude[0] != "" {
+		config.Exclude = parseCommaSeparated(unifiedExclude[0])
+		for _, pattern := range config.Exclude {
+			if _, err := filepath.Match(pattern, ""); err != nil {
+				return nil, fmt.Errorf("invalid exclude glob pattern '%s': %w", pattern, err)
+			}
+		}
+		logger.Debug("Parsed unified exclude patterns", "patterns", config.Exclude)
 	}
 
 	// Parse exclude directory patterns
@@ -149,6 +161,10 @@ func parseCommaSeparated(s string) []string {
 func (fc *Config) ShouldExcludeDir(dirPath string) bool {
 	dirName := filepath.Base(dirPath)
 
+	if matchesAnyGlob(fc.Exclude, dirName, dirPath) {
+		return true
+	}
+
 	// Check exact matches
 	for _, pattern := range fc.ExcludeDirs {
 		if matched, _ := filepath.Match(pattern, dirName); matched {
@@ -186,6 +202,9 @@ func (fc *Config) ShouldExcludeFile(filePath string, size int64) bool {
 	if fc.MinSize > 0 && fc.MinSize == fc.MaxSize && size != fc.MinSize {
 		return true
 	}
+	if matchesAnyGlob(fc.Exclude, fileName, filePath) {
+		return true
+	}
 
 	// Check exact matches
 	for _, pattern := range fc.ExcludeFiles {
@@ -208,6 +227,17 @@ func (fc *Config) ShouldExcludeFile(filePath string, size int64) bool {
 	return false
 }
 
+func matchesAnyGlob(patterns []string, values ...string) bool {
+	for _, pattern := range patterns {
+		for _, value := range values {
+			if matched, _ := filepath.Match(pattern, value); matched {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // DisplayActiveFilters prints the currently active file and directory filters from the provided configuration.
 func DisplayActiveFilters(config *Config) {
 	DisplayActiveFiltersTo(config, os.Stdout)
@@ -216,6 +246,9 @@ func DisplayActiveFilters(config *Config) {
 // DisplayActiveFiltersTo writes the currently active filters to w.
 func DisplayActiveFiltersTo(config *Config, w io.Writer) {
 	_, _ = fmt.Fprintln(w, "🔧 Active filters:")
+	if len(config.Exclude) > 0 {
+		_, _ = fmt.Fprintf(w, "  🚫 Exclude: %s\n", strings.Join(config.Exclude, ", "))
+	}
 	if len(config.ExcludeDirs) > 0 {
 		_, _ = fmt.Fprintf(w, "  📁 Exclude directories: %s\n", strings.Join(config.ExcludeDirs, ", "))
 	}
@@ -240,7 +273,7 @@ func DisplayActiveFiltersTo(config *Config, w io.Writer) {
 		_, _ = fmt.Fprintf(w, "  📏 Maximum file size: %s\n", output.FormatBytes(config.MaxSize))
 	}
 
-	if len(config.ExcludeDirs) == 0 && len(config.ExcludeFiles) == 0 &&
+	if len(config.Exclude) == 0 && len(config.ExcludeDirs) == 0 && len(config.ExcludeFiles) == 0 &&
 		len(config.excludeDirRegex) == 0 && len(config.excludeFileRegex) == 0 &&
 		config.MinSize == 0 && config.MaxSize == 0 {
 		_, _ = fmt.Fprintln(w, "  ✅ No filters active")
