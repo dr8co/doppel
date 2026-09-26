@@ -19,6 +19,17 @@ func newTestCleanCommand() *cli.Command {
 	})
 }
 
+func TestCleanCommandRejectsMixedExclusionModes(t *testing.T) {
+	cfg := config.DefaultConfig()
+	command := CleanCommand(&cfg.Clean, func(context.Context, *cli.Command) (*config.Config, error) {
+		return config.DefaultConfig(), nil
+	})
+	err := command.Run(context.Background(), []string{"clean", "--exclude", "*.log", "--exclude-dirs", ".git", "--keep", "first"})
+	if err == nil || !strings.Contains(err.Error(), "--exclude cannot be combined with --exclude-dirs") {
+		t.Fatalf("Run() error = %v, want mixed exclusion error", err)
+	}
+}
+
 func makeDuplicateFiles(t *testing.T) (string, string) {
 	t.Helper()
 	dir := t.TempDir()
