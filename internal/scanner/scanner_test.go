@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -263,6 +264,33 @@ func TestGroupFilesBySizeSkipsDirectorySymlinks(t *testing.T) {
 	}
 	if stats.SkippedFiles != 1 {
 		t.Fatalf("SkippedFiles = %d, want 1", stats.SkippedFiles)
+	}
+}
+
+func TestGroupFilesBySizeMaxDepth(t *testing.T) {
+	tempDir := t.TempDir()
+	nestedDir := filepath.Join(tempDir, "nested")
+	if err := os.Mkdir(nestedDir, 0o755); err != nil {
+		t.Fatalf("create nested directory: %v", err)
+	}
+	rootFile := filepath.Join(tempDir, "root.txt")
+	nestedFile := filepath.Join(nestedDir, "nested.txt")
+	for _, path := range []string{rootFile, nestedFile} {
+		if err := os.WriteFile(path, []byte("same"), 0o600); err != nil {
+			t.Fatalf("write test file: %v", err)
+		}
+	}
+
+	stats := &model.Stats{}
+	groups, err := GroupFilesBySizeWithOptions(context.Background(), []string{tempDir}, &filter.Config{}, stats, false, io.Discard, ScanOptions{MaxDepth: 0, MaxDepthSet: true})
+	if err != nil {
+		t.Fatalf("depth-limited scan: %v", err)
+	}
+	if got := len(groups[4]); got != 1 {
+		t.Fatalf("depth-limited group contains %d files, want 1", got)
+	}
+	if stats.SkippedDirs != 1 {
+		t.Fatalf("SkippedDirs = %d, want 1", stats.SkippedDirs)
 	}
 }
 
