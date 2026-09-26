@@ -112,6 +112,13 @@ func TestFindCommandRejectsInvalidSortMode(t *testing.T) {
 	}
 }
 
+func TestFindCommandRejectsMixedExclusionModes(t *testing.T) {
+	err := newTestFindCommand().Run(context.Background(), []string{"find", "--exclude", "*.log", "--exclude-files", "*.tmp", "--quiet"})
+	if err == nil || !strings.Contains(err.Error(), "--exclude cannot be combined with --exclude-files") {
+		t.Fatalf("Run() error = %v, want mixed exclusion error", err)
+	}
+}
+
 func TestFindCommandIgnoreHardlinks(t *testing.T) {
 	tempDir := t.TempDir()
 	first := filepath.Join(tempDir, "first.txt")
