@@ -36,6 +36,8 @@ func CleanCommand(cfg *config.CleanConfig, loadConfig ConfigLoader) *cli.Command
 			&cli.BoolFlag{Name: "null", Usage: "Read NUL-delimited paths from --files-from"},
 			&cli.BoolFlag{Name: "ignore-empty-paths", Usage: "Ignore empty paths from --files-from"},
 			&cli.BoolFlag{Name: "ignore-hardlinks", Usage: "Treat hard-linked paths as one underlying file"},
+			&cli.StringFlag{Name: "exclude", Usage: "Comma-separated glob patterns to exclude files and directories"},
+			&cli.IntFlag{Name: "max-depth", Usage: "Maximum containing-directory depth to scan (0 = root level)"},
 			&cli.StringFlag{Name: "exclude-dirs", Usage: "Comma-separated directory glob patterns to exclude"},
 			&cli.StringFlag{Name: "exclude-files", Usage: "Comma-separated file glob patterns to exclude"},
 			&cli.StringFlag{Name: "exclude-dirs-regex", Usage: "Comma-separated directory regex patterns to exclude"},
@@ -84,6 +86,13 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	if c.IsSet("verbose") {
 		findCfg.Verbose = c.Bool("verbose")
 	}
+	if c.IsSet("exclude") {
+		findCfg.Exclude = c.String("exclude")
+	}
+	if c.IsSet("max-depth") {
+		maxDepth := c.Int("max-depth")
+		findCfg.MaxDepth = &maxDepth
+	}
 	if c.IsSet("exclude-dirs") {
 		findCfg.ExcludeDirs = c.String("exclude-dirs")
 	}
@@ -104,6 +113,12 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	}
 	if c.IsSet("ignore-hardlinks") {
 		findCfg.IgnoreHardlinks = c.Bool("ignore-hardlinks")
+	}
+	if err := validateExclusionMode(&findCfg); err != nil {
+		return err
+	}
+	if findCfg.MaxDepth != nil && *findCfg.MaxDepth < 0 {
+		return fmt.Errorf("invalid --max-depth: %d (must be zero or greater)", *findCfg.MaxDepth)
 	}
 
 	directories, files, explicitFiles, filterConfig, err := cleanInputs(c, &findCfg)
@@ -215,7 +230,7 @@ func cleanInputs(c *cli.Command, cfg *config.FindConfig) ([]string, []string, bo
 			return nil, nil, false, nil, fmt.Errorf("invalid max-size: %w", err)
 		}
 	}
-	filterConfig, err := filter.BuildConfig(cfg.ExcludeDirs, cfg.ExcludeFiles, cfg.ExcludeDirRegex, cfg.ExcludeFileRegex, minSize, maxSize)
+	filterConfig, err := filter.BuildConfig(cfg.ExcludeDirs, cfg.ExcludeFiles, cfg.ExcludeDirRegex, cfg.ExcludeFileRegex, minSize, maxSize, cfg.Exclude)
 	return directories, nil, false, filterConfig, err
 }
 
