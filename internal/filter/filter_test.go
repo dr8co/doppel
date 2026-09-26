@@ -251,6 +251,32 @@ func TestShouldExcludeDir(t *testing.T) {
 	}
 }
 
+func TestBuildConfigUnifiedExclude(t *testing.T) {
+	config, err := BuildConfig("", "", "", "", 0, 0, "*.log,cache,/tmp/cache/*")
+	if err != nil {
+		t.Fatalf("BuildConfig() error = %v", err)
+	}
+	if !config.ShouldExcludeDir("/tmp/cache") {
+		t.Fatal("unified exclude did not match directory basename")
+	}
+	if !config.ShouldExcludeFile("/tmp/cache/file.txt", 1) {
+		t.Fatal("unified exclude did not match full file path")
+	}
+	if !config.ShouldExcludeFile("/tmp/report.log", 1) {
+		t.Fatal("unified exclude did not match file basename")
+	}
+	if config.ShouldExcludeFile("/tmp/report.txt", 1) {
+		t.Fatal("unified exclude matched an unrelated file")
+	}
+}
+
+func TestBuildConfigRejectsInvalidUnifiedExclude(t *testing.T) {
+	_, err := BuildConfig("", "", "", "", 0, 0, "[")
+	if err == nil || !strings.Contains(err.Error(), "invalid exclude glob pattern") {
+		t.Fatalf("BuildConfig() error = %v, want invalid exclude glob error", err)
+	}
+}
+
 // TestShouldExcludeFile verifies the behavior of ShouldExcludeFile based on various file attributes and filter criteria.
 func TestShouldExcludeFile(t *testing.T) {
 	tests := []struct {
