@@ -69,6 +69,11 @@ func GroupFilesBySizeWithOptions(ctx context.Context,
 				return nil
 			}
 
+			if dirEnt.IsDir() && options.MaxDepthSet && pathDepth(dir, path, true) > options.MaxDepth {
+				stats.SkippedDirs++
+				return filepath.SkipDir
+			}
+
 			// Check if we should skip this directory
 			if dirEnt.IsDir() && filterConfig.ShouldExcludeDir(path) {
 				if verbose {
@@ -130,6 +135,19 @@ func GroupFilesBySizeWithOptions(ctx context.Context,
 	printSummaryTo(stats, verbose, progressOut)
 
 	return sizeGroups, nil
+}
+
+func pathDepth(root, path string, directory bool) int {
+	relative, err := filepath.Rel(root, path)
+	if err != nil || relative == "." {
+		return 0
+	}
+
+	depth := len(strings.Split(relative, string(filepath.Separator)))
+	if !directory {
+		depth--
+	}
+	return depth
 }
 
 // GroupFilesBySizeFromFiles groups an explicitly selected list of regular files by size.

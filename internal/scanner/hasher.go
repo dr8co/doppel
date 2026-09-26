@@ -18,8 +18,11 @@ type FileInfo struct {
 	Hash string `json:"hash" yaml:"hash"`
 }
 
-// ScanOptions controls filesystem identity handling during file collection.
+// ScanOptions controls filesystem identity and traversal handling during file collection.
 type ScanOptions struct {
+	// MaxDepth limits the containing-directory depth when MaxDepthSet is true.
+	MaxDepth        int
+	MaxDepthSet     bool
 	IgnoreHardlinks bool
 }
 
