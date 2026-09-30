@@ -74,7 +74,7 @@ doppel preset media ~/Pictures
 ## ✨ Features
 
 * ⚡️ **Fast scanning** with parallel hashing (Blake3, configurable workers)
-* 🔍 **Flexible filtering** by file size, glob patterns, and regular expressions
+* 🔍 **Flexible filtering** by file size and glob patterns
 * 🔇 **Noise reduction** with path and file exclusions
 * 📊 **Detailed statistics** and verbose output
 * 🛠️ **Dry-run mode** to preview filters
@@ -229,7 +229,7 @@ doppel find /path/to/dir1 /path/to/dir2
 ```
 
 Scan an explicit list of regular files. In this mode, all directory, filename,
-regex, and size filters are ignored:
+glob, and size filters are ignored:
 
 ```sh
 doppel find --files /path/to/file1 /path/to/file2
@@ -248,7 +248,7 @@ printf '%s\n' /path/to/file1 /path/to/file2 | doppel find --files-from=-
 find . -type f -print0 | doppel find --files-from=- --null
 ```
 
-`--files-from` implies explicit-file mode, so directory, filename, regex, and size filters
+`--files-from` implies explicit-file mode, so directory, filename, glob, and size filters
 are ignored. Every listed path must resolve to a regular file, and invalid paths cause the
 command to fail. It cannot be combined with `--files` or positional paths. Empty records
 are rejected; pass `--ignore-empty-paths` to skip empty or whitespace-only records.
@@ -276,17 +276,13 @@ candidate and avoid reporting them as reclaimable duplicate space.
 * `--exclude <patterns>`: Comma-separated glob patterns for both files and directories
 * `--exclude-dirs <patterns>`: Comma-separated glob patterns for directories to exclude
 * `--exclude-files <patterns>`: Comma-separated glob patterns for files to exclude
-* `--exclude-dirs-regex <regexes>`: Comma-separated regex patterns for directories to exclude
-* `--exclude-files-regex <regexes>`: Comma-separated regex patterns for files to exclude
 * `--show-filters`: Show active filters and exit
 * `--output-format <format>`: Output format for duplicate groups (default: pretty, options: `pretty`, `json`, `jsonl`, `yaml`)
 * `--output-file <file>`: Write output to a file instead of stdout
 
-`--exclude` is mutually exclusive with the four specialized exclusion options:
-`--exclude-dirs`, `--exclude-files`, `--exclude-dirs-regex`, and
-`--exclude-files-regex`. Unified patterns match either an entry's basename or its
-full walked path. The specialized options remain available when `--exclude` is
-not used.
+`--exclude` is mutually exclusive with `--exclude-dirs` and `--exclude-files`.
+Unified patterns match either an entry's basename or its full walked path. The
+specialized options remain available when `--exclude` is not used.
 
 The same scan controls are available on `clean`. An omitted `--max-depth` is
 unlimited. Explicit `--files` and `--files-from` inputs ignore all scan filters,
@@ -353,7 +349,7 @@ doppel find /var/logs --min-size=1 --exclude-files="*.log" --exclude-dirs="temp*
 ```
 
 > [!NOTE]
-> When using glob patterns and regexes, be sure to quote (and escape, if necessary) them to prevent shell expansion.
+> When using glob patterns, be sure to quote them to prevent shell expansion.
 
 ### 🧹 Clean Command
 
