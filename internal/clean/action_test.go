@@ -86,3 +86,38 @@ func TestApplyTrashBackend(t *testing.T) {
 		t.Fatalf("trash result = %+v, called = %v", results[0], called)
 	}
 }
+
+func TestApplyReplaceWithHardlink(t *testing.T) {
+	dir := t.TempDir()
+	keeperPath := filepath.Join(dir, "keeper")
+	removePath := filepath.Join(dir, "remove")
+	for _, path := range []string{keeperPath, removePath} {
+		if err := os.WriteFile(path, []byte("same"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	keeper, err := os.Lstat(keeperPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remove, err := os.Lstat(removePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	results := Apply([]Target{{Keeper: File{Path: keeperPath, Info: keeper}, Remove: File{Path: removePath, Info: remove}}}, ModeReplaceWithHardlink, false, nil)
+	if results[0].Err != nil {
+		t.Fatalf("hardlink replacement failed: %v", results[0].Err)
+	}
+	keeper, err = os.Stat(keeperPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remove, err = os.Stat(removePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !os.SameFile(keeper, remove) {
+		t.Fatal("replacement path does not share the keeper's file")
+	}
+}
