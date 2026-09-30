@@ -39,12 +39,6 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	if override.Find.ExcludeFiles != "" {
 		result.Find.ExcludeFiles = override.Find.ExcludeFiles
 	}
-	if override.Find.ExcludeDirRegex != "" {
-		result.Find.ExcludeDirRegex = override.Find.ExcludeDirRegex
-	}
-	if override.Find.ExcludeFileRegex != "" {
-		result.Find.ExcludeFileRegex = override.Find.ExcludeFileRegex
-	}
 	if override.Find.MinSize != "" {
 		result.Find.MinSize = override.Find.MinSize
 	}

@@ -77,12 +77,6 @@ type FindConfig struct {
 	// ExcludeFiles holds the glob patterns to exclude files from searching.
 	// This is a comma-separated list of patterns, which should be escaped as needed.
 	ExcludeFiles string `toml:"exclude_files" yaml:"exclude_files" json:"exclude_files"`
-	// ExcludeDirRegex holds regex patterns to exclude directories.
-	// This is a comma-separated list of patterns, which should be escaped as needed.
-	ExcludeDirRegex string `toml:"exclude_dir_regex" yaml:"exclude_dir_regex" json:"exclude_dir_regex"`
-	// ExcludeFileRegex holds regex patterns to exclude files.
-	// This is a comma-separated list of patterns, which should be escaped as needed.
-	ExcludeFileRegex string `toml:"exclude_file_regex" yaml:"exclude_file_regex" json:"exclude_file_regex"`
 	// MinSize sets the minimum file size to consider (e.g., "10KB", "5MB").
 	MinSize string `toml:"min_size" yaml:"min_size" json:"min_size"`
 	// MaxSize sets the maximum file size to consider (e.g., "100MB", "1GB").

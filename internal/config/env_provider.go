@@ -58,8 +58,6 @@ func (p *EnvProvider) Load(ctx context.Context) (*Config, error) {
 	p.loadStringFromEnv("FIND_EXCLUDE", &config.Find.Exclude)
 	p.loadStringFromEnv("FIND_EXCLUDE_DIRS", &config.Find.ExcludeDirs)
 	p.loadStringFromEnv("FIND_EXCLUDE_FILES", &config.Find.ExcludeFiles)
-	p.loadStringFromEnv("FIND_EXCLUDE_DIR_REGEX", &config.Find.ExcludeDirRegex)
-	p.loadStringFromEnv("FIND_EXCLUDE_FILE_REGEX", &config.Find.ExcludeFileRegex)
 	p.loadStringFromEnv("FIND_MIN_SIZE", &config.Find.MinSize)
 	p.loadStringFromEnv("FIND_MAX_SIZE", &config.Find.MaxSize)
 	p.loadBoolFromEnv("FIND_SHOW_FILTERS", &config.Find.ShowFilters)
