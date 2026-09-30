@@ -14,6 +14,7 @@ func TestFileProvider(t *testing.T) {
 	// Create a temp directory for test files
 	testDir, cleanup := testDir(t)
 	defer cleanup()
+	maxDepth := 2
 
 	sampleConfig := &Config{
 		Log: LogConfig{
@@ -22,16 +23,26 @@ func TestFileProvider(t *testing.T) {
 			Output: "app.log",
 		},
 		Find: FindConfig{
-			Workers:      4,
-			Verbose:      true,
-			ExcludeDirs:  "node_modules,vendor",
-			ExcludeFiles: "*.log",
-			MinSize:      "1MB",
-			MaxSize:      "100MB",
-			ShowFilters:  true,
-			OutputFormat: "json",
-			OutputFile:   "out.json",
+			Workers:          4,
+			Verbose:          true,
+			Exclude:          "*.bak",
+			MaxDepth:         &maxDepth,
+			ExcludeDirs:      "node_modules,vendor",
+			ExcludeFiles:     "*.log",
+			MinSize:          "1MB",
+			MaxSize:          "100MB",
+			Sort:             "size",
+			SortReverse:      true,
+			PathsOnly:        true,
+			Print0:           true,
+			Quiet:            true,
+			FailOnDuplicates: true,
+			ShowFilters:      true,
+			IgnoreHardlinks:  true,
+			OutputFormat:     "json",
+			OutputFile:       "out.json",
 		},
+		Clean: CleanConfig{Mode: "trash", Keep: "newest"},
 	}
 
 	// Test file formats
@@ -51,13 +62,26 @@ output = "app.log"
 [find]
 workers = 4
 verbose = true
+exclude = "*.bak"
+max_depth = 2
 exclude_dirs = "node_modules,vendor"
 exclude_files = "*.log"
 min_size = "1MB"
 max_size = "100MB"
+sort = "size"
+sort_reverse = true
+paths_only = true
+print0 = true
+quiet = true
+fail_on_duplicates = true
 show_filters = true
+ignore_hardlinks = true
 output_format = "json"
-output_file = "out.json"`,
+output_file = "out.json"
+
+[clean]
+mode = "trash"
+keep = "newest"`,
 		},
 		{
 			name:   "JSON",
@@ -71,33 +95,58 @@ output_file = "out.json"`,
 	"find": {
 		"workers": 4,
 		"verbose": true,
+		"exclude": "*.bak",
+		"max_depth": 2,
 		"exclude_dirs": "node_modules,vendor",
 		"exclude_files": "*.log",
 		"min_size": "1MB",
 		"max_size": "100MB",
+		"sort": "size",
+		"sort_reverse": true,
+		"paths_only": true,
+		"print0": true,
+		"quiet": true,
+		"fail_on_duplicates": true,
 		"show_filters": true,
+		"ignore_hardlinks": true,
 		"output_format": "json",
 		"output_file": "out.json"
+	},
+	"clean": {
+		"mode": "trash",
+		"keep": "newest"
 	}
 }`,
 		},
 		{
 			name:   "YAML",
 			format: "yaml",
-			content: `log:
-    level: debug
-    format: json
-    output: app.log
-find:
-    workers: 4
-    verbose: true
-    exclude_dirs: node_modules,vendor
-    exclude_files: "*.log"
-    min_size: 1MB
-    max_size: 100MB
-    show_filters: true
-    output_format: json
-    output_file: out.json`,
+			content: "log:\n" +
+				"  level: debug\n" +
+				"  format: json\n" +
+				"  output: app.log\n" +
+				"find:\n" +
+				"  workers: 4\n" +
+				"  verbose: true\n" +
+				"  exclude: \"*.bak\"\n" +
+				"  max_depth: 2\n" +
+				"  exclude_dirs: node_modules,vendor\n" +
+				"  exclude_files: \"*.log\"\n" +
+				"  min_size: 1MB\n" +
+				"  max_size: 100MB\n" +
+				"  sort: size\n" +
+				"  sort_reverse: true\n" +
+				"  paths_only: true\n" +
+				"  print0: true\n" +
+				"  quiet: true\n" +
+				"  fail_on_duplicates: true\n" +
+				"  show_filters: true\n" +
+				"  ignore_hardlinks: true\n" +
+				"  output_format: json\n" +
+				"  output_file: out.json\n" +
+				"clean:\n" +
+				"  mode: trash\n" +
+				"  keep: newest\n",
 		},
 	}
 
