@@ -85,19 +85,19 @@ output_file = "out.json"`,
 			name:   "YAML",
 			format: "yaml",
 			content: `log:
-	level: debug
-	format: json
-	output: app.log
+    level: debug
+    format: json
+    output: app.log
 find:
-	workers: 4
-	verbose: true
-	exclude_dirs: node_modules,vendor
-	exclude_files: "*.log"
-	min_size: 1MB
-	max_size: 100MB
-	show_filters: true
-	output_format: json
-	output_file: out.json`,
+    workers: 4
+    verbose: true
+    exclude_dirs: node_modules,vendor
+    exclude_files: "*.log"
+    min_size: 1MB
+    max_size: 100MB
+    show_filters: true
+    output_format: json
+    output_file: out.json`,
 		},
 	}
 
