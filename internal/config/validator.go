@@ -25,10 +25,6 @@ func (v *defaultValidator) Validate(config *Config) error {
 		return fmt.Errorf("find config validation failed: %w", err)
 	}
 
-	if err := v.validatePresetConfig(&config.Preset); err != nil {
-		return fmt.Errorf("preset config validation failed: %w", err)
-	}
-
 	if err := v.validateCleanConfig(&config.Clean); err != nil {
 		return fmt.Errorf("clean config validation failed: %w", err)
 	}
@@ -65,11 +61,6 @@ func (v *defaultValidator) validateFindConfig(config *FindConfig) error {
 	return validate(config.Workers, config.OutputFormat)
 }
 
-// validatePresetConfig validates the preset configuration.
-func (v *defaultValidator) validatePresetConfig(config *PresetConfig) error {
-	return validate(config.Workers, config.OutputFormat)
-}
-
 func (v *defaultValidator) validateCleanConfig(config *CleanConfig) error {
 	validModes := []string{"delete", "trash", "replace-with-hardlink"}
 	if config.Mode != "" && !contains(validModes, config.Mode) {
@@ -84,7 +75,7 @@ func (v *defaultValidator) validateCleanConfig(config *CleanConfig) error {
 	return nil
 }
 
-// validate is a common validation function for both preset and find config.
+// validate checks worker counts and output formats.
 func validate(workers int, outputFormat string) error {
 	if workers < minWorkers {
 		return fmt.Errorf("too few workers: %d (min %d)", workers, minWorkers)

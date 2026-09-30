@@ -41,9 +41,8 @@ func (p *EnvProvider) Load(ctx context.Context) (*Config, error) {
 	}
 
 	config := &Config{
-		Log:    LogConfig{},
-		Find:   FindConfig{},
-		Preset: PresetConfig{},
+		Log:  LogConfig{},
+		Find: FindConfig{},
 	}
 
 	// Load log configuration
@@ -64,13 +63,6 @@ func (p *EnvProvider) Load(ctx context.Context) (*Config, error) {
 	p.loadBoolFromEnv("FIND_IGNORE_HARDLINKS", &config.Find.IgnoreHardlinks)
 	p.loadStringFromEnv("FIND_OUTPUT_FORMAT", &config.Find.OutputFormat)
 	p.loadStringFromEnv("FIND_OUTPUT_FILE", &config.Find.OutputFile)
-
-	// Load preset configuration
-	p.loadIntFromEnv("PRESET_WORKERS", &config.Preset.Workers)
-	p.loadBoolFromEnv("PRESET_VERBOSE", &config.Preset.Verbose)
-	p.loadBoolFromEnv("PRESET_SHOW_FILTERS", &config.Preset.ShowFilters)
-	p.loadStringFromEnv("PRESET_OUTPUT_FORMAT", &config.Preset.OutputFormat)
-	p.loadStringFromEnv("PRESET_OUTPUT_FILE", &config.Preset.OutputFile)
 
 	return config, nil
 }

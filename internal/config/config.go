@@ -46,9 +46,6 @@ type Config struct {
 	// Find holds the 'find' command configuration.
 	Find FindConfig `toml:"find" yaml:"find" json:"find"`
 
-	// Preset holds the 'preset' command configuration.
-	Preset PresetConfig `toml:"preset" yaml:"preset" json:"preset"`
-
 	// Clean holds the 'clean' command configuration.
 	Clean CleanConfig `toml:"clean" yaml:"clean" json:"clean"`
 }
@@ -100,25 +97,6 @@ type FindConfig struct {
 	IgnoreHardlinks bool `toml:"ignore_hardlinks" yaml:"ignore_hardlinks" json:"ignore_hardlinks"`
 }
 
-// PresetConfig holds configuration for the 'preset' command.
-type PresetConfig struct {
-	// Workers sets the number of concurrent workers for file processing.
-	// Default is the number of CPU cores.
-	Workers int `toml:"workers" yaml:"workers" json:"workers"`
-
-	// Verbose enables verbose output.
-	Verbose bool `toml:"verbose" yaml:"verbose" json:"verbose"`
-
-	// ShowFilters enables displaying the active filters.
-	ShowFilters bool `toml:"show_filters" yaml:"show_filters" json:"show_filters"`
-
-	// OutputFormat sets the output format (e.g., "pretty", "json", "yaml").
-	OutputFormat string `toml:"output_format" yaml:"output_format" json:"output_format"`
-
-	// OutputFile sets the file to write output to (default is stdout).
-	OutputFile string `toml:"output_file" yaml:"output_file" json:"output_file"`
-}
-
 // CleanConfig holds safe defaults for the 'clean' command.
 type CleanConfig struct {
 	// Mode selects the action to perform.
@@ -159,14 +137,6 @@ func defaultFindConfig() FindConfig {
 	}
 }
 
-// defaultPresetConfig returns a PresetConfig instance with default settings.
-func defaultPresetConfig() PresetConfig {
-	return PresetConfig{
-		Workers:      runtime.NumCPU(),
-		OutputFormat: pretty,
-	}
-}
-
 func defaultCleanConfig() CleanConfig {
 	return CleanConfig{Mode: "delete"}
 }
@@ -179,9 +149,8 @@ func DefaultConfig() *Config {
 			Format: pretty,
 			Output: "stderr",
 		},
-		Find:   defaultFindConfig(),
-		Preset: defaultPresetConfig(),
-		Clean:  defaultCleanConfig(),
+		Find:  defaultFindConfig(),
+		Clean: defaultCleanConfig(),
 	}
 }
 

@@ -58,23 +58,6 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 		result.Find.OutputFile = override.Find.OutputFile
 	}
 
-	// Merge preset config
-	if override.Preset.Workers != 0 {
-		result.Preset.Workers = override.Preset.Workers
-	}
-	if override.Preset.Verbose {
-		result.Preset.Verbose = override.Preset.Verbose
-	}
-	if override.Preset.ShowFilters {
-		result.Preset.ShowFilters = override.Preset.ShowFilters
-	}
-	if override.Preset.OutputFormat != "" {
-		result.Preset.OutputFormat = override.Preset.OutputFormat
-	}
-	if override.Preset.OutputFile != "" {
-		result.Preset.OutputFile = override.Preset.OutputFile
-	}
-
 	// Merge clean config
 	if override.Clean.Mode != "" {
 		result.Clean.Mode = override.Clean.Mode
