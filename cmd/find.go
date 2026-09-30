@@ -102,18 +102,6 @@ Files are compared by their hashes after filtration.`,
 				Value:   "",
 			},
 			&cli.StringFlag{
-				Name:    "exclude-dirs-regex",
-				Aliases: []string{"skip-dirs-regex"},
-				Usage:   "Comma-separated list of regex patterns for directories to exclude",
-				Value:   "",
-			},
-			&cli.StringFlag{
-				Name:    "exclude-files-regex",
-				Aliases: []string{"skip-files-regex"},
-				Usage:   "Comma-separated list of regex patterns for files to exclude",
-				Value:   "",
-			},
-			&cli.StringFlag{
 				Name:  "min-size",
 				Usage: "Minimum file size (e.g., 10MB, 1.5GB, 500KiB) (0 = no limit)",
 				Value: "",
@@ -201,12 +189,6 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	}
 	if c.IsSet("exclude-files") {
 		cfg.ExcludeFiles = c.String("exclude-files")
-	}
-	if c.IsSet("exclude-dirs-regex") {
-		cfg.ExcludeDirRegex = c.String("exclude-dirs-regex")
-	}
-	if c.IsSet("exclude-files-regex") {
-		cfg.ExcludeFileRegex = c.String("exclude-files-regex")
 	}
 	if c.IsSet("min-size") {
 		cfg.MinSize = c.String("min-size")
@@ -337,8 +319,6 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	filterConfig, err := filter.BuildConfig(
 		cfg.ExcludeDirs,
 		cfg.ExcludeFiles,
-		cfg.ExcludeDirRegex,
-		cfg.ExcludeFileRegex,
 		minSize,
 		maxSize,
 		cfg.Exclude,
@@ -355,10 +335,8 @@ func validateExclusionMode(cfg *config.FindConfig) error {
 		return nil
 	}
 	for name, value := range map[string]string{
-		"--exclude-dirs":        cfg.ExcludeDirs,
-		"--exclude-files":       cfg.ExcludeFiles,
-		"--exclude-dirs-regex":  cfg.ExcludeDirRegex,
-		"--exclude-files-regex": cfg.ExcludeFileRegex,
+		"--exclude-dirs":  cfg.ExcludeDirs,
+		"--exclude-files": cfg.ExcludeFiles,
 	} {
 		if strings.TrimSpace(value) != "" {
 			return fmt.Errorf("--exclude cannot be combined with %s", name)

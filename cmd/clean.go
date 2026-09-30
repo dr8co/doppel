@@ -40,8 +40,6 @@ func CleanCommand(cfg *config.CleanConfig, loadConfig ConfigLoader) *cli.Command
 			&cli.IntFlag{Name: "max-depth", Usage: "Maximum containing-directory depth to scan (0 = root level)"},
 			&cli.StringFlag{Name: "exclude-dirs", Usage: "Comma-separated directory glob patterns to exclude"},
 			&cli.StringFlag{Name: "exclude-files", Usage: "Comma-separated file glob patterns to exclude"},
-			&cli.StringFlag{Name: "exclude-dirs-regex", Usage: "Comma-separated directory regex patterns to exclude"},
-			&cli.StringFlag{Name: "exclude-files-regex", Usage: "Comma-separated file regex patterns to exclude"},
 			&cli.StringFlag{Name: "min-size", Usage: "Minimum file size"},
 			&cli.StringFlag{Name: "max-size", Usage: "Maximum file size"},
 			&cli.StringFlag{Name: "mode", Value: "delete", Usage: "Action: delete, trash, or replace-with-hardlink"},
@@ -98,12 +96,6 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	}
 	if c.IsSet("exclude-files") {
 		findCfg.ExcludeFiles = c.String("exclude-files")
-	}
-	if c.IsSet("exclude-dirs-regex") {
-		findCfg.ExcludeDirRegex = c.String("exclude-dirs-regex")
-	}
-	if c.IsSet("exclude-files-regex") {
-		findCfg.ExcludeFileRegex = c.String("exclude-files-regex")
 	}
 	if c.IsSet("min-size") {
 		findCfg.MinSize = c.String("min-size")
@@ -230,7 +222,7 @@ func cleanInputs(c *cli.Command, cfg *config.FindConfig) ([]string, []string, bo
 			return nil, nil, false, nil, fmt.Errorf("invalid max-size: %w", err)
 		}
 	}
-	filterConfig, err := filter.BuildConfig(cfg.ExcludeDirs, cfg.ExcludeFiles, cfg.ExcludeDirRegex, cfg.ExcludeFileRegex, minSize, maxSize, cfg.Exclude)
+	filterConfig, err := filter.BuildConfig(cfg.ExcludeDirs, cfg.ExcludeFiles, minSize, maxSize, cfg.Exclude)
 	return directories, nil, false, filterConfig, err
 }
 
