@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -11,134 +10,84 @@ import (
 // Additionally, it ensures expected errors are returned for invalid inputs.
 func TestBuildFilterConfig(t *testing.T) {
 	tests := []struct {
-		name             string
-		excludeDirs      string
-		excludeFiles     string
-		excludeDirRegex  string
-		excludeFileRegex string
-		minSize          int64
-		maxSize          int64
-		wantErr          bool
+		name         string
+		excludeDirs  string
+		excludeFiles string
+		minSize      int64
+		maxSize      int64
+		wantErr      bool
 	}{
 		{
-			name:             "empty filter",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "",
-			excludeFileRegex: "",
-			minSize:          0,
-			maxSize:          0,
-			wantErr:          false,
+			name:         "empty filter",
+			excludeDirs:  "",
+			excludeFiles: "",
+			minSize:      0,
+			maxSize:      0,
+			wantErr:      false,
 		},
 		{
-			name:             "with size limits",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "",
-			excludeFileRegex: "",
-			minSize:          1000,
-			maxSize:          5000,
-			wantErr:          false,
+			name:         "with size limits",
+			excludeDirs:  "",
+			excludeFiles: "",
+			minSize:      1000,
+			maxSize:      5000,
+			wantErr:      false,
 		},
 		{
-			name:             "with exclude patterns",
-			excludeDirs:      "node_modules,.git",
-			excludeFiles:     "*.tmp,*.log",
-			excludeDirRegex:  "",
-			excludeFileRegex: "",
-			minSize:          0,
-			maxSize:          0,
-			wantErr:          false,
+			name:         "with exclude patterns",
+			excludeDirs:  "node_modules,.git",
+			excludeFiles: "*.tmp,*.log",
+			minSize:      0,
+			maxSize:      0,
+			wantErr:      false,
 		},
 		{
-			name:             "with regex patterns",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "^\\.",
-			excludeFileRegex: "^.*\\.bak$",
-			minSize:          0,
-			maxSize:          0,
-			wantErr:          false,
+			name:         "whitespace patterns",
+			excludeDirs:  "   ",
+			excludeFiles: "\t",
+			minSize:      0,
+			maxSize:      0,
+			wantErr:      false,
 		},
 		{
-			name:             "invalid dir regex",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "[",
-			excludeFileRegex: "",
-			minSize:          0,
-			maxSize:          0,
-			wantErr:          true,
+			name:         "overlapping patterns",
+			excludeDirs:  "foo,foo",
+			excludeFiles: "bar,bar",
+			minSize:      0,
+			maxSize:      0,
+			wantErr:      false,
 		},
 		{
-			name:             "invalid file regex",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "",
-			excludeFileRegex: "[",
-			minSize:          0,
-			maxSize:          0,
-			wantErr:          true,
+			name:         "very large min/max",
+			excludeDirs:  "",
+			excludeFiles: "",
+			minSize:      1 << 40,
+			maxSize:      1 << 41,
+			wantErr:      false,
 		},
 		{
-			name:             "whitespace patterns",
-			excludeDirs:      "   ",
-			excludeFiles:     "\t",
-			excludeDirRegex:  "   ",
-			excludeFileRegex: "\n",
-			minSize:          0,
-			maxSize:          0,
-			wantErr:          false,
+			name:         "min > max",
+			excludeDirs:  "",
+			excludeFiles: "",
+			minSize:      100,
+			maxSize:      10,
+			wantErr:      true,
 		},
 		{
-			name:             "overlapping patterns",
-			excludeDirs:      "foo,foo",
-			excludeFiles:     "bar,bar",
-			excludeDirRegex:  "baz|baz",
-			excludeFileRegex: "qux|qux",
-			minSize:          0,
-			maxSize:          0,
-			wantErr:          false,
+			name:         "negative min",
+			excludeDirs:  "",
+			excludeFiles: "",
+			minSize:      -1,
+			maxSize:      100,
+			wantErr:      false,
 		},
 		{
-			name:             "very large min/max",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "",
-			excludeFileRegex: "",
-			minSize:          1 << 40,
-			maxSize:          1 << 41,
-			wantErr:          false,
-		},
-		{
-			name:             "min > max",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "",
-			excludeFileRegex: "",
-			minSize:          100,
-			maxSize:          10,
-			wantErr:          true,
-		},
-		{
-			name:             "negative min",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "",
-			excludeFileRegex: "",
-			minSize:          -1,
-			maxSize:          100,
-			wantErr:          false,
-		},
-		{
-			name:             "negative max",
-			excludeDirs:      "",
-			excludeFiles:     "",
-			excludeDirRegex:  "",
-			excludeFileRegex: "",
-			minSize:          -1,
-			maxSize:          -100,
-			wantErr:          false,
+			name:         "negative max",
+			excludeDirs:  "",
+			excludeFiles: "",
+			minSize:      -1,
+			maxSize:      -100,
+			wantErr:      false,
 		},
 	}
 
@@ -157,7 +106,7 @@ func TestBuildFilterConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config, err := BuildConfig(tt.excludeDirs, tt.excludeFiles, tt.excludeDirRegex, tt.excludeFileRegex, tt.minSize, tt.maxSize)
+			config, err := BuildConfig(tt.excludeDirs, tt.excludeFiles, tt.minSize, tt.maxSize)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("BuildConfig() error = %v, wantErr %v", err, tt.wantErr)
@@ -184,16 +133,6 @@ func TestBuildFilterConfig(t *testing.T) {
 				t.Errorf("ExcludeFiles length = %v, want %v", len(config.ExcludeFiles), len(expectedFiles))
 			}
 
-			// Check regex counts
-			expectedDirRegexCount := len(parseCommaSeparated(tt.excludeDirRegex))
-			if !tt.wantErr && len(config.excludeDirRegex) != expectedDirRegexCount {
-				t.Errorf("excludeDirRegex length = %v, want %v", len(config.excludeDirRegex), expectedDirRegexCount)
-			}
-
-			expectedFileRegexCount := len(parseCommaSeparated(tt.excludeFileRegex))
-			if !tt.wantErr && len(config.excludeFileRegex) != expectedFileRegexCount {
-				t.Errorf("excludeFileRegex length = %v, want %v", len(config.excludeFileRegex), expectedFileRegexCount)
-			}
 		})
 	}
 }
@@ -223,18 +162,9 @@ func TestShouldExcludeDir(t *testing.T) {
 			shouldSkip: true,
 		},
 		{
-			name: "regex match",
-			config: &Config{
-				excludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
-			},
-			dirPath:    "/path/to/.hidden",
-			shouldSkip: true,
-		},
-		{
 			name: "no match",
 			config: &Config{
-				ExcludeDirs:     []string{"node_modules", ".git"},
-				excludeDirRegex: []*regexp.Regexp{regexp.MustCompile(`^\.`)},
+				ExcludeDirs: []string{"node_modules", ".git"},
 			},
 			dirPath:    "/path/to/src",
 			shouldSkip: false,
@@ -252,7 +182,7 @@ func TestShouldExcludeDir(t *testing.T) {
 }
 
 func TestBuildConfigUnifiedExclude(t *testing.T) {
-	config, err := BuildConfig("", "", "", "", 0, 0, "*.log,cache,/tmp/cache/*")
+	config, err := BuildConfig("", "", 0, 0, "*.log,cache,/tmp/cache/*")
 	if err != nil {
 		t.Fatalf("BuildConfig() error = %v", err)
 	}
@@ -271,7 +201,7 @@ func TestBuildConfigUnifiedExclude(t *testing.T) {
 }
 
 func TestBuildConfigRejectsInvalidUnifiedExclude(t *testing.T) {
-	_, err := BuildConfig("", "", "", "", 0, 0, "[")
+	_, err := BuildConfig("", "", 0, 0, "[")
 	if err == nil || !strings.Contains(err.Error(), "invalid exclude glob pattern") {
 		t.Fatalf("BuildConfig() error = %v, want invalid exclude glob error", err)
 	}
@@ -323,21 +253,11 @@ func TestShouldExcludeFile(t *testing.T) {
 			shouldSkip: true,
 		},
 		{
-			name: "regex match",
-			config: &Config{
-				excludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
-			},
-			filePath:   "/path/to/file.bak",
-			fileSize:   1000,
-			shouldSkip: true,
-		},
-		{
 			name: "no match",
 			config: &Config{
-				MinSize:          100,
-				MaxSize:          10000,
-				ExcludeFiles:     []string{"*.tmp", "*.log"},
-				excludeFileRegex: []*regexp.Regexp{regexp.MustCompile(`\.bak$`)},
+				MinSize:      100,
+				MaxSize:      10000,
+				ExcludeFiles: []string{"*.tmp", "*.log"},
 			},
 			filePath:   "/path/to/document.txt",
 			fileSize:   1000,

@@ -2,7 +2,6 @@
 //
 // This package implements filtering logic to exclude files and directories based on:
 //   - Glob patterns for file and directory names
-//   - Regular expressions for file and directory paths
 //   - File size constraints (minimum and maximum sizes)
 //   - Predefined filter presets for common use cases
 //
@@ -18,7 +17,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -37,27 +35,15 @@ type Config struct {
 	// ExcludeFiles contains file names to exclude.
 	ExcludeFiles []string `json:"exclude_files" yaml:"exclude_files"`
 
-	// ExcludeDirRegexRaw contains the raw regex patterns for directories to exclude.
-	ExcludeDirRegexRaw []string `json:"exclude_dir_regex" yaml:"exclude_dir_regex"`
-
-	// ExcludeFileRegexRaw contains the raw regex patterns for files to exclude.
-	ExcludeFileRegexRaw []string `json:"exclude_file_regex" yaml:"exclude_file_regex"`
-
 	// MinSize is the minimum file size to include (0 means no minimum).
 	MinSize int64 `json:"min_size" yaml:"min_size"`
 
 	// MaxSize is the maximum file size to include (0 means no maximum).
 	MaxSize int64 `json:"max_size" yaml:"max_size"`
-
-	// excludeFileRegex contains compiled regex patterns for files to exclude.
-	excludeFileRegex []*regexp.Regexp
-
-	// excludeDirRegex contains compiled regex patterns for directories to exclude.
-	excludeDirRegex []*regexp.Regexp
 }
 
 // BuildConfig creates a [Config] from command line arguments.
-func BuildConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex string, minSize, maxSize int64, unifiedExclude ...string) (*Config, error) {
+func BuildConfig(excludeDirs, excludeFiles string, minSize, maxSize int64, unifiedExclude ...string) (*Config, error) {
 	// Handle negative values
 	if minSize < 0 {
 		logger.DebugAttrs(context.TODO(), "minSize is negative, setting to 0", slog.Int64("minSize", minSize))
@@ -99,44 +85,6 @@ func BuildConfig(excludeDirs, excludeFiles, excludeDirRegex, excludeFileRegex st
 		logger.Debug("Parsed exclude files", "files", config.ExcludeFiles)
 	}
 
-	// Parse exclude directory regex patterns
-	if excludeDirRegex != "" {
-		patterns := parseCommaSeparated(excludeDirRegex)
-		if len(patterns) > 0 {
-			logger.Debug("Parsing exclude directory regex", "patterns", patterns)
-
-			for _, pattern := range patterns {
-				regex, err := regexp.Compile(pattern)
-				if err != nil {
-					return nil, fmt.Errorf("invalid directory regex pattern '%s': %w", pattern, err)
-				}
-				config.excludeDirRegex = append(config.excludeDirRegex, regex)
-			}
-
-			config.ExcludeDirRegexRaw = patterns
-			logger.Debug("Parsed exclude directory regex", "regex", config.excludeDirRegex)
-		}
-	}
-
-	// Parse exclude file regex patterns
-	if excludeFileRegex != "" {
-		patterns := parseCommaSeparated(excludeFileRegex)
-		if len(patterns) > 0 {
-			logger.Debug("Parsing exclude file regex", "patterns", patterns)
-
-			for _, pattern := range patterns {
-				regex, err := regexp.Compile(pattern)
-				if err != nil {
-					return nil, fmt.Errorf("invalid file regex pattern '%s': %w", pattern, err)
-				}
-				config.excludeFileRegex = append(config.excludeFileRegex, regex)
-			}
-
-			config.ExcludeFileRegexRaw = patterns
-			logger.Debug("Parsed exclude file regex", "regex", config.excludeFileRegex)
-		}
-	}
-
 	return config, nil
 }
 
@@ -176,13 +124,6 @@ func (fc *Config) ShouldExcludeDir(dirPath string) bool {
 		}
 	}
 
-	// Check regex patterns
-	for _, regex := range fc.excludeDirRegex {
-		if regex.MatchString(dirName) || regex.MatchString(dirPath) {
-			return true
-		}
-	}
-
 	return false
 }
 
@@ -213,13 +154,6 @@ func (fc *Config) ShouldExcludeFile(filePath string, size int64) bool {
 		}
 		// Also check if the pattern matches the full path
 		if matched, _ := filepath.Match(pattern, filePath); matched {
-			return true
-		}
-	}
-
-	// Check regex patterns
-	for _, regex := range fc.excludeFileRegex {
-		if regex.MatchString(fileName) || regex.MatchString(filePath) {
 			return true
 		}
 	}
@@ -257,14 +191,6 @@ func DisplayActiveFiltersTo(config *Config, w io.Writer) {
 		_, _ = fmt.Fprintf(w, "  📄 Exclude files: %s\n", strings.Join(config.ExcludeFiles, ", "))
 	}
 
-	if len(config.excludeDirRegex) > 0 {
-		_, _ = fmt.Fprintf(w, "  📁 Exclude directory regex: %q\n", config.ExcludeDirRegexRaw)
-	}
-
-	if len(config.excludeFileRegex) > 0 {
-		_, _ = fmt.Fprintf(w, "  📄 Exclude file regex: %q\n", config.ExcludeFileRegexRaw)
-	}
-
 	if config.MinSize > 0 {
 		_, _ = fmt.Fprintf(w, "  📏 Minimum file size: %s\n", output.FormatBytes(config.MinSize))
 	}
@@ -274,7 +200,6 @@ func DisplayActiveFiltersTo(config *Config, w io.Writer) {
 	}
 
 	if len(config.Exclude) == 0 && len(config.ExcludeDirs) == 0 && len(config.ExcludeFiles) == 0 &&
-		len(config.excludeDirRegex) == 0 && len(config.excludeFileRegex) == 0 &&
 		config.MinSize == 0 && config.MaxSize == 0 {
 		_, _ = fmt.Fprintln(w, "  ✅ No filters active")
 	}
