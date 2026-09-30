@@ -85,8 +85,9 @@ Files are compared by their hashes after filtration.`,
 				Usage: "Comma-separated glob patterns to exclude files and directories",
 			},
 			&cli.IntFlag{
-				Name:  "max-depth",
-				Usage: "Maximum containing-directory depth to scan (0 = root level)",
+				Name:        "max-depth",
+				Usage:       "Maximum containing-directory depth to scan (0 = root level)",
+				DefaultText: "unlimited",
 			},
 			&cli.StringFlag{
 				Name:    "exclude-dirs",

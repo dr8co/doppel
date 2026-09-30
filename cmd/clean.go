@@ -35,7 +35,7 @@ func CleanCommand(cfg *config.CleanConfig, loadConfig ConfigLoader) *cli.Command
 			&cli.BoolFlag{Name: "ignore-empty-paths", Usage: "Ignore empty paths from --files-from"},
 			&cli.BoolFlag{Name: "ignore-hardlinks", Usage: "Treat hard-linked paths as one underlying file"},
 			&cli.StringFlag{Name: "exclude", Usage: "Comma-separated glob patterns to exclude files and directories"},
-			&cli.IntFlag{Name: "max-depth", Usage: "Maximum containing-directory depth to scan (0 = root level)"},
+			&cli.IntFlag{Name: "max-depth", Usage: "Maximum containing-directory depth to scan (0 = root level)", DefaultText: "unlimited"},
 			&cli.StringFlag{Name: "exclude-dirs", Usage: "Comma-separated directory glob patterns to exclude"},
 			&cli.StringFlag{Name: "exclude-files", Usage: "Comma-separated file glob patterns to exclude"},
 			&cli.StringFlag{Name: "min-size", Usage: "Minimum file size"},
