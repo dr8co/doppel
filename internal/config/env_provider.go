@@ -59,10 +59,20 @@ func (p *EnvProvider) Load(ctx context.Context) (*Config, error) {
 	p.loadStringFromEnv("FIND_EXCLUDE_FILES", &config.Find.ExcludeFiles)
 	p.loadStringFromEnv("FIND_MIN_SIZE", &config.Find.MinSize)
 	p.loadStringFromEnv("FIND_MAX_SIZE", &config.Find.MaxSize)
+	p.loadStringFromEnv("FIND_SORT", &config.Find.Sort)
+	p.loadBoolFromEnv("FIND_SORT_REVERSE", &config.Find.SortReverse)
+	p.loadBoolFromEnv("FIND_PATHS_ONLY", &config.Find.PathsOnly)
+	p.loadBoolFromEnv("FIND_PRINT0", &config.Find.Print0)
+	p.loadBoolFromEnv("FIND_QUIET", &config.Find.Quiet)
+	p.loadBoolFromEnv("FIND_FAIL_ON_DUPLICATES", &config.Find.FailOnDuplicates)
 	p.loadBoolFromEnv("FIND_SHOW_FILTERS", &config.Find.ShowFilters)
 	p.loadBoolFromEnv("FIND_IGNORE_HARDLINKS", &config.Find.IgnoreHardlinks)
 	p.loadStringFromEnv("FIND_OUTPUT_FORMAT", &config.Find.OutputFormat)
 	p.loadStringFromEnv("FIND_OUTPUT_FILE", &config.Find.OutputFile)
+
+	// Load clean configuration
+	p.loadStringFromEnv("CLEAN_MODE", &config.Clean.Mode)
+	p.loadStringFromEnv("CLEAN_KEEP", &config.Clean.Keep)
 
 	return config, nil
 }

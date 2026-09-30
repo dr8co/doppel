@@ -84,6 +84,14 @@ type FindConfig struct {
 	Sort string `toml:"sort" yaml:"sort" json:"sort"`
 	// SortReverse reverses the ordering of the selected sort mode.
 	SortReverse bool `toml:"sort_reverse" yaml:"sort_reverse" json:"sort_reverse"`
+	// PathsOnly emits duplicate paths instead of a formatted report.
+	PathsOnly bool `toml:"paths_only" yaml:"paths_only" json:"paths_only"`
+	// Print0 terminates paths-only output with NUL characters.
+	Print0 bool `toml:"print0" yaml:"print0" json:"print0"`
+	// Quiet suppresses progress and informational output.
+	Quiet bool `toml:"quiet" yaml:"quiet" json:"quiet"`
+	// FailOnDuplicates returns a nonzero status when duplicates are found.
+	FailOnDuplicates bool `toml:"fail_on_duplicates" yaml:"fail_on_duplicates" json:"fail_on_duplicates"`
 	// OutputFile sets the file to write output to (default is stdout).
 	OutputFile string `toml:"output_file" yaml:"output_file" json:"output_file"`
 	// Workers sets the number of concurrent workers for file processing.

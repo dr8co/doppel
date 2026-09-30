@@ -45,6 +45,24 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	if override.Find.MaxSize != "" {
 		result.Find.MaxSize = override.Find.MaxSize
 	}
+	if override.Find.Sort != "" {
+		result.Find.Sort = override.Find.Sort
+	}
+	if override.Find.SortReverse {
+		result.Find.SortReverse = true
+	}
+	if override.Find.PathsOnly {
+		result.Find.PathsOnly = true
+	}
+	if override.Find.Print0 {
+		result.Find.Print0 = true
+	}
+	if override.Find.Quiet {
+		result.Find.Quiet = true
+	}
+	if override.Find.FailOnDuplicates {
+		result.Find.FailOnDuplicates = true
+	}
 	if override.Find.ShowFilters {
 		result.Find.ShowFilters = override.Find.ShowFilters
 	}
