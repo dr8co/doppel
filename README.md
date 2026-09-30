@@ -40,7 +40,6 @@ Doppel is designed for speed, flexibility, and reliability.
   * [🔎 Find Command](#-find-command)
     * [⚙️ Find Command Options](#%EF%B8%8F-find-command-options)
   * [🧹 Clean Command](#-clean-command)
-  * [🎛️ Preset Command](#%EF%B8%8F-preset-command)
 * [🧬 How It Works](#-how-it-works)
 * [🏗️ Development](#%EF%B8%8F-development)
 * [📜 License](#-license)
@@ -61,12 +60,6 @@ Scan your home directory for duplicates:
 doppel find ~
 ```
 
-Or use a preset for common scenarios:
-
-```sh
-doppel preset media ~/Pictures
-```
-
 ## 🔮 Terminal Preview
 
 ![terminal preview](./assets/ghostty_ubuntu.png)
@@ -83,7 +76,6 @@ doppel preset media ~/Pictures
   * JSONL (one duplicate group per line)
   * YAML
   * Text (default)
-* 🧩 **Extensible presets** for common use cases (media, dev, docs, clean)
 * 🧪 **Tested** with unit tests and integration tests
 * 💻 **Cross-platform**: Works on Linux, macOS, and Windows
 * 🛠️ **Automatic completion** for bash, zsh, fish, and PowerShell
@@ -383,33 +375,6 @@ For more details, run:
 
 ```sh
 doppel clean --help
-```
-
-### 🎛️ Preset Command
-
-Use presets for common duplicate-hunting scenarios:
-
-* `dev`: Skip development directories and files (e.g., build, temp, version control)
-* `media`: Focus on media files (images/videos), skip small files
-* `docs`: Focus on document files
-* `clean`: Skip temporary and cache files
-
-**Usage:**
-
-```sh
-doppel preset <preset> [options]
-```
-
-Where `<preset>` is one of: `dev`, `media`, `docs`, or `clean`.
-
-Preset options are the same as for `find`.
-
-**Example:**
-
-Find duplicate media files in your `~/Pictures` folder:
-
-```sh
-doppel preset media ~/Pictures
 ```
 
 ## 🧬 How It Works
