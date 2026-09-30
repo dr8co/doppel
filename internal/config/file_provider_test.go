@@ -32,13 +32,6 @@ func TestFileProvider(t *testing.T) {
 			OutputFormat: "json",
 			OutputFile:   "out.json",
 		},
-		Preset: PresetConfig{
-			Workers:      4,
-			Verbose:      true,
-			ShowFilters:  true,
-			OutputFormat: "json",
-			OutputFile:   "out.json",
-		},
 	}
 
 	// Test file formats
@@ -64,67 +57,47 @@ min_size = "1MB"
 max_size = "100MB"
 show_filters = true
 output_format = "json"
-output_file = "out.json"
-
-[preset]
-workers = 4
-verbose = true
-show_filters = true
-output_format = "json"
 output_file = "out.json"`,
 		},
 		{
 			name:   "JSON",
 			format: "json",
 			content: `{
-  "log": {
-    "level": "debug",
-    "format": "json",
-    "output": "app.log"
-  },
-  "find": {
-    "workers": 4,
-    "verbose": true,
-    "exclude_dirs": "node_modules,vendor",
-    "exclude_files": "*.log",
-    "min_size": "1MB",
-    "max_size": "100MB",
-    "show_filters": true,
-    "output_format": "json",
-    "output_file": "out.json"
-  },
-  "preset": {
-    "workers": 4,
-    "verbose": true,
-    "show_filters": true,
-    "output_format": "json",
-    "output_file": "out.json"
-  }
+	"log": {
+		"level": "debug",
+		"format": "json",
+		"output": "app.log"
+	},
+	"find": {
+		"workers": 4,
+		"verbose": true,
+		"exclude_dirs": "node_modules,vendor",
+		"exclude_files": "*.log",
+		"min_size": "1MB",
+		"max_size": "100MB",
+		"show_filters": true,
+		"output_format": "json",
+		"output_file": "out.json"
+	}
 }`,
 		},
 		{
 			name:   "YAML",
 			format: "yaml",
 			content: `log:
-  level: debug
-  format: json
-  output: app.log
+	level: debug
+	format: json
+	output: app.log
 find:
-  workers: 4
-  verbose: true
-  exclude_dirs: node_modules,vendor
-  exclude_files: "*.log"
-  min_size: 1MB
-  max_size: 100MB
-  show_filters: true
-  output_format: json
-  output_file: out.json
-preset:
-  workers: 4
-  verbose: true
-  show_filters: true
-  output_format: json
-  output_file: out.json`,
+	workers: 4
+	verbose: true
+	exclude_dirs: node_modules,vendor
+	exclude_files: "*.log"
+	min_size: 1MB
+	max_size: 100MB
+	show_filters: true
+	output_format: json
+	output_file: out.json`,
 		},
 	}
 

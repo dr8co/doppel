@@ -68,32 +68,6 @@ func TestDefaultMerger(t *testing.T) {
 			},
 		},
 		{
-			name: "merge preset config",
-			base: &Config{
-				Preset: PresetConfig{
-					Workers:      4,
-					Verbose:      false,
-					ShowFilters:  false,
-					OutputFormat: "pretty",
-				},
-			},
-			override: &Config{
-				Preset: PresetConfig{
-					Workers:     8,
-					Verbose:     true,
-					ShowFilters: true,
-				},
-			},
-			want: &Config{
-				Preset: PresetConfig{
-					Workers:      8,
-					Verbose:      true,
-					ShowFilters:  true,
-					OutputFormat: "pretty",
-				},
-			},
-		},
-		{
 			name: "empty override",
 			base: &Config{
 				Log: LogConfig{
@@ -102,9 +76,6 @@ func TestDefaultMerger(t *testing.T) {
 					Output: "stdout",
 				},
 				Find: FindConfig{
-					Workers: 4,
-				},
-				Preset: PresetConfig{
 					Workers: 4,
 				},
 			},
@@ -116,9 +87,6 @@ func TestDefaultMerger(t *testing.T) {
 					Output: "stdout",
 				},
 				Find: FindConfig{
-					Workers: 4,
-				},
-				Preset: PresetConfig{
 					Workers: 4,
 				},
 			},
@@ -135,9 +103,6 @@ func TestDefaultMerger(t *testing.T) {
 				Find: FindConfig{
 					Workers: 4,
 				},
-				Preset: PresetConfig{
-					Workers: 4,
-				},
 			},
 			want: &Config{
 				Log: LogConfig{
@@ -146,9 +111,6 @@ func TestDefaultMerger(t *testing.T) {
 					Output: "stdout",
 				},
 				Find: FindConfig{
-					Workers: 4,
-				},
-				Preset: PresetConfig{
 					Workers: 4,
 				},
 			},

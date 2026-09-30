@@ -28,10 +28,6 @@ func TestDefaultValidator(t *testing.T) {
 					Workers:      runtime.NumCPU(),
 					OutputFormat: "json",
 				},
-				Preset: PresetConfig{
-					Workers:      runtime.NumCPU(),
-					OutputFormat: "pretty",
-				},
 			},
 			wantErr: false,
 		},
@@ -106,58 +102,6 @@ func TestDefaultValidator(t *testing.T) {
 					Format: "text",
 				},
 				Find: FindConfig{
-					Workers:      runtime.NumCPU(),
-					OutputFormat: "invalid",
-				},
-			},
-			wantErr:  true,
-			errField: "output format",
-		},
-		{
-			name: "too few workers in preset config",
-			config: &Config{
-				Log: LogConfig{
-					Level:  "info",
-					Format: "text",
-				},
-				Find: FindConfig{
-					Workers: runtime.NumCPU(),
-				},
-				Preset: PresetConfig{
-					Workers: 0,
-				},
-			},
-			wantErr:  true,
-			errField: "too few workers",
-		},
-		{
-			name: "too many workers in preset config",
-			config: &Config{
-				Log: LogConfig{
-					Level:  "info",
-					Format: "text",
-				},
-				Find: FindConfig{
-					Workers: runtime.NumCPU(),
-				},
-				Preset: PresetConfig{
-					Workers: max(maxWorkers, runtime.NumCPU()) + 1,
-				},
-			},
-			wantErr:  true,
-			errField: "too many workers",
-		},
-		{
-			name: "invalid output format in preset config",
-			config: &Config{
-				Log: LogConfig{
-					Level:  "info",
-					Format: "text",
-				},
-				Find: FindConfig{
-					Workers: runtime.NumCPU(),
-				},
-				Preset: PresetConfig{
 					Workers:      runtime.NumCPU(),
 					OutputFormat: "invalid",
 				},

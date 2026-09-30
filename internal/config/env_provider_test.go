@@ -73,42 +73,15 @@ func TestEnvProvider(t *testing.T) {
 			},
 		},
 		{
-			name: "preset configuration",
-			env: map[string]string{
-				"TEST_PRESET_WORKERS":       "4",
-				"TEST_PRESET_VERBOSE":       "true",
-				"TEST_PRESET_SHOW_FILTERS":  "true",
-				"TEST_PRESET_OUTPUT_FORMAT": "json",
-				"TEST_PRESET_OUTPUT_FILE":   "out.json",
-			},
-			prefix:   "TEST_",
-			priority: 1,
-			want: &Config{
-				Preset: PresetConfig{
-					Workers:      4,
-					Verbose:      true,
-					ShowFilters:  true,
-					OutputFormat: "json",
-					OutputFile:   "out.json",
-				},
-			},
-		},
-		{
 			name: "boolean variations",
 			env: map[string]string{
-				"TEST_FIND_VERBOSE":        "yes",
-				"TEST_FIND_SHOW_FILTERS":   "1",
-				"TEST_PRESET_VERBOSE":      "on",
-				"TEST_PRESET_SHOW_FILTERS": "YES",
+				"TEST_FIND_VERBOSE":      "yes",
+				"TEST_FIND_SHOW_FILTERS": "1",
 			},
 			prefix:   "TEST_",
 			priority: 1,
 			want: &Config{
 				Find: FindConfig{
-					Verbose:     true,
-					ShowFilters: true,
-				},
-				Preset: PresetConfig{
 					Verbose:     true,
 					ShowFilters: true,
 				},

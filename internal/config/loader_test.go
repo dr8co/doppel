@@ -95,10 +95,6 @@ func TestLoader(t *testing.T) {
 						OutputFormat: "pretty",
 						Sort:         "path",
 					},
-					Preset: PresetConfig{
-						Workers:      runtime.NumCPU(),
-						OutputFormat: "pretty",
-					},
 					Clean: CleanConfig{
 						Mode: "delete",
 					},
