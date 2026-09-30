@@ -22,17 +22,15 @@ func TestFileProvider(t *testing.T) {
 			Output: "app.log",
 		},
 		Find: FindConfig{
-			Workers:          4,
-			Verbose:          true,
-			ExcludeDirs:      "node_modules,vendor",
-			ExcludeFiles:     "*.log",
-			ExcludeDirRegex:  "^\\.",
-			ExcludeFileRegex: "^\\.",
-			MinSize:          "1MB",
-			MaxSize:          "100MB",
-			ShowFilters:      true,
-			OutputFormat:     "json",
-			OutputFile:       "out.json",
+			Workers:      4,
+			Verbose:      true,
+			ExcludeDirs:  "node_modules,vendor",
+			ExcludeFiles: "*.log",
+			MinSize:      "1MB",
+			MaxSize:      "100MB",
+			ShowFilters:  true,
+			OutputFormat: "json",
+			OutputFile:   "out.json",
 		},
 		Preset: PresetConfig{
 			Workers:      4,
@@ -62,8 +60,6 @@ workers = 4
 verbose = true
 exclude_dirs = "node_modules,vendor"
 exclude_files = "*.log"
-exclude_dir_regex = "^\\."
-exclude_file_regex = "^\\."
 min_size = "1MB"
 max_size = "100MB"
 show_filters = true
@@ -91,8 +87,6 @@ output_file = "out.json"`,
     "verbose": true,
     "exclude_dirs": "node_modules,vendor",
     "exclude_files": "*.log",
-    "exclude_dir_regex": "^\\.",
-    "exclude_file_regex": "^\\.",
     "min_size": "1MB",
     "max_size": "100MB",
     "show_filters": true,
@@ -120,8 +114,6 @@ find:
   verbose: true
   exclude_dirs: node_modules,vendor
   exclude_files: "*.log"
-  exclude_dir_regex: "^\\."
-  exclude_file_regex: "^\\."
   min_size: 1MB
   max_size: 100MB
   show_filters: true
