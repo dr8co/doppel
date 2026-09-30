@@ -103,7 +103,6 @@ and supports extensive filtering options to exclude unwanted files and directori
 		},
 		Commands: []*cli.Command{
 			cmd.FindCommand(&appConfig.Find, loadConfig),
-			cmd.PresetCommand(&appConfig.Preset, loadConfig),
 			cmd.CleanCommand(&appConfig.Clean, loadConfig),
 		},
 		DefaultCommand:        "find",
