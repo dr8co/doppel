@@ -251,6 +251,9 @@ candidate and avoid reporting them as reclaimable duplicate space.
 
 #### ⚙️ Find Command Options
 
+See the [complete find command reference](./docs/find.md) for all options,
+input-mode constraints, filtering behavior, and output examples.
+
 * `-w, --workers <n>`: Number of parallel hashing workers (default: number of CPUs)
 * `-v, --verbose`: Enable verbose output
 * `--files`: Treat positional arguments as regular files and ignore all filters
@@ -345,6 +348,9 @@ doppel find /var/logs --min-size=1 --exclude-files="*.log" --exclude-dirs="temp*
 
 ### 🧹 Clean Command
 
+See the [complete clean command reference](./docs/clean.md) for retention policies,
+action modes, scan options, confirmation behavior, and incompatible options.
+
 `clean` performs duplicate actions separately from `find`. It always requires an
 explicit retention policy and never assumes which file should be kept:
 
@@ -397,7 +403,7 @@ doppel clean --help
 
 ## 📜 License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
 
 ## 🤝 Contributing
 
