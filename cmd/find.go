@@ -196,6 +196,18 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	if c.IsSet("max-size") {
 		cfg.MaxSize = c.String("max-size")
 	}
+	if c.IsSet("paths-only") {
+		cfg.PathsOnly = c.Bool("paths-only")
+	}
+	if c.IsSet("print0") {
+		cfg.Print0 = c.Bool("print0")
+	}
+	if c.IsSet("quiet") {
+		cfg.Quiet = c.Bool("quiet")
+	}
+	if c.IsSet("fail-on-duplicates") {
+		cfg.FailOnDuplicates = c.Bool("fail-on-duplicates")
+	}
 	if c.IsSet("show-filters") {
 		cfg.ShowFilters = c.Bool("show-filters")
 	}
@@ -214,7 +226,7 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 	if c.IsSet("reverse") {
 		cfg.SortReverse = c.Bool("reverse")
 	}
-	quiet := c.Bool("quiet")
+	quiet := cfg.Quiet
 	if quiet && cfg.Verbose {
 		return errors.New("--quiet cannot be combined with --verbose")
 	}
@@ -280,8 +292,8 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 		return err
 	}
 
-	pathsOnly := c.Bool("paths-only")
-	print0 := c.Bool("print0")
+	pathsOnly := cfg.PathsOnly
+	print0 := cfg.Print0
 	if print0 && !pathsOnly {
 		return errors.New("--print0 requires --paths-only")
 	}
@@ -292,7 +304,7 @@ func findDuplicatesCmd(ctx context.Context, c *cli.Command, cfg *config.FindConf
 		pathsOnly:        pathsOnly,
 		print0:           print0,
 		quiet:            quiet,
-		failOnDuplicates: c.Bool("fail-on-duplicates"),
+		failOnDuplicates: cfg.FailOnDuplicates,
 	}
 
 	if explicitFiles {

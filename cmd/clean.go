@@ -72,15 +72,14 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	if err := clean.ValidateMode(cleanCfg.Mode); err != nil {
 		return err
 	}
-	if c.Bool("quiet") && c.Bool("verbose") {
-		return errors.New("--quiet cannot be combined with --verbose")
-	}
-
 	if c.IsSet("workers") {
 		findCfg.Workers = c.Int("workers")
 	}
 	if c.IsSet("verbose") {
 		findCfg.Verbose = c.Bool("verbose")
+	}
+	if c.IsSet("quiet") {
+		findCfg.Quiet = c.Bool("quiet")
 	}
 	if c.IsSet("exclude") {
 		findCfg.Exclude = c.String("exclude")
@@ -104,6 +103,9 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	if c.IsSet("ignore-hardlinks") {
 		findCfg.IgnoreHardlinks = c.Bool("ignore-hardlinks")
 	}
+	if findCfg.Quiet && findCfg.Verbose {
+		return errors.New("--quiet cannot be combined with --verbose")
+	}
 	if err := validateExclusionMode(&findCfg); err != nil {
 		return err
 	}
@@ -115,7 +117,7 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	if err != nil {
 		return err
 	}
-	report, err := scanDuplicates(ctx, &findCfg, directories, files, explicitFiles, filterConfig, c.Bool("quiet"))
+	report, err := scanDuplicates(ctx, &findCfg, directories, files, explicitFiles, filterConfig, findCfg.Quiet)
 	if err != nil {
 		return err
 	}
