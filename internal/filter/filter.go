@@ -3,7 +3,6 @@
 // This package implements filtering logic to exclude files and directories based on:
 //   - Glob patterns for file and directory names
 //   - File size constraints (minimum and maximum sizes)
-//   - Predefined filter presets for common use cases
 //
 // The package supports parsing human-readable file sizes (e.g., "10MB", "1.5GB")
 // and provides utilities to display active filter configurations.
