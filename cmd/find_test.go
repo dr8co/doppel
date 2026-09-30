@@ -119,6 +119,13 @@ func TestFindCommandRejectsMixedExclusionModes(t *testing.T) {
 	}
 }
 
+func TestFindCommandRejectsRemovedRegexExclusionFlag(t *testing.T) {
+	err := newTestFindCommand().Run(context.Background(), []string{"find", "--exclude-dirs-regex", "^\\.", "--quiet"})
+	if err == nil || !strings.Contains(err.Error(), "exclude-dirs-regex") {
+		t.Fatalf("Run() error = %v, want removed-flag error", err)
+	}
+}
+
 func TestFindCommandIgnoreHardlinks(t *testing.T) {
 	tempDir := t.TempDir()
 	first := filepath.Join(tempDir, "first.txt")
