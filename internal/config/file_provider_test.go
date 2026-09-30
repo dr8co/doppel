@@ -15,6 +15,7 @@ func TestFileProvider(t *testing.T) {
 	testDir, cleanup := testDir(t)
 	defer cleanup()
 	maxDepth := 2
+	cleanMaxDepth := 0
 
 	sampleConfig := &Config{
 		Log: LogConfig{
@@ -42,7 +43,21 @@ func TestFileProvider(t *testing.T) {
 			OutputFormat:     "json",
 			OutputFile:       "out.json",
 		},
-		Clean: CleanConfig{Mode: "trash", Keep: "newest"},
+		Clean: CleanConfig{
+			Workers:         5,
+			Verbose:         true,
+			Quiet:           true,
+			IgnoreHardlinks: true,
+			Exclude:         "*.bak",
+			MaxDepth:        &cleanMaxDepth,
+			ExcludeDirs:     ".git,node_modules",
+			ExcludeFiles:    "*.tmp",
+			MinSize:         "1KB",
+			MaxSize:         "10MB",
+			DryRun:          true,
+			Mode:            "trash",
+			Keep:            "newest",
+		},
 	}
 
 	// Test file formats
@@ -80,6 +95,17 @@ output_format = "json"
 output_file = "out.json"
 
 [clean]
+workers = 5
+verbose = true
+quiet = true
+ignore_hardlinks = true
+exclude = "*.bak"
+max_depth = 0
+exclude_dirs = ".git,node_modules"
+exclude_files = "*.tmp"
+min_size = "1KB"
+max_size = "10MB"
+dry_run = true
 mode = "trash"
 keep = "newest"`,
 		},
@@ -113,6 +139,17 @@ keep = "newest"`,
 		"output_file": "out.json"
 	},
 	"clean": {
+		"workers": 5,
+		"verbose": true,
+		"quiet": true,
+		"ignore_hardlinks": true,
+		"exclude": "*.bak",
+		"max_depth": 0,
+		"exclude_dirs": ".git,node_modules",
+		"exclude_files": "*.tmp",
+		"min_size": "1KB",
+		"max_size": "10MB",
+		"dry_run": true,
 		"mode": "trash",
 		"keep": "newest"
 	}
@@ -145,6 +182,17 @@ keep = "newest"`,
 				"  output_format: json\n" +
 				"  output_file: out.json\n" +
 				"clean:\n" +
+				"  workers: 5\n" +
+				"  verbose: true\n" +
+				"  quiet: true\n" +
+				"  ignore_hardlinks: true\n" +
+				"  exclude: \"*.bak\"\n" +
+				"  max_depth: 0\n" +
+				"  exclude_dirs: \".git,node_modules\"\n" +
+				"  exclude_files: \"*.tmp\"\n" +
+				"  min_size: 1KB\n" +
+				"  max_size: 10MB\n" +
+				"  dry_run: true\n" +
 				"  mode: trash\n" +
 				"  keep: newest\n",
 		},

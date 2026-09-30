@@ -8,6 +8,7 @@ import (
 // TestDefaultMerger tests the defaultMerger.
 func TestDefaultMerger(t *testing.T) {
 	merger := &defaultMerger{}
+	cleanDepth := 0
 
 	tests := []struct {
 		name     string
@@ -81,10 +82,38 @@ func TestDefaultMerger(t *testing.T) {
 			},
 		},
 		{
-			name:     "merge clean config",
-			base:     &Config{Clean: CleanConfig{Mode: "delete"}},
-			override: &Config{Clean: CleanConfig{Mode: "trash", Keep: "newest"}},
-			want:     &Config{Clean: CleanConfig{Mode: "trash", Keep: "newest"}},
+			name: "merge clean config",
+			base: &Config{Clean: CleanConfig{Mode: "delete"}},
+			override: &Config{Clean: CleanConfig{
+				Workers:         4,
+				Verbose:         true,
+				Quiet:           true,
+				IgnoreHardlinks: true,
+				Exclude:         "*.bak",
+				MaxDepth:        &cleanDepth,
+				ExcludeDirs:     ".git",
+				ExcludeFiles:    "*.tmp",
+				MinSize:         "1KB",
+				MaxSize:         "10MB",
+				DryRun:          true,
+				Mode:            "trash",
+				Keep:            "newest",
+			}},
+			want: &Config{Clean: CleanConfig{
+				Workers:         4,
+				Verbose:         true,
+				Quiet:           true,
+				IgnoreHardlinks: true,
+				Exclude:         "*.bak",
+				MaxDepth:        &cleanDepth,
+				ExcludeDirs:     ".git",
+				ExcludeFiles:    "*.tmp",
+				MinSize:         "1KB",
+				MaxSize:         "10MB",
+				DryRun:          true,
+				Mode:            "trash",
+				Keep:            "newest",
+			}},
 		},
 		{
 			name: "empty override",

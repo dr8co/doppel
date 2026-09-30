@@ -9,6 +9,7 @@ import (
 // TestDefaultValidator tests the defaultValidator.
 func TestDefaultValidator(t *testing.T) {
 	validator := &defaultValidator{}
+	negativeDepth := -1
 
 	tests := []struct {
 		name     string
@@ -108,6 +109,26 @@ func TestDefaultValidator(t *testing.T) {
 			},
 			wantErr:  true,
 			errField: "output format",
+		},
+		{
+			name: "too many workers in clean config",
+			config: &Config{
+				Log:   LogConfig{Level: "info"},
+				Find:  FindConfig{Workers: runtime.NumCPU()},
+				Clean: CleanConfig{Workers: max(maxWorkers, runtime.NumCPU()) + 1},
+			},
+			wantErr:  true,
+			errField: "clean config validation failed: too many workers",
+		},
+		{
+			name: "negative clean max depth",
+			config: &Config{
+				Log:   LogConfig{Level: "info"},
+				Find:  FindConfig{Workers: runtime.NumCPU()},
+				Clean: CleanConfig{MaxDepth: &negativeDepth},
+			},
+			wantErr:  true,
+			errField: "invalid clean max depth",
 		},
 	}
 
