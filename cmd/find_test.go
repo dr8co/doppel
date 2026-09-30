@@ -57,6 +57,40 @@ func TestFindCommandFailOnDuplicatesWritesOutput(t *testing.T) {
 	}
 }
 
+func TestFindCommandUsesConfiguredOutputOptions(t *testing.T) {
+	tempDir := t.TempDir()
+	first := filepath.Join(tempDir, "first.txt")
+	second := filepath.Join(tempDir, "second.txt")
+	outputFile := filepath.Join(tempDir, "paths.bin")
+	for _, path := range []string{first, second} {
+		if err := os.WriteFile(path, []byte("duplicate"), 0o600); err != nil {
+			t.Fatalf("write test file: %v", err)
+		}
+	}
+
+	loaded := config.DefaultConfig()
+	loaded.Find.OutputFile = outputFile
+	loaded.Find.PathsOnly = true
+	loaded.Find.Print0 = true
+	loaded.Find.Quiet = true
+	loaded.Find.FailOnDuplicates = true
+	command := FindCommand(&loaded.Find, func(context.Context, *cli.Command) (*config.Config, error) {
+		return loaded, nil
+	})
+	err := command.Run(context.Background(), []string{"find", "--files", first, second})
+	if !errors.Is(err, ErrDuplicatesFound) {
+		t.Fatalf("Run() error = %v, want ErrDuplicatesFound", err)
+	}
+	contents, err := os.ReadFile(outputFile)
+	if err != nil {
+		t.Fatalf("read paths output: %v", err)
+	}
+	want := first + "\x00" + second + "\x00"
+	if string(contents) != want {
+		t.Fatalf("paths output = %q, want %q", contents, want)
+	}
+}
+
 func TestFindCommandFilesFromAndFilterBypass(t *testing.T) {
 	tempDir := t.TempDir()
 	first := filepath.Join(tempDir, "first.log")
