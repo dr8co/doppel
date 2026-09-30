@@ -196,7 +196,8 @@ func deviceID(info os.FileInfo) (uint64, bool) {
 func deviceIDFromSys(value any) (uint64, bool) {
 	switch stat := value.(type) {
 	case *syscall.Stat_t:
-		return stat.Dev, true
+		//nolint:unconvert // stat.Dev is not uint64 on all platforms, e.g. darwin.
+		return uint64(stat.Dev), true
 	default:
 		return 0, false
 	}
