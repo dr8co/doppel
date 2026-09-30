@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -149,25 +148,13 @@ func applyTarget(target Target, mode string, trash Trash) error {
 		}
 		return trash.Move(target.Remove.Path)
 	case ModeReplaceWithHardlink:
-		return replaceWithHardlink(target.Keeper.Path, target.Remove.Path, keeperInfo, removeInfo)
+		return replaceWithHardlink(target.Keeper.Path, target.Remove.Path)
 	default:
 		return fmt.Errorf("%w %q", ErrInvalidMode, mode)
 	}
 }
 
-func replaceWithHardlink(keeperPath, targetPath string, keeperInfo, targetInfo os.FileInfo) error {
-	if keeperInfo.Sys() == nil || targetInfo.Sys() == nil {
-		return errors.New("cannot compare filesystems for hardlink replacement")
-	}
-	keeperDevice, ok := deviceID(keeperInfo)
-	if !ok {
-		return errors.New("cannot determine keeper filesystem")
-	}
-	targetDevice, ok := deviceID(targetInfo)
-	if !ok || keeperDevice != targetDevice {
-		return errors.New("keeper and target are on different filesystems")
-	}
-
+func replaceWithHardlink(keeperPath, targetPath string) error {
 	tempPath := targetPath + ".doppel-hardlink-tmp"
 	for attempt := range 100 {
 		candidate := tempPath
@@ -187,18 +174,4 @@ func replaceWithHardlink(keeperPath, targetPath string, keeperInfo, targetInfo o
 		return fmt.Errorf("replace %s with hardlink: %w", targetPath, err)
 	}
 	return nil
-}
-
-func deviceID(info os.FileInfo) (uint64, bool) {
-	return deviceIDFromSys(info.Sys())
-}
-
-func deviceIDFromSys(value any) (uint64, bool) {
-	switch stat := value.(type) {
-	case *syscall.Stat_t:
-		//nolint:unconvert // stat.Dev is not uint64 on all platforms, e.g. darwin.
-		return uint64(stat.Dev), true
-	default:
-		return 0, false
-	}
 }
