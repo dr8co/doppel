@@ -20,8 +20,6 @@ import (
 
 // CleanCommand returns the CLI command that scans for duplicate files and
 // applies the configured cleanup action.
-//
-//nolint:goconst
 func CleanCommand(cfg *config.CleanConfig, loadConfig ConfigLoader) *cli.Command {
 	return &cli.Command{
 		Name:      "clean",
