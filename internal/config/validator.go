@@ -62,6 +62,14 @@ func (v *defaultValidator) validateFindConfig(config *FindConfig) error {
 }
 
 func (v *defaultValidator) validateCleanConfig(config *CleanConfig) error {
+	if config.Workers != 0 {
+		if err := validate(config.Workers, ""); err != nil {
+			return fmt.Errorf("clean config validation failed: %w", err)
+		}
+	}
+	if config.MaxDepth != nil && *config.MaxDepth < 0 {
+		return fmt.Errorf("invalid clean max depth: %d (must be zero or greater)", *config.MaxDepth)
+	}
 	validModes := []string{"delete", "trash", "replace-with-hardlink"}
 	if config.Mode != "" && !contains(validModes, config.Mode) {
 		return fmt.Errorf("invalid clean mode: %s, must be one of %v", config.Mode, validModes)

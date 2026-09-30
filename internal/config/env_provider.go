@@ -71,6 +71,17 @@ func (p *EnvProvider) Load(ctx context.Context) (*Config, error) {
 	p.loadStringFromEnv("FIND_OUTPUT_FILE", &config.Find.OutputFile)
 
 	// Load clean configuration
+	p.loadIntFromEnv("CLEAN_WORKERS", &config.Clean.Workers)
+	p.loadBoolFromEnv("CLEAN_VERBOSE", &config.Clean.Verbose)
+	p.loadBoolFromEnv("CLEAN_QUIET", &config.Clean.Quiet)
+	p.loadBoolFromEnv("CLEAN_IGNORE_HARDLINKS", &config.Clean.IgnoreHardlinks)
+	p.loadStringFromEnv("CLEAN_EXCLUDE", &config.Clean.Exclude)
+	p.loadOptionalIntFromEnv("CLEAN_MAX_DEPTH", &config.Clean.MaxDepth)
+	p.loadStringFromEnv("CLEAN_EXCLUDE_DIRS", &config.Clean.ExcludeDirs)
+	p.loadStringFromEnv("CLEAN_EXCLUDE_FILES", &config.Clean.ExcludeFiles)
+	p.loadStringFromEnv("CLEAN_MIN_SIZE", &config.Clean.MinSize)
+	p.loadStringFromEnv("CLEAN_MAX_SIZE", &config.Clean.MaxSize)
+	p.loadBoolFromEnv("CLEAN_DRY_RUN", &config.Clean.DryRun)
 	p.loadStringFromEnv("CLEAN_MODE", &config.Clean.Mode)
 	p.loadStringFromEnv("CLEAN_KEEP", &config.Clean.Keep)
 

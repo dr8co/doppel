@@ -77,6 +77,40 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	}
 
 	// Merge clean config
+	if override.Clean.Workers != 0 {
+		result.Clean.Workers = override.Clean.Workers
+	}
+	if override.Clean.Verbose {
+		result.Clean.Verbose = true
+	}
+	if override.Clean.Quiet {
+		result.Clean.Quiet = true
+	}
+	if override.Clean.Exclude != "" {
+		result.Clean.Exclude = override.Clean.Exclude
+	}
+	if override.Clean.MaxDepth != nil {
+		maxDepth := *override.Clean.MaxDepth
+		result.Clean.MaxDepth = &maxDepth
+	}
+	if override.Clean.ExcludeDirs != "" {
+		result.Clean.ExcludeDirs = override.Clean.ExcludeDirs
+	}
+	if override.Clean.ExcludeFiles != "" {
+		result.Clean.ExcludeFiles = override.Clean.ExcludeFiles
+	}
+	if override.Clean.MinSize != "" {
+		result.Clean.MinSize = override.Clean.MinSize
+	}
+	if override.Clean.MaxSize != "" {
+		result.Clean.MaxSize = override.Clean.MaxSize
+	}
+	if override.Clean.IgnoreHardlinks {
+		result.Clean.IgnoreHardlinks = true
+	}
+	if override.Clean.DryRun {
+		result.Clean.DryRun = true
+	}
 	if override.Clean.Mode != "" {
 		result.Clean.Mode = override.Clean.Mode
 	}

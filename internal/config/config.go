@@ -107,6 +107,28 @@ type FindConfig struct {
 
 // CleanConfig holds safe defaults for the 'clean' command.
 type CleanConfig struct {
+	// Workers sets the number of concurrent hashing workers; zero inherits [FindConfig.Workers].
+	Workers int `toml:"workers" yaml:"workers" json:"workers"`
+	// Verbose enables detailed scan output.
+	Verbose bool `toml:"verbose" yaml:"verbose" json:"verbose"`
+	// Quiet suppresses progress output.
+	Quiet bool `toml:"quiet" yaml:"quiet" json:"quiet"`
+	// Exclude holds unified glob patterns for files and directories.
+	Exclude string `toml:"exclude" yaml:"exclude" json:"exclude"`
+	// MaxDepth limits scanning by containing-directory depth when set.
+	MaxDepth *int `toml:"max_depth" yaml:"max_depth" json:"max_depth"`
+	// ExcludeDirs holds directory glob patterns.
+	ExcludeDirs string `toml:"exclude_dirs" yaml:"exclude_dirs" json:"exclude_dirs"`
+	// ExcludeFiles holds file glob patterns.
+	ExcludeFiles string `toml:"exclude_files" yaml:"exclude_files" json:"exclude_files"`
+	// MinSize sets the minimum file size to scan.
+	MinSize string `toml:"min_size" yaml:"min_size" json:"min_size"`
+	// MaxSize sets the maximum file size to scan.
+	MaxSize string `toml:"max_size" yaml:"max_size" json:"max_size"`
+	// IgnoreHardlinks treats paths to the same underlying file as one candidate.
+	IgnoreHardlinks bool `toml:"ignore_hardlinks" yaml:"ignore_hardlinks" json:"ignore_hardlinks"`
+	// DryRun previews actions without changing files.
+	DryRun bool `toml:"dry_run" yaml:"dry_run" json:"dry_run"`
 	// Mode selects the action to perform.
 	Mode string `toml:"mode" yaml:"mode" json:"mode"`
 
