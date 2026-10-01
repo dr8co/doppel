@@ -65,6 +65,24 @@ func TestCleanDryRunDoesNotMutate(t *testing.T) {
 	}
 }
 
+func TestCleanHonorsConfiguredDryRun(t *testing.T) {
+	first, second := makeDuplicateFiles(t)
+	loaded := config.DefaultConfig()
+	loaded.Clean.Keep = "first"
+	loaded.Clean.DryRun = true
+	command := CleanCommand(&loaded.Clean, func(context.Context, *cli.Command) (*config.Config, error) {
+		return loaded, nil
+	})
+	if err := command.Run(context.Background(), []string{"clean", "--files", first, second}); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	for _, path := range []string{first, second} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("configured dry-run removed %s: %v", path, err)
+		}
+	}
+}
+
 func TestCleanDeleteWithYes(t *testing.T) {
 	first, second := makeDuplicateFiles(t)
 	err := newTestCleanCommand().Run(context.Background(), []string{"clean", "--files", "--keep", "first", "--yes", second, first})
