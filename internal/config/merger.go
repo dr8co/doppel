@@ -20,6 +20,15 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	}
 
 	// Merge find config
+	mergeFindConfig(&result, override)
+
+	// Merge clean config
+	mergeCleanConfig(&result, override)
+
+	return &result
+}
+
+func mergeFindConfig(result, override *Config) {
 	if override.Find.Exclude != "" {
 		result.Find.Exclude = override.Find.Exclude
 	}
@@ -75,8 +84,9 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	if override.Find.OutputFile != "" {
 		result.Find.OutputFile = override.Find.OutputFile
 	}
+}
 
-	// Merge clean config
+func mergeCleanConfig(result, override *Config) {
 	if override.Clean.Workers != 0 {
 		result.Clean.Workers = override.Clean.Workers
 	}
@@ -117,6 +127,4 @@ func (m *defaultMerger) Merge(base, override *Config) *Config {
 	if override.Clean.Keep != "" {
 		result.Clean.Keep = override.Clean.Keep
 	}
-
-	return &result
 }
