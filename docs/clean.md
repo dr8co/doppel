@@ -94,7 +94,9 @@ The global options are supplied before the subcommand:
 | `--log-output <destination>` | Set logging output to `stdout`, `stderr`, `null`, or a file path. |
 | `-h, --help` | Display command or application help. |
 
-Clean's `mode` and `keep` defaults can be set in the `[clean]` configuration table. Scan-related settings are read from `[find]` and can also be overridden with the clean command's corresponding flags. Precedence is command line, environment, configuration file, then built-in defaults.
+Clean settings can be configured in the `[clean]` table and with `DOPPEL_CLEAN_*` environment variables. Available keys are `workers`, `verbose`, `quiet`, `ignore_hardlinks`, `exclude`, `max_depth`, `exclude_dirs`, `exclude_files`, `min_size`, `max_size`, `dry_run`, `mode`, and `keep`. Clean-specific scan values override corresponding `[find]` values; `[find]` remains the fallback for shared scan settings. Precedence is command line, environment, configuration file, then built-in defaults.
+
+File-list inputs (`files`, `files_from`, `null`, and `ignore_empty_paths`) are invocation-specific and cannot be set in configuration. `--yes` is also command-line-only so configuration cannot silently approve destructive actions. `dry_run` can safely be enabled as a default; pass `--dry-run=false` to override it for one invocation.
 
 ## Examples
 
