@@ -60,6 +60,41 @@ func CleanCommand(cfg *config.CleanConfig, loadConfig ConfigLoader) *cli.Command
 func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Config) error {
 	cleanCfg := loaded.Clean
 	findCfg := loaded.Find
+	if cleanCfg.Workers != 0 {
+		findCfg.Workers = cleanCfg.Workers
+	}
+	if cleanCfg.Verbose {
+		findCfg.Verbose = true
+	}
+	if cleanCfg.Quiet {
+		findCfg.Quiet = true
+	}
+	if cleanCfg.Exclude != "" {
+		findCfg.Exclude = cleanCfg.Exclude
+	}
+	if cleanCfg.MaxDepth != nil {
+		maxDepth := *cleanCfg.MaxDepth
+		findCfg.MaxDepth = &maxDepth
+	}
+	if cleanCfg.ExcludeDirs != "" {
+		findCfg.ExcludeDirs = cleanCfg.ExcludeDirs
+	}
+	if cleanCfg.ExcludeFiles != "" {
+		findCfg.ExcludeFiles = cleanCfg.ExcludeFiles
+	}
+	if cleanCfg.MinSize != "" {
+		findCfg.MinSize = cleanCfg.MinSize
+	}
+	if cleanCfg.MaxSize != "" {
+		findCfg.MaxSize = cleanCfg.MaxSize
+	}
+	if cleanCfg.IgnoreHardlinks {
+		findCfg.IgnoreHardlinks = true
+	}
+	dryRun := cleanCfg.DryRun
+	if c.IsSet("dry-run") {
+		dryRun = c.Bool("dry-run")
+	}
 	if c.IsSet("mode") {
 		cleanCfg.Mode = c.String("mode")
 	}
@@ -130,7 +165,7 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 		return nil
 	}
 
-	if !c.Bool("dry-run") && !c.Bool("yes") {
+	if !dryRun && !c.Bool("yes") {
 		if !isTerminal(os.Stdin) {
 			return errors.New("clean requires --yes when standard input is not a terminal")
 		}
@@ -149,7 +184,7 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	if cleanCfg.Mode == clean.ModeTrash {
 		trash = clean.NewOSTrash()
 	}
-	results := clean.Apply(targets, cleanCfg.Mode, c.Bool("dry-run"), trash)
+	results := clean.Apply(targets, cleanCfg.Mode, dryRun, trash)
 	failed := 0
 	for _, result := range results {
 		if result.Err != nil {
