@@ -22,7 +22,7 @@ func TestApplyDeleteAndDryRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	results := Apply(targets, ModeDelete, true, nil)
+	results := Apply(targets, ModeDelete, true)
 	if results[0].Err != nil {
 		t.Fatal(results[0].Err)
 	}
@@ -30,7 +30,7 @@ func TestApplyDeleteAndDryRun(t *testing.T) {
 		t.Fatalf("dry-run removed target: %v", err)
 	}
 
-	results = Apply(targets, ModeDelete, false, nil)
+	results = Apply(targets, ModeDelete, false)
 	if results[0].Err != nil {
 		t.Fatal(results[0].Err)
 	}
@@ -57,33 +57,12 @@ func TestApplySkipsSameInode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	results := Apply([]Target{{Keeper: File{Path: keeperPath, Info: keeper}, Remove: File{Path: aliasPath, Info: alias}}}, ModeDelete, false, nil)
+	results := Apply([]Target{{Keeper: File{Path: keeperPath, Info: keeper}, Remove: File{Path: aliasPath, Info: alias}}}, ModeDelete, false)
 	if results[0].Err != nil {
 		t.Fatal(results[0].Err)
 	}
 	if _, err := os.Stat(aliasPath); err != nil {
 		t.Fatalf("same-inode target was mutated: %v", err)
-	}
-}
-
-func TestApplyTrashBackend(t *testing.T) {
-	dir := t.TempDir()
-	keeperPath := filepath.Join(dir, "keeper")
-	removePath := filepath.Join(dir, "remove")
-	for _, path := range []string{keeperPath, removePath} {
-		if err := os.WriteFile(path, []byte("same"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	keeper, _ := os.Lstat(keeperPath)
-	remove, _ := os.Lstat(removePath)
-	called := false
-	results := Apply([]Target{{Keeper: File{Path: keeperPath, Info: keeper}, Remove: File{Path: removePath, Info: remove}}}, ModeTrash, false, TrashFunc(func(path string) error {
-		called = path == removePath
-		return nil
-	}))
-	if results[0].Err != nil || !called {
-		t.Fatalf("trash result = %+v, called = %v", results[0], called)
 	}
 }
 
@@ -105,7 +84,7 @@ func TestApplyReplaceWithHardlink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	results := Apply([]Target{{Keeper: File{Path: keeperPath, Info: keeper}, Remove: File{Path: removePath, Info: remove}}}, ModeReplaceWithHardlink, false, nil)
+	results := Apply([]Target{{Keeper: File{Path: keeperPath, Info: keeper}, Remove: File{Path: removePath, Info: remove}}}, ModeReplaceWithHardlink, false)
 	if results[0].Err != nil {
 		t.Fatalf("hardlink replacement failed: %v", results[0].Err)
 	}
