@@ -180,11 +180,7 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 		}
 	}
 
-	var trash clean.Trash
-	if cleanCfg.Mode == clean.ModeTrash {
-		trash = clean.NewOSTrash()
-	}
-	results := clean.Apply(targets, cleanCfg.Mode, dryRun, trash)
+	results := clean.Apply(targets, cleanCfg.Mode, dryRun)
 	failed := 0
 	for _, result := range results {
 		if result.Err != nil {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/dr8co/doppel/internal/trash"
 )
 
 // Result describes the outcome of applying a cleanup action to a target.
@@ -23,7 +25,7 @@ type Result struct {
 
 // Apply applies mode to each target and returns one result per target. When
 // dryRun is true, targets are reported without being changed.
-func Apply(targets []Target, mode string, dryRun bool, trash Trash) []Result {
+func Apply(targets []Target, mode string, dryRun bool) []Result {
 	results := make([]Result, 0, len(targets))
 	for _, target := range targets {
 		result := Result{Target: target, Mode: mode, DryRun: dryRun}
@@ -31,13 +33,13 @@ func Apply(targets []Target, mode string, dryRun bool, trash Trash) []Result {
 			results = append(results, result)
 			continue
 		}
-		result.Err = applyTarget(target, mode, trash)
+		result.Err = applyTarget(target, mode)
 		results = append(results, result)
 	}
 	return results
 }
 
-func applyTarget(target Target, mode string, trash Trash) error {
+func applyTarget(target Target, mode string) error {
 	keeperInfo, err := os.Lstat(target.Keeper.Path)
 	if err != nil {
 		return fmt.Errorf("stat keeper %s: %w", target.Keeper.Path, err)
@@ -57,9 +59,6 @@ func applyTarget(target Target, mode string, trash Trash) error {
 	case ModeDelete:
 		return os.Remove(target.Remove.Path)
 	case ModeTrash:
-		if trash == nil {
-			return ErrUnsupportedTrash
-		}
 		return trash.Move(target.Remove.Path)
 	case ModeReplaceWithHardlink:
 		return replaceWithHardlink(target.Keeper.Path, target.Remove.Path)
