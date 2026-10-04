@@ -16,6 +16,7 @@ import (
 	"github.com/dr8co/doppel/internal/config"
 	"github.com/dr8co/doppel/internal/filter"
 	"github.com/dr8co/doppel/internal/scanner"
+	"github.com/dr8co/doppel/internal/trash"
 )
 
 // CleanCommand returns the CLI command that scans for duplicate files and
@@ -106,6 +107,9 @@ func cleanDuplicatesCmd(ctx context.Context, c *cli.Command, loaded *config.Conf
 	}
 	if err := clean.ValidateMode(cleanCfg.Mode); err != nil {
 		return err
+	}
+	if cleanCfg.Mode == clean.ModeTrash && !trash.Supported() {
+		return errors.New("trash mode is not supported on this platform")
 	}
 	if c.IsSet("workers") {
 		findCfg.Workers = c.Int("workers")
