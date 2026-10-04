@@ -203,6 +203,8 @@ import (
 	"unsafe"
 )
 
+const trashSupported bool = true
+
 func newBackend() backend { return windowsBackend{} }
 
 type windowsBackend struct{}

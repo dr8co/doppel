@@ -66,6 +66,8 @@ import (
 	"unsafe"
 )
 
+const trashSupported bool = true
+
 func newBackend() backend { return darwinBackend{} }
 
 type darwinBackend struct{}

@@ -96,6 +96,9 @@ func resolve(path string) (string, fs.FileInfo, error) {
 	return abs, fi, nil
 }
 
+// Supported reports whether the current platform supports trashing items.
+func Supported() bool { return trashSupported }
+
 // unsupported is the backend for platforms without trash support.
 type unsupported struct{}
 

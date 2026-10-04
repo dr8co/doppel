@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+const trashSupported bool = true
+
 // tools lists the supported helpers in order of priority.
 var tools = []struct {
 	name string
