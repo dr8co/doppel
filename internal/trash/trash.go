@@ -66,6 +66,7 @@ func Move(path string) error { return defaultTrash().Move(path) }
 func (t trasher) Move(path string) error {
 	abs, fi, err := resolve(path)
 	if err != nil {
+		//nolint:goconst
 		return &fs.PathError{Op: "trash", Path: path, Err: err}
 	}
 	if err := t.b.move(abs, fi); err != nil {
@@ -100,6 +101,10 @@ func resolve(path string) (string, fs.FileInfo, error) {
 func Supported() bool { return trashSupported }
 
 // unsupported is the backend for platforms without trash support.
+//
+//nolint:unused
 type unsupported struct{}
 
+//
+//nolint:unused
 func (unsupported) move(string, fs.FileInfo) error { return errors.ErrUnsupported }

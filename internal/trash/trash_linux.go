@@ -32,7 +32,10 @@ func kioArgs(abs string) []string {
 }
 
 // abs always starts with '/', so it can never be mistaken for an option.
-func gioArgs(abs string) []string { return []string{"trash", abs} }
+func gioArgs(abs string) []string {
+	//nolint:goconst
+	return []string{"trash", abs}
+}
 
 // newBackend picks the first available helper, or falls back to a direct
 // implementation of the freedesktop.org Trash specification.
@@ -52,6 +55,7 @@ type execBackend struct {
 
 func (b execBackend) move(abs string, _ fs.FileInfo) error {
 	name := filepath.Base(b.exe)
+	//nolint:gosec
 	out, err := exec.Command(b.exe, b.args(abs)...).CombinedOutput()
 	if err != nil {
 		if msg := strings.TrimSpace(string(out)); msg != "" {

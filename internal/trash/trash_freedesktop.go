@@ -85,6 +85,7 @@ func deviceOf(fi fs.FileInfo) (uint64, bool) {
 	if !ok {
 		return 0, false
 	}
+	//nolint:unconvert
 	return uint64(st.Dev), true
 }
 
@@ -148,7 +149,7 @@ func topdirTrash(top string) (string, error) {
 
 	dir := filepath.Join(top, ".Trash-"+uid)
 	if err := ensureTrashDir(dir, true); err != nil {
-		return "", fmt.Errorf("%w: no usable trash on %s: %v", ErrNotTrashable, top, err)
+		return "", fmt.Errorf("%w: no usable trash on %s: %w", ErrNotTrashable, top, err)
 	}
 	return dir, nil
 }
@@ -158,9 +159,11 @@ func topdirTrash(top string) (string, error) {
 // by the current user, as it may live in a world-writable location.
 func ensureTrashDir(dir string, strict bool) error {
 	if strict {
+		//nolint:gosec
 		if err := os.Mkdir(dir, 0o700); err != nil && !errors.Is(err, fs.ErrExist) {
 			return err
 		}
+		//nolint:gosec
 		fi, err := os.Lstat(dir)
 		if err != nil {
 			return err
@@ -171,10 +174,14 @@ func ensureTrashDir(dir string, strict bool) error {
 		if st, ok := fi.Sys().(*syscall.Stat_t); !ok || int(st.Uid) != os.Getuid() {
 			return fmt.Errorf("%s is not owned by the current user", dir)
 		}
-	} else if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
+	} else {
+		//nolint:gosec
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return err
+		}
 	}
 	for _, sub := range []string{"files", "info"} {
+		//nolint:gosec
 		if err := os.Mkdir(filepath.Join(dir, sub), 0o700); err != nil && !errors.Is(err, fs.ErrExist) {
 			return err
 		}
@@ -186,8 +193,8 @@ func ensureTrashDir(dir string, strict bool) error {
 // top is "" and the info file records the absolute path; for a top-directory
 // trash it records the path relative to top.
 func trashInto(trashDir, top, abs string, fi fs.FileInfo) error {
-	if real, err := filepath.EvalSymlinks(trashDir); err == nil {
-		trashDir = real
+	if realDir, err := filepath.EvalSymlinks(trashDir); err == nil {
+		trashDir = realDir
 	}
 	if isWithin(abs, trashDir) || isWithin(trashDir, abs) {
 		return fmt.Errorf("%w: %s overlaps the trash directory", ErrNotTrashable, abs)
@@ -215,6 +222,7 @@ func trashInto(trashDir, top, abs string, fi fs.FileInfo) error {
 
 		// The spec requires creating the info file first, atomically
 		// (O_EXCL), so concurrent trashers never pick the same name.
+		//nolint:gosec
 		f, err := os.OpenFile(infoPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 		if errors.Is(err, fs.ErrExist) {
 			continue
@@ -225,24 +233,24 @@ func trashInto(trashDir, top, abs string, fi fs.FileInfo) error {
 
 		// A stray entry without info file must not be overwritten either.
 		if _, err := os.Lstat(dst); err == nil {
-			f.Close()
-			os.Remove(infoPath)
+			_ = f.Close()
+			_ = os.Remove(infoPath)
 			continue
 		} else if !errors.Is(err, fs.ErrNotExist) {
-			f.Close()
-			os.Remove(infoPath)
+			_ = f.Close()
+			_ = os.Remove(infoPath)
 			return err
 		}
 
 		_, werr := io.WriteString(f, info)
 		cerr := f.Close()
 		if err := errors.Join(werr, cerr); err != nil {
-			os.Remove(infoPath)
+			_ = os.Remove(infoPath)
 			return err
 		}
 
 		if err := os.Rename(abs, dst); err != nil {
-			os.Remove(infoPath)
+			_ = os.Remove(infoPath)
 			return err
 		}
 		if fi.IsDir() {
@@ -286,7 +294,7 @@ func isWithin(path, dir string) bool {
 func encodePath(p string) string {
 	const hex = "0123456789ABCDEF"
 	var b strings.Builder
-	for i := 0; i < len(p); i++ {
+	for i := range len(p) {
 		c := p[i]
 		switch {
 		case 'a' <= c && c <= 'z', 'A' <= c && c <= 'Z', '0' <= c && c <= '9',
@@ -319,6 +327,7 @@ func updateDirectorySizes(trashDir, name, infoPath, dst string) error {
 
 	cachePath := filepath.Join(trashDir, "directorysizes")
 	var kept strings.Builder
+	//nolint:gosec
 	if old, err := os.ReadFile(cachePath); err == nil {
 		for line := range strings.SplitSeq(string(old), "\n") {
 			if line == "" {
@@ -340,16 +349,16 @@ func updateDirectorySizes(trashDir, name, infoPath, dst string) error {
 		return err
 	}
 	if _, err := tmp.WriteString(kept.String()); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
 		return err
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmp.Name())
+		_ = os.Remove(tmp.Name())
 		return err
 	}
 	if err := os.Rename(tmp.Name(), cachePath); err != nil {
-		os.Remove(tmp.Name())
+		_ = os.Remove(tmp.Name())
 		return err
 	}
 	return nil
@@ -375,12 +384,14 @@ func diskUsage(root string) (int64, error) {
 			return errors.New("no stat information available")
 		}
 		if st.Nlink > 1 && !d.IsDir() {
+			//nolint:unconvert
 			key := inode{uint64(st.Dev), uint64(st.Ino)}
 			if _, dup := seen[key]; dup {
 				return nil
 			}
 			seen[key] = struct{}{}
 		}
+		//nolint:unconvert
 		total += int64(st.Blocks) * 512
 		return nil
 	})
