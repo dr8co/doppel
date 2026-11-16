@@ -3,7 +3,7 @@ module github.com/dr8co/doppel
 go 1.27
 
 require (
-	charm.land/lipgloss/v2 v2.0.6
+	charm.land/lipgloss/v2 v2.1.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/urfave/cli/v3 v3.14.0
