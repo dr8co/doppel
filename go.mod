@@ -9,7 +9,7 @@ require (
 	github.com/urfave/cli/v3 v3.14.0
 	github.com/zeebo/xxh3 v1.1.0
 	gopkg.in/yaml.v3 v3.0.1
-	lukechampine.com/blake3 v1.4.1
+	lukechampine.com/blake3 v1.5.1
 )
 
 require (
